@@ -91,8 +91,8 @@ export default function ThreeDCanvas() {
     pointLight.position.set(0, 0, 4);
     scene.add(pointLight);
 
-    // Clock for time-based animation
-    const clock = new THREE.Clock();
+    // Timer for time-based animation (THREE.Clock is deprecated)
+    const timer = new THREE.Timer();
 
     // Mouse & Auto Rotation Tracking
     let targetX = 0;
@@ -133,7 +133,8 @@ export default function ThreeDCanvas() {
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      const time = clock.getElapsedTime() * 0.45; // slowed down for elegance
+      timer.update();
+      const time = timer.getElapsed() * 0.45; // slowed down for elegance
       const positions = positionAttr.array;
 
       // Apply dynamic multi-wave noise displacement to vertices
