@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   AlertTriangle,
   CheckCircle,
-  Clock,
+
   Package,
   Calendar,
   TrendingUp,
@@ -13,107 +13,27 @@ import {
   Filter,
   CheckCheck,
   Eye,
-  EyeOff,
-  X,
-} from "lucide-react";
+  X } from
+"lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useUserStore } from "@/lib/store";
 
 
-const mockAlerts = [
-  {
-    id: "1",
-    type: "low-stock",
-    severity: "warning",
-    title: "Low Stock Warning",
-    message: "Keyboard Wired has dropped below reorder point (8 units).",
-    product: "Keyboard Wired",
-    productId: "4",
-    timestamp: "2026-07-03 09:30 AM",
-    read: false,
-    currentStock: 3,
-    leadTime: 2,
-    forecastDemand: 40,
-  },
-  {
-    id: "2",
-    type: "predictive",
-    severity: "critical",
-    title: "Predictive Stockout Alert",
-    message: "Wireless Mouse is predicted to stock out in 5 days.",
-    product: "Wireless Mouse",
-    productId: "1",
-    timestamp: "2026-07-03 08:15 AM",
-    read: false,
-    predictedDate: "2026-07-08",
-    currentStock: 12,
-    leadTime: 3,
-    forecastDemand: 45,
-  },
-  {
-    id: "3",
-    type: "expiry",
-    severity: "critical",
-    title: "Expiry Alert: 7 Days",
-    message: "Ink Cartridges (batch IC-2024-02) expires in 7 days.",
-    product: "Ink Cartridges",
-    productId: "5",
-    timestamp: "2026-07-02 04:45 PM",
-    read: false,
-    expiryDays: 7,
-  },
-  {
-    id: "4",
-    type: "expiry",
-    severity: "warning",
-    title: "Expiry Alert: 15 Days",
-    message: "Medi-Kit Refills (batch M2024-03) expires in 15 days.",
-    product: "Medi-Kit Refills",
-    productId: "6",
-    timestamp: "2026-07-02 04:45 PM",
-    read: false,
-    expiryDays: 15,
-  },
-  {
-    id: "5",
-    type: "anomaly",
-    severity: "warning",
-    title: "Unusual Stock Movement Detected",
-    message: "Large negative adjustment (-50 units) detected for USB-C Cables.",
-    product: "USB-C Cables",
-    productId: "2",
-    timestamp: "2026-07-01 02:20 PM",
-    read: true,
-    anomalyScore: 78,
-  },
-  {
-    id: "6",
-    type: "out-of-stock",
-    severity: "critical",
-    title: "Out of Stock",
-    message: "Desk Monitor Stand is completely out of stock.",
-    product: "Desk Monitor Stand",
-    productId: "3",
-    timestamp: "2026-06-30 11:00 AM",
-    read: true,
-    currentStock: 0,
-  },
-];
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatsGrid } from "@/components/shared/StatsGrid";
+import { ExplainabilitySheet } from "@/components/shared/ExplainabilitySheet";
+
+import { notificationsApi } from "@/lib/api";
 
 const severityColors = {
   critical: "bg-red-500 text-white",
   warning: "bg-amber-500 text-white",
-  info: "bg-blue-500 text-white",
+  info: "bg-blue-500 text-white"
 };
 
 const typeBadgeVariants = {
@@ -121,30 +41,50 @@ const typeBadgeVariants = {
   "out-of-stock": "border-red-200 bg-red-50 text-red-700",
   predictive: "border-purple-200 bg-purple-50 text-purple-700",
   expiry: "border-orange-200 bg-orange-50 text-orange-700",
-  anomaly: "border-pink-200 bg-pink-50 text-pink-700",
+  anomaly: "border-pink-200 bg-pink-50 text-pink-700"
 };
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState(mockAlerts);
+  const [alerts, setAlerts] = useState([]);
   const [severityFilter, setSeverityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [readFilter, setReadFilter] = useState("all");
 
+  useEffect(() => {
+    notificationsApi.list().then((items) =>
+    setAlerts(
+      items.map((a) => ({
+        id: String(a.id),
+        type: a.notification_type.replace("_", "-"),
+        severity: a.severity,
+        title: a.title,
+        message: a.message,
+        product: a.related_entity_id,
+        timestamp: new Date(a.created_at).toLocaleString(),
+        read: a.is_read,
+        explanation: a.explanation_json
+      }))
+    )
+    );
+  }, []);
+
   const filteredAlerts = alerts.filter((alert) => {
     const severityMatch = severityFilter === "all" || alert.severity === severityFilter;
     const typeMatch = typeFilter === "all" || alert.type === typeFilter;
-    const readMatch = readFilter === "all" || (readFilter === "read" && alert.read) || (readFilter === "unread" && !alert.read);
+    const readMatch = readFilter === "all" || readFilter === "read" && alert.read || readFilter === "unread" && !alert.read;
     return severityMatch && typeMatch && readMatch;
   });
 
   const unreadCount = alerts.filter((a) => !a.read).length;
 
-  const markAsRead = (id) => {
-    setAlerts(alerts.map((a) => (a.id === id ? { ...a, read: true } : a)));
+  const markAsRead = async (id) => {
+    await notificationsApi.markRead(Number(id));
+    setAlerts(alerts.map((a) => a.id === id ? { ...a, read: true } : a));
     toast.success("Alert marked as read");
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    await notificationsApi.markAllRead();
     setAlerts(alerts.map((a) => ({ ...a, read: true })));
     toast.success("All alerts marked as read");
   };
@@ -170,63 +110,44 @@ export default function AlertsPage() {
     }
   };
 
+  const stats = {
+    critical: alerts.filter((a) => a.severity === "critical" && !a.read).length,
+    warning: alerts.filter((a) => a.severity === "warning" && !a.read).length,
+    info: alerts.filter((a) => a.severity === "info" && !a.read).length,
+    predictive: alerts.filter((a) => a.type === "predictive" && !a.read).length
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Alerts & Notifications</h1>
-          <p className="text-slate-500">Monitor stock warnings, predictions, and system notifications</p>
-        </div>
+      <PageHeader
+        title="Alerts & Notifications"
+        description="Monitor stock warnings, predictions, and system notifications"
+        actions={
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-sm">
-            <Bell className="mr-1 h-3 w-3" /> {unreadCount} unread
-          </Badge>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
-            </Button>
-          )}
-        </div>
-      </div>
+            <Badge variant="secondary" className="text-sm">
+              <Bell className="mr-1 h-3 w-3" /> {unreadCount} unread
+            </Badge>
+            {unreadCount > 0 &&
+          <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
+              </Button>
+          }
+          </div>
+        } />
+      
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-l-4 border-red-500">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Critical</p>
-            <p className="text-2xl font-bold text-red-600">
-              {alerts.filter((a) => a.severity === "critical" && !a.read).length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-amber-500">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Warning</p>
-            <p className="text-2xl font-bold text-amber-600">
-              {alerts.filter((a) => a.severity === "warning" && !a.read).length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-blue-500">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Info</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {alerts.filter((a) => a.severity === "info" && !a.read).length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-purple-500">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Predictive</p>
-            <p className="text-2xl font-bold text-purple-600">
-              {alerts.filter((a) => a.type === "predictive" && !a.read).length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsGrid
+        stats={[
+        { label: "Critical", value: stats.critical, color: "red", highlight: true },
+        { label: "Warning", value: stats.warning, color: "amber", highlight: true },
+        { label: "Info", value: stats.info, color: "blue", highlight: true },
+        { label: "Predictive", value: stats.predictive, color: "purple", highlight: true }]
+        } />
+      
 
-      <Card>
+      <Card className="glass-card">
         <CardContent className="flex flex-wrap items-center gap-4 p-4">
-          <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-slate-400" /><span className="text-sm text-slate-500">Filters:</span></div>
+          <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-slate-400" /><span className="text-sm text-slate-400">Filters:</span></div>
           <Select value={severityFilter} onValueChange={setSeverityFilter}>
             <SelectTrigger className="w-[120px]"><SelectValue placeholder="Severity" /></SelectTrigger>
             <SelectContent>
@@ -256,24 +177,24 @@ export default function AlertsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-0">
           <ScrollArea className="h-[500px]">
             <div className="divide-y divide-slate-100">
-              {filteredAlerts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+              {filteredAlerts.length === 0 ?
+              <div className="flex flex-col items-center justify-center p-12 text-slate-400">
                   <CheckCircle className="h-12 w-12 mb-2 text-green-400" />
                   <p className="text-lg font-medium">All clear!</p>
-                </div>
-              ) : (
-                filteredAlerts.map((alert) => (
-                  <div key={alert.id} className={`flex items-start gap-4 p-4 transition-colors hover:bg-slate-50 ${!alert.read ? "bg-slate-50/80" : ""}`}>
-                    <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-full ${!alert.read ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-400"}`}>
+                </div> :
+
+              filteredAlerts.map((alert) =>
+              <div key={alert.id} className={`flex items-start gap-4 p-4 transition-colors hover:bg-slate-900/50 ${!alert.read ? "bg-slate-900/50/80" : ""}`}>
+                    <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-full ${!alert.read ? "bg-teal-100 text-teal-700" : "bg-slate-800/50 text-slate-400"}`}>
                       {getAlertIcon(alert.type)}
                     </div>
                     <div className="flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={`${!alert.read ? severityColors[alert.severity] : "bg-slate-100 text-slate-400"}`}>
+                        <Badge className={`${!alert.read ? severityColors[alert.severity] : "bg-slate-800/50 text-slate-400"}`}>
                           {alert.severity}
                         </Badge>
                         <Badge variant="outline" className={typeBadgeVariants[alert.type]}>
@@ -281,58 +202,55 @@ export default function AlertsPage() {
                         </Badge>
                         {!alert.read && <Badge className="bg-teal-500 text-white">New</Badge>}
                       </div>
-                      <h4 className="font-medium text-slate-900">{alert.title}</h4>
-                      <p className="text-sm text-slate-600">{alert.message}</p>
+                      <h4 className="font-medium text-slate-100">{alert.title}</h4>
+                      <p className="text-sm text-slate-400">{alert.message}</p>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                         <span>Product: {alert.product}</span><span>•</span><span>{alert.timestamp}</span>
-                        {alert.type === "predictive" && alert.predictedDate && (
-                          <><span>•</span><span className="text-purple-600 font-medium">Predicted: {alert.predictedDate}</span></>
-                        )}
-                        {alert.type === "expiry" && alert.expiryDays && (
-                          <><span>•</span><span className={`font-medium ${alert.expiryDays <= 7 ? "text-red-600" : alert.expiryDays <= 15 ? "text-amber-600" : "text-blue-600"}`}>{alert.expiryDays} days</span></>
-                        )}
+                        {alert.type === "predictive" && alert.predictedDate &&
+                    <><span>•</span><span className="text-purple-600 font-medium">Predicted: {alert.predictedDate}</span></>
+                    }
+                        {alert.type === "expiry" && alert.expiryDays &&
+                    <><span>•</span><span className={`font-medium ${alert.expiryDays <= 7 ? "text-red-600" : alert.expiryDays <= 15 ? "text-amber-600" : "text-blue-600"}`}>{alert.expiryDays} days</span></>
+                    }
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {alert.type === "predictive" && (
-                        <Sheet>
-                          <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-purple-600">
+                      {alert.type === "predictive" &&
+                  <ExplainabilitySheet
+                    title="Predictive Alert Explanation"
+                    trigger={
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-purple-600">
                               <HelpCircle className="h-4 w-4" />
                             </Button>
-                          </SheetTrigger>
-                          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-                            <div className="mt-6 space-y-4">
-                              <h3 className="text-lg font-semibold text-purple-900">Predictive Alert Explanation</h3>
-                              <div className="rounded-lg bg-purple-50 p-4">
-                                <p className="font-medium">Why is this predicted?</p>
-                                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
-                                  <li>Current Stock: <strong>{alert.currentStock}</strong></li>
-                                  <li>Lead Time: <strong>{alert.leadTime} days</strong></li>
-                                  <li>Forecast Demand: <strong>{alert.forecastDemand}</strong> units</li>
-                                  <li>Predicted Stockout: <strong className="text-red-600">{alert.predictedDate}</strong></li>
-                                </ul>
-                              </div>
-                            </div>
-                          </SheetContent>
-                        </Sheet>
-                      )}
-                      {!alert.read && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-teal-600" onClick={() => markAsRead(alert.id)}>
+                    }>
+                    
+                          <div className="rounded-lg bg-purple-50 p-4">
+                            <p className="font-medium">Why is this predicted?</p>
+                            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                              <li>Current Stock: <strong>{alert.currentStock}</strong></li>
+                              <li>Lead Time: <strong>{alert.leadTime} days</strong></li>
+                              <li>Forecast Demand: <strong>{alert.forecastDemand}</strong> units</li>
+                              <li>Predicted Stockout: <strong className="text-red-600">{alert.predictedDate}</strong></li>
+                            </ul>
+                          </div>
+                        </ExplainabilitySheet>
+                  }
+                      {!alert.read &&
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-teal-600" onClick={() => markAsRead(alert.id)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                      )}
+                  }
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-600" onClick={() => dismissAlert(alert.id)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                ))
-              )}
+              )
+              }
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 }

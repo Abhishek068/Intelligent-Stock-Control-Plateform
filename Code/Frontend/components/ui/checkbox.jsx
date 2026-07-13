@@ -11,13 +11,13 @@ function Checkbox({ className, ...props }) {
         "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary size-4 shrink-0 rounded-[4px] border shadow-xs outline-none disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
-      {...props}
-    >
+      {...props}>
+      
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current transition-none">
         <CheckIcon className="size-3.5" />
       </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  );
+    </CheckboxPrimitive.Root>);
+
 }
 
 export { Checkbox };

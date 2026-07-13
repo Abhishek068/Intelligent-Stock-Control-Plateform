@@ -9,8 +9,8 @@ function ScrollArea({ className, children, ...props }) {
       <ScrollAreaPrimitive.Viewport className="size-full rounded-[inherit]">{children}</ScrollAreaPrimitive.Viewport>
       <ScrollBar />
       <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  );
+    </ScrollAreaPrimitive.Root>);
+
 }
 
 function ScrollBar({ className, orientation = "vertical", ...props }) {
@@ -23,11 +23,11 @@ function ScrollBar({ className, orientation = "vertical", ...props }) {
         orientation === "horizontal" && "h-2.5 flex-col border-t border-t-transparent",
         className
       )}
-      {...props}
-    >
+      {...props}>
+      
       <ScrollAreaPrimitive.ScrollAreaThumb className="bg-border relative flex-1 rounded-full" />
-    </ScrollAreaPrimitive.ScrollAreaScrollbar>
-  );
+    </ScrollAreaPrimitive.ScrollAreaScrollbar>);
+
 }
 
 export { ScrollArea, ScrollBar };

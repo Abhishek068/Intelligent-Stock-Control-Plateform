@@ -1,23 +1,24 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUserStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore } from "@/lib/store";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({ children }) {
-  const { role } = useUserStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const { sidebarCollapsed } = useUIStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!role) {
+    if (!isAuthenticated || !user) {
       router.push("/login");
     }
-  }, [role, router]);
+  }, [isAuthenticated, user, router]);
 
-  if (!role) {
+  if (!isAuthenticated || !user) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
@@ -29,8 +30,8 @@ export default function DashboardLayout({ children }) {
         sidebarCollapsed ? "pl-16" : "pl-64"
       )}>
         <Topbar />
-        <main className="min-h-[calc(100vh-64px)] bg-slate-50 p-6">{children}</main>
+        <main className="min-h-[calc(100vh-64px)] p-6">{children}</main>
       </div>
-    </div>
-  );
+    </div>);
+
 }

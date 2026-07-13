@@ -1,162 +1,197 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { TrendingUp, Calendar, Package, HelpCircle, Info, ArrowUpDown } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, ComposedChart, Legend } from "recharts";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { TrendingUp, Package, RefreshCw } from "lucide-react";
+import {
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ComposedChart,
+  Legend } from
+"recharts";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-
-const mockProducts = [
-  { id: "1", name: "Wireless Mouse", sku: "SKU-001" },
-  { id: "2", name: "USB-C Cable (2m)", sku: "SKU-002" },
-  { id: "3", name: "Desk Monitor Stand", sku: "SKU-003" },
-];
-
-const generateForecastData = (productId) => {
-  const base = [45, 52, 48, 60, 55, 70, 65, 72, 68, 75, 82, 78];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return months.map((m, i) => ({
-    month: m,
-    actual: i < 9 ? base[i] : null,
-    predicted: i >= 9 ? base[i] * (1 + (i - 9) * 0.02) : null,
-    lowerBound: i >= 9 ? base[i] * (1 + (i - 9) * 0.02) * 0.85 : null,
-    upperBound: i >= 9 ? base[i] * (1 + (i - 9) * 0.02) * 1.15 : null,
-    naive: i >= 9 ? base[8] * (1 + (i - 9) * 0.01) : null,
-  }));
-};
-
-const volatilityData = [
-  { id: "1", name: "Wireless Mouse", volatility: 0.18, demand: 65, trend: "+8%", class: "Medium" },
-  { id: "2", name: "USB-C Cable (2m)", volatility: 0.25, demand: 145, trend: "+5%", class: "High" },
-  { id: "3", name: "Desk Monitor Stand", volatility: 0.12, demand: 35, trend: "+12%", class: "Low" },
-];
+import { productsApi, analyticsApi } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 
 export default function ForecastingPage() {
-  const [selectedProductId, setSelectedProductId] = useState("1");
-  const [dateRange, setDateRange] = useState("12m");
-  const [showConfidence, setShowConfidence] = useState(true);
-  const [showNaive, setShowNaive] = useState(false);
-  const [intermittentMode, setIntermittentMode] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [chartPayload, setChartPayload] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  const data = useMemo(() => generateForecastData(selectedProductId), [selectedProductId]);
-  const selectedProduct = mockProducts.find((p) => p.id === selectedProductId);
-  const filteredData = useMemo(() => {
-    const slice = dateRange === "6m" ? 6 : 12;
-    return data.slice(-slice);
-  }, [data, dateRange]);
+  useEffect(() => {
+    productsApi.list().then((p) => {
+      setProducts(p);
+      if (p.length > 0) setSelectedProductId(String(p[0].id));
+    });
+  }, []);
 
-  const metrics = useMemo(() => {
-    const preds = filteredData.filter((d) => d.predicted !== null);
-    if (preds.length === 0) return { mae: 0, rmse: 0, mape: 0 };
-    const mae = preds.reduce((s, d) => s + Math.abs(d.actual - d.predicted), 0) / preds.length;
-    const rmse = Math.sqrt(preds.reduce((s, d) => s + Math.pow(d.actual - d.predicted, 2), 0) / preds.length);
-    const mape = (preds.reduce((s, d) => s + Math.abs((d.actual - d.predicted) / d.actual), 0) / preds.length) * 100;
-    return { mae: mae.toFixed(1), rmse: rmse.toFixed(1), mape: mape.toFixed(1) };
-  }, [filteredData]);
+  const loadForecast = useCallback(async (productId) => {
+    if (!productId) return;
+    setLoading(true);
+    try {
+      const res = await analyticsApi.getForecast(productId);
+      if (res.success && res.data) setChartPayload(res.data);
+    } catch {
+      setChartPayload(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProductId) loadForecast(selectedProductId);
+  }, [selectedProductId, loadForecast]);
+
+  const chartData = useMemo(() => {
+    if (!chartPayload?.chart) return [];
+    const history = (chartPayload.chart.history || []).map((h) => ({
+      label: h.date,
+      actual: h.actual,
+      predicted: null
+    }));
+    const forecast = (chartPayload.chart.forecast || []).map((f) => ({
+      label: f.date,
+      actual: null,
+      predicted: f.predicted
+    }));
+    return [...history, ...forecast];
+  }, [chartPayload]);
+
+  const metrics = chartPayload?.chart?.metrics || {};
+  const selectedProduct = products.find((p) => String(p.id) === selectedProductId);
+
+  const handleGenerate = async () => {
+    if (!selectedProductId) return;
+    setGenerating(true);
+    try {
+      const res = await analyticsApi.generateForecast(Number(selectedProductId));
+      if (res.success && res.data) {
+        setChartPayload({ chart: res.data.chart, latest_forecast: res.data.forecast });
+        toast.success("Forecast generated");
+      }
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Forecast generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold tracking-tight text-slate-900">Demand Forecasting</h1><p className="text-slate-500">AI-powered predictions to optimise inventory planning</p></div>
-        <Badge variant="outline" className="text-purple-600"><TrendingUp className="mr-1 h-3 w-3" /> E08</Badge>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Demand Forecasting</h1>
+          <p className="text-slate-400">Statistical demand predictions from stock movement history</p>
+        </div>
+        <Badge variant="outline" className="text-purple-600">
+          <TrendingUp className="mr-1 h-3 w-3" /> E08
+        </Badge>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardContent className="flex flex-wrap items-center gap-4 p-4">
-          <div className="flex items-center gap-2"><Package className="h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-slate-400" />
             <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select product" /></SelectTrigger>
-              <SelectContent>{mockProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Select product" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) =>
+                <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </SelectItem>
+                )}
+              </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-400" />
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="6m">Last 6 months</SelectItem><SelectItem value="12m">Last 12 months</SelectItem></SelectContent>
-            </Select>
-          </div>
-          <Separator orientation="vertical" className="h-8" />
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2"><Checkbox id="confidence" checked={showConfidence} onCheckedChange={(v) => setShowConfidence(!!v)} /><Label htmlFor="confidence" className="text-sm">Confidence Band</Label></div>
-            <div className="flex items-center gap-2"><Checkbox id="naive" checked={showNaive} onCheckedChange={(v) => setShowNaive(!!v)} /><Label htmlFor="naive" className="text-sm">Baseline (Naive)</Label></div>
-            <div className="flex items-center gap-2"><Checkbox id="intermittent" checked={intermittentMode} onCheckedChange={(v) => setIntermittentMode(!!v)} /><Label htmlFor="intermittent" className="text-sm">Intermittent Mode</Label></div>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => loadForecast(selectedProductId)} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          <Button size="sm" onClick={handleGenerate} disabled={generating || !selectedProductId}>
+            {generating ? "Generating..." : "Generate Forecast"}
+          </Button>
         </CardContent>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-4">
         <Card className="lg:col-span-3 shadow-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div><CardTitle>Demand Forecast</CardTitle><CardDescription>{selectedProduct?.name} · Actual vs Predicted</CardDescription></div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-teal-500" />Actual</span>
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-purple-500" />Predicted</span>
-                {showNaive && <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-slate-400" />Baseline</span>}
-              </div>
-            </div>
+            <CardTitle>Demand Forecast</CardTitle>
+            <CardDescription>
+              {selectedProduct?.name || "—"} · Actual vs Predicted
+            </CardDescription>
           </CardHeader>
           <CardContent className="h-80">
+            {chartData.length === 0 ?
+            <p className="flex h-full items-center justify-center text-slate-400">
+                {loading ? "Loading..." : "No forecast data — generate a forecast or run seed_demo_data"}
+              </p> :
+
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
-                <XAxis dataKey="month" fontSize={12} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Legend />
-                {showConfidence && <Area type="monotone" dataKey="upperBound" stroke="transparent" fill="#C084FC" fillOpacity={0.2} />}
-                {showConfidence && <Area type="monotone" dataKey="lowerBound" stroke="transparent" fill="#C084FC" fillOpacity={0.2} />}
-                <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={{ r: 3 }} name="Actual" />
-                <Line type="monotone" dataKey="predicted" stroke="#8B5CF6" strokeWidth={2} strokeDasharray={intermittentMode ? "2 4" : "0"} dot={{ r: 3 }} name="Predicted" />
-                {showNaive && <Line type="monotone" dataKey="naive" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="5 5" dot={{ r: 2 }} name="Baseline" />}
-              </ComposedChart>
-            </ResponsiveContainer>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
+                  <XAxis dataKey="label" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={{ r: 2 }} name="Actual" />
+                  <Line
+                  type="monotone"
+                  dataKey="predicted"
+                  stroke="#8B5CF6"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  dot={{ r: 2 }}
+                  name="Predicted" />
+                
+                </ComposedChart>
+              </ResponsiveContainer>
+            }
           </CardContent>
         </Card>
 
         <div className="space-y-6">
-          <Card><CardHeader><CardTitle className="text-sm font-medium">Accuracy Metrics</CardTitle></CardHeader>
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Accuracy Metrics</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div><div className="flex justify-between text-sm"><span className="text-slate-500">MAE</span><span className="font-mono font-bold">{metrics.mae}</span></div><Progress value={70} className="h-1" /></div>
-              <div><div className="flex justify-between text-sm"><span className="text-slate-500">RMSE</span><span className="font-mono font-bold">{metrics.rmse}</span></div><Progress value={65} className="h-1" /></div>
-              <div><div className="flex justify-between text-sm"><span className="text-slate-500">MAPE</span><span className="font-mono font-bold">{metrics.mape}%</span></div><Progress value={parseFloat(metrics.mape) > 20 ? 30 : 75} className="h-1" /></div>
-            </CardContent>
-          </Card>
-
-          <Card><CardHeader><CardTitle className="text-sm font-medium">Forecast Model</CardTitle></CardHeader>
-            <CardContent>
-              <Select defaultValue="ets"><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="ets">Exponential Smoothing (ETS)</SelectItem><SelectItem value="arima">ARIMA</SelectItem><SelectItem value="prophet">Prophet</SelectItem></SelectContent>
-              </Select>
-              <Sheet><SheetTrigger asChild><Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-purple-600"><HelpCircle className="mr-1 h-3 w-3" /> Model comparison</Button></SheetTrigger>
-                <SheetContent side="right"><div className="mt-6"><h3 className="text-lg font-semibold">Model Comparison</h3><div className="space-y-3 mt-4 text-sm"><div className="flex justify-between border-b py-2"><span>ETS</span><Badge className="bg-green-500">Best</Badge></div><div className="flex justify-between border-b py-2"><span>ARIMA</span><span className="text-slate-500">MAE: 6.8</span></div><div className="flex justify-between border-b py-2"><span>Naive</span><span className="text-slate-500">MAE: 12.4</span></div></div></div></SheetContent></Sheet>
+              <div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">MAE</span>
+                  <span className="font-mono font-bold">{metrics.mae ?? "—"}</span>
+                </div>
+                <Progress value={metrics.mae ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1" />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">RMSE</span>
+                  <span className="font-mono font-bold">{metrics.rmse ?? "—"}</span>
+                </div>
+                <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1" />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Model</span>
+                  <span className="font-mono text-xs">{metrics.model_name ?? "—"}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>);
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-sm font-medium"><ArrowUpDown className="h-4 w-4 text-slate-500" /> Product Prioritisation by Volatility</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {volatilityData.map((item) => (
-              <div key={item.id} className={`rounded-lg border p-4 ${item.id === selectedProductId ? "border-purple-400 bg-purple-50/50" : "border-slate-200"}`}>
-                <div className="flex items-center justify-between"><p className="font-medium">{item.name}</p><Badge className={item.class === "High" ? "bg-red-500" : item.class === "Medium" ? "bg-amber-500" : "bg-green-500"}>{item.class}</Badge></div>
-                <div className="mt-2 space-y-1 text-sm"><div className="flex justify-between"><span className="text-slate-500">Volatility</span><span className="font-mono">{(item.volatility * 100).toFixed(0)}%</span></div><div className="flex justify-between"><span className="text-slate-500">Avg Demand</span><span className="font-mono">{item.demand}</span></div></div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }

@@ -1,0 +1,27 @@
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+.env.local
+db.sqlite3
+staticfiles/
+media/
+*.log
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Ignore seed data and local db setup scripts
+core/management/commands/
+scripts/

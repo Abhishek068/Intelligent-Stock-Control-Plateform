@@ -1,89 +1,154 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowDownToLine, ArrowUpFromLine, ScanBarcode, ClipboardList, Clock } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ClipboardList,
+  RefreshCw,
+  AlertTriangle } from
+"lucide-react";
 
-const todayTasks = [
-  { id: 1, task: "Receive stock: Order PO-2024-01", priority: "High", deadline: "Today, 4:00 PM" },
-  { id: 2, task: "Issue stock for Department A", priority: "Medium", deadline: "Today, 5:00 PM" },
-  { id: 3, task: "Count inventory in Warehouse B", priority: "Low", deadline: "Tomorrow, 10:00 AM" },
-];
-
-const recentItems = [
-  { product: "Laptop Charger", action: "Stock Out", quantity: 2, time: "10:32 AM" },
-  { product: "USB-C Hub", action: "Stock In", quantity: 15, time: "09:15 AM" },
-];
-
-const belowThreshold = [
-  { product: "Keyboard Wired", current: 3, threshold: 8, gap: -5 },
-  { product: "Webcam HD", current: 5, threshold: 6, gap: -1 },
-];
+import { dashboardApi, analyticsApi, notificationsApi } from "@/lib/api";
 
 export default function StaffDashboard() {
-  const [barcodeInput, setBarcodeInput] = useState("");
+  const [stats, setStats] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [reorderItems, setReorderItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboard = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, notifications, recommendations] = await Promise.all([
+      dashboardApi.getStats(),
+      notificationsApi.list({ is_read: "false" }),
+      analyticsApi.listRecommendations().catch(() => [])]
+      );
+      if (statsRes.success && statsRes.data) setStats(statsRes.data);
+      setAlerts(notifications.slice(0, 5));
+      setReorderItems(
+        recommendations.
+        filter((r) => r.priority === "critical" || r.priority === "high").
+        slice(0, 5)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-3xl font-bold tracking-tight text-slate-900">Staff Dashboard</h1><p className="text-slate-500">Your daily operational tasks & quick actions</p></div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Staff Dashboard</h1>
+          <p className="text-slate-400 mt-1">Daily operational tasks and quick actions</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={loadDashboard} disabled={loading} className="bg-slate-900/50">
+          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="cursor-pointer border-2 border-teal-100 bg-gradient-to-br from-teal-50 to-white shadow-sm hover:shadow-md">
-          <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-            <div className="rounded-full bg-teal-100 p-3 text-teal-600"><ArrowDownToLine className="h-6 w-6" /></div>
-            <p className="mt-2 font-semibold text-slate-900">Quick Stock In</p>
+        <Link href="/stock-in">
+          <Card className="glass-card cursor-pointer border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent hover:border-indigo-500/40 hover:bg-indigo-500/20 transition-all h-full">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
+              <div className="rounded-full bg-indigo-500/20 p-3 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                <ArrowDownToLine className="h-6 w-6" />
+              </div>
+              <p className="mt-3 font-semibold text-slate-200">Quick Stock In</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/stock-out">
+          <Card className="glass-card cursor-pointer border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent hover:border-emerald-500/40 hover:bg-emerald-500/20 transition-all h-full">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
+              <div className="rounded-full bg-emerald-500/20 p-3 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                <ArrowUpFromLine className="h-6 w-6" />
+              </div>
+              <p className="mt-3 font-semibold text-slate-200">Quick Stock Out</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Card className="glass-card">
+          <CardContent className="p-4 h-full flex flex-col justify-center">
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Products Tracked</p>
+            <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.total_products ?? "—"}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white shadow-sm hover:shadow-md">
-          <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-            <div className="rounded-full bg-blue-100 p-3 text-blue-600"><ArrowUpFromLine className="h-6 w-6" /></div>
-            <p className="mt-2 font-semibold text-slate-900">Quick Stock Out</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md">
-          <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-            <div className="rounded-full bg-purple-100 p-3 text-purple-600"><ScanBarcode className="h-6 w-6" /></div>
-            <p className="mt-2 font-semibold text-slate-900">Scan Item</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer border-2 border-amber-100 bg-gradient-to-br from-amber-50 to-white shadow-sm hover:shadow-md">
-          <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-            <div className="rounded-full bg-amber-100 p-3 text-amber-600"><ClipboardList className="h-6 w-6" /></div>
-            <p className="mt-2 font-semibold text-slate-900">Assigned Tasks</p>
-            <p className="text-xs text-slate-500">{todayTasks.length} pending</p>
+        <Card className="glass-card">
+          <CardContent className="p-4 h-full flex flex-col justify-center">
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Open Alerts</p>
+            <p className="text-3xl font-bold text-amber-500 mt-2">{stats?.open_alerts_count ?? "—"}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border border-teal-100 bg-teal-50/50 shadow-sm">
-        <CardContent className="flex flex-col items-center gap-4 p-4 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-3"><div className="rounded-full bg-teal-100 p-2 text-teal-600"><ScanBarcode className="h-5 w-5" /></div><div><p className="text-sm font-medium text-teal-900">Barcode Quick-Scan</p><p className="text-xs text-teal-700">Scan or type barcode to process item</p></div></div>
-          <div className="flex w-full max-w-sm items-center gap-2">
-            <Input placeholder="Enter barcode" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} className="border-teal-200 bg-white" />
-            <Button variant="outline" className="border-teal-200 text-teal-700">Scan</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <AlertTriangle className="h-4 w-4 text-amber-500" /> Recent Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-48">
+              {alerts.length === 0 ?
+              <p className="text-sm text-slate-400">No open alerts</p> :
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="shadow-sm">
-          <CardHeader><CardTitle className="flex items-center justify-between text-sm font-medium">Today&apos;s Tasks <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" /> {todayTasks.length}</Badge></CardTitle></CardHeader>
-          <CardContent className="p-0"><ScrollArea className="h-[200px] px-4"><div className="space-y-3">{todayTasks.map((task) => (<div key={task.id} className="flex items-start justify-between rounded-lg border border-slate-100 p-3"><div><p className="text-sm font-medium">{task.task}</p><p className="text-xs text-slate-400">{task.deadline}</p></div><Badge variant="outline">{task.priority}</Badge></div>))}</div></ScrollArea></CardContent>
+              alerts.map((a) =>
+              <div key={a.id} className="mb-3 rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-200">{a.title}</span>
+                      <Badge variant="outline" className="border-white/10 text-slate-400">{a.severity}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">{a.message}</p>
+                  </div>
+              )
+              }
+            </ScrollArea>
+            <Link href="/alerts">
+              <Button variant="link" className="mt-2 px-0 text-indigo-400">
+                View all alerts
+              </Button>
+            </Link>
+          </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader><CardTitle className="text-sm font-medium">Recently Processed</CardTitle></CardHeader>
-          <CardContent className="space-y-2">{recentItems.map((item, idx) => (<div key={idx} className="flex items-center justify-between border-b pb-2"><div><p className="text-sm font-medium">{item.product}</p><Badge variant="outline" className={item.action === "Stock In" ? "border-green-200 text-green-700" : "border-blue-200 text-blue-700"}>{item.action}</Badge></div><span className="text-xs text-slate-400">{item.time}</span></div>))}</CardContent>
-        </Card>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <ClipboardList className="h-4 w-4 text-indigo-400" /> Items Needing Attention
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-48">
+              {reorderItems.length === 0 ?
+              <p className="text-sm text-slate-400">No critical items</p> :
 
-        <Card className="shadow-sm">
-          <CardHeader><CardTitle className="flex items-center justify-between text-sm font-medium">Products Below Threshold <Badge variant="secondary" className="bg-red-50 text-red-600">Alert</Badge></CardTitle></CardHeader>
-          <CardContent className="space-y-3">{belowThreshold.map((item, idx) => (<div key={idx} className="flex items-center justify-between"><div><p className="text-sm font-medium">{item.product}</p><p className="text-xs text-slate-400">Stock: <span className="font-bold text-red-600">{item.current}</span> / {item.threshold}</p></div><Badge variant="destructive">-{Math.abs(item.gap)}</Badge></div>))}</CardContent>
+              reorderItems.map((item) =>
+              <div
+                key={item.id}
+                className="mb-2 flex items-center justify-between rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm">
+                
+                    <span className="text-slate-200">{item.product_name}</span>
+                    <span className="font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">Stock: {item.current_stock}</span>
+                  </div>
+              )
+              }
+            </ScrollArea>
+          </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>);
+
 }

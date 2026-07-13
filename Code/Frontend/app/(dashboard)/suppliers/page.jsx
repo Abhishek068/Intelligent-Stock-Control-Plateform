@@ -1,69 +1,299 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, MoreHorizontal, Mail, Phone, Star } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle } from
+"@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { useUserStore } from "@/lib/store";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { suppliersApi } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
-const mockSuppliers = [
-  { id: "sup-1", name: "TechSupply Ltd", contactName: "John Doe", email: "john@techsupply.com", phone: "+44 20 7123 4567", leadTimeDays: 3, status: "active", productCount: 28, deliveryReliability: 94, scores: { delivery: 92, quality: 88, price: 85, accuracy: 94 } },
-  { id: "sup-2", name: "Global Parts Co", contactName: "Jane Smith", email: "jane@globalparts.com", leadTimeDays: 5, status: "active", productCount: 15, deliveryReliability: 87, scores: { delivery: 85, quality: 90, price: 80, accuracy: 87 } },
-];
+const emptyForm = {
+  name: "",
+  contact_name: "",
+  email: "",
+  phone: "",
+  address: "",
+  lead_time_days: 3,
+  status: "active"
+};
 
 export default function SuppliersPage() {
-  const { role } = useUserStore();
-  const canEdit = role === "admin" || role === "manager";
-  const [suppliers, setSuppliers] = useState(mockSuppliers);
+  const { canEdit } = useRoleAccess();
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = suppliers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const loadSuppliers = useCallback(async () => {
+    setLoading(true);
+    try {
+      setSuppliers(await suppliersApi.list());
+    } catch {
+      toast.error("Failed to load suppliers");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const getAvgScore = (scores) => {
-    const vals = Object.values(scores);
-    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  useEffect(() => {
+    loadSuppliers();
+  }, [loadSuppliers]);
+
+  const filtered = suppliers.filter((s) =>
+  s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (sup) => {
+    setEditing(sup);
+    setForm({
+      name: sup.name,
+      contact_name: sup.contact_name || "",
+      email: sup.email || "",
+      phone: sup.phone || "",
+      address: sup.address || "",
+      lead_time_days: sup.lead_time_days ?? 3,
+      status: sup.status || "active"
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error("Supplier name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editing) {
+        await suppliersApi.update(editing.id, form);
+        toast.success("Supplier updated");
+      } else {
+        await suppliersApi.create(form);
+        toast.success("Supplier created");
+      }
+      setDialogOpen(false);
+      loadSuppliers();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (sup) => {
+    if (!confirm(`Delete supplier "${sup.name}"?`)) return;
+    try {
+      await suppliersApi.delete(sup.id);
+      toast.success("Supplier deleted");
+      loadSuppliers();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Delete failed");
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold">Supplier Management</h1><p className="text-slate-500">Manage suppliers and track performance</p></div>
-        {canEdit && <Button><Plus className="mr-2 h-4 w-4" /> Add</Button>}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Supplier Management</h1>
+          <p className="text-slate-400">Manage suppliers and lead times</p>
+        </div>
+        {canEdit &&
+        <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Add Supplier
+          </Button>
+        }
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-4">
-          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input placeholder="Search suppliers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
-          <Table className="mt-4">
-            <TableHeader><TableRow><TableHead>Supplier</TableHead><TableHead>Contact</TableHead><TableHead>Lead Time</TableHead><TableHead className="text-center">Delivery</TableHead><TableHead className="text-center">Score</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search suppliers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9" />
+            
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Lead Time</TableHead>
+                <TableHead className="text-center">Products</TableHead>
+                <TableHead>Status</TableHead>
+                {canEdit && <TableHead className="w-12" />}
+              </TableRow>
+            </TableHeader>
             <TableBody>
-              {filtered.map(sup => {
-                const avgScore = getAvgScore(sup.scores);
-                return (
-                  <TableRow key={sup.id}>
-                    <TableCell><div className="flex items-center gap-2"><Avatar className="h-8 w-8 bg-teal-100"><AvatarFallback className="text-teal-700">{sup.name.slice(0,2)}</AvatarFallback></Avatar>{sup.name}</div></TableCell>
-                    <TableCell><div><p className="text-sm">{sup.contactName}</p><p className="text-xs text-slate-400">{sup.email}</p></div></TableCell>
-                    <TableCell>{sup.leadTimeDays}d</TableCell>
-                    <TableCell className="text-center"><div className="flex items-center justify-center gap-2"><span>{sup.deliveryReliability}%</span><div className="h-1.5 w-12 rounded-full bg-slate-200"><div className="h-1.5 rounded-full bg-teal-500" style={{ width: `${sup.deliveryReliability}%` }} /></div></div></TableCell>
-                    <TableCell className="text-center"><Badge className={avgScore >= 85 ? "bg-green-500" : "bg-amber-500"}>{Math.round(avgScore)}%</Badge></TableCell>
-                    <TableCell><Badge className={sup.status === "active" ? "bg-green-500" : "bg-slate-400"}>{sup.status}</Badge></TableCell>
+              {loading ?
+              <TableRow>
+                  <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-slate-400">
+                    Loading...
+                  </TableCell>
+                </TableRow> :
+              filtered.length === 0 ?
+              <TableRow>
+                  <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-slate-400">
+                    No suppliers found
+                  </TableCell>
+                </TableRow> :
+
+              filtered.map((sup) =>
+              <TableRow key={sup.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8 bg-teal-100">
+                          <AvatarFallback className="text-teal-700">
+                            {sup.name.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {sup.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{sup.contact_name || "—"}</p>
+                        <p className="text-xs text-slate-400">{sup.email || "—"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{sup.lead_time_days}d</TableCell>
+                    <TableCell className="text-center">{sup.product_count ?? 0}</TableCell>
+                    <TableCell>
+                      <Badge className={sup.status === "active" ? "bg-green-500" : "bg-slate-400"}>
+                        {sup.status}
+                      </Badge>
+                    </TableCell>
+                    {canEdit &&
+                <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(sup)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(sup)}>
+                        
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                }
                   </TableRow>
-                );
-              })}
+              )
+              }
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-    </div>
-  );
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Supplier" : "Add Supplier"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label>Name *</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div>
+              <Label>Contact Name</Label>
+              <Input
+                value={form.contact_name}
+                onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
+              
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            <div>
+              <Label>Lead Time (days)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.lead_time_days}
+                onChange={(e) =>
+                setForm({ ...form, lead_time_days: parseInt(e.target.value) || 0 })
+                } />
+              
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label>Address</Label>
+              <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : editing ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>);
+
 }

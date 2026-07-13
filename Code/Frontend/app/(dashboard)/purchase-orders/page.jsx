@@ -4,17 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
-  Search,
   MoreHorizontal,
   Eye,
   Pencil,
-  Trash2,
-  FileText,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock,
-} from "lucide-react";
+  Trash2 } from
+"lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,23 +20,22 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+  TableRow } from
+"@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -50,86 +43,31 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DialogTrigger } from
+"@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useUserStore } from "@/lib/store";
 
-// Mock Data
-const mockPOs = [
-  {
-    id: "PO-2024-001",
-    supplier: "TechSupply Ltd",
-    supplierId: "sup-1",
-    orderDate: "2026-07-01",
-    expectedDelivery: "2026-07-10",
-    status: "received",
-    totalAmount: 1250.0,
-    items: 3,
-    createdBy: "Admin",
-  },
-  {
-    id: "PO-2024-002",
-    supplier: "Global Parts Co",
-    supplierId: "sup-2",
-    orderDate: "2026-07-03",
-    expectedDelivery: "2026-07-15",
-    status: "sent",
-    totalAmount: 875.5,
-    items: 5,
-    createdBy: "Manager",
-  },
-  {
-    id: "PO-2024-003",
-    supplier: "OfficeDirect",
-    supplierId: "sup-3",
-    orderDate: "2026-06-28",
-    expectedDelivery: "2026-07-08",
-    status: "draft",
-    totalAmount: 2100.0,
-    items: 2,
-    createdBy: "Manager",
-  },
-  {
-    id: "PO-2024-004",
-    supplier: "TechSupply Ltd",
-    supplierId: "sup-1",
-    orderDate: "2026-06-25",
-    expectedDelivery: "2026-07-05",
-    status: "cancelled",
-    totalAmount: 320.0,
-    items: 1,
-    createdBy: "Admin",
-  },
-];
 
-const mockSuppliers = [
-  { id: "sup-1", name: "TechSupply Ltd" },
-  { id: "sup-2", name: "Global Parts Co" },
-  { id: "sup-3", name: "OfficeDirect" },
-];
+import { PageHeader } from "@/components/shared/PageHeader";
+import { FilterBar } from "@/components/shared/FilterBar";
+import { SearchInput } from "@/components/shared/SearchInput";
+import { StatsGrid } from "@/components/shared/StatsGrid";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
-const statusColors = {
-  draft: "bg-slate-400",
-  sent: "bg-blue-500",
-  received: "bg-green-500",
-  cancelled: "bg-red-500",
-};
 
-const statusIcons = {
-  draft: <Clock className="mr-1 h-3 w-3" />,
-  sent: <Truck className="mr-1 h-3 w-3" />,
-  received: <CheckCircle className="mr-1 h-3 w-3" />,
-  cancelled: <XCircle className="mr-1 h-3 w-3" />,
-};
+
+import {
+  PO_STATUS_COLORS,
+  PO_STATUS_ICONS } from
+"@/constants/status.constants";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
-  const { role } = useUserStore();
-  const canEdit = role === "admin" || role === "manager";
+  const { role, canEdit } = useRoleAccess();
 
-  const [orders, setOrders] = useState(mockPOs);
+  const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
@@ -137,16 +75,16 @@ export default function PurchaseOrdersPage() {
   const [newOrder, setNewOrder] = useState({
     supplierId: "",
     expectedDelivery: "",
-    notes: "",
+    notes: ""
   });
 
   const filtered = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.supplier.toLowerCase().includes(searchQuery.toLowerCase());
+    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.supplier.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     const matchesSupplier =
-      supplierFilter === "all" || order.supplierId === supplierFilter;
+    supplierFilter === "all" || order.supplierId === supplierFilter;
     return matchesSearch && matchesStatus && matchesSupplier;
   });
 
@@ -166,7 +104,7 @@ export default function PurchaseOrdersPage() {
       status: "draft",
       totalAmount: 0,
       items: 0,
-      createdBy: role || "User",
+      createdBy: role || "User"
     };
     setOrders([order, ...orders]);
     setIsCreateDialogOpen(false);
@@ -179,138 +117,132 @@ export default function PurchaseOrdersPage() {
     toast.success(`Order ${id} deleted`);
   };
 
+  const stats = {
+    total: orders.length,
+    pending: orders.filter((o) => o.status === "draft" || o.status === "sent").length,
+    received: orders.filter((o) => o.status === "received").length,
+    value: orders.reduce((sum, o) => sum + o.totalAmount, 0)
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Purchase Orders
-          </h1>
-          <p className="text-slate-500">
-            Manage supplier orders and deliveries (R2)
-          </p>
-        </div>
-        {canEdit && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-teal-600 hover:bg-teal-700">
-                <Plus className="mr-2 h-4 w-4" /> Create PO
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Purchase Order</DialogTitle>
-                <DialogDescription>
-                  Enter the details for your new purchase order.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Supplier *</Label>
-                  <Select
-                    value={newOrder.supplierId}
-                    onValueChange={(v) =>
-                      setNewOrder({ ...newOrder, supplierId: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockSuppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="delivery">Expected Delivery Date *</Label>
-                  <Input
-                    id="delivery"
-                    type="date"
-                    value={newOrder.expectedDelivery}
-                    onChange={(e) =>
-                      setNewOrder({ ...newOrder, expectedDelivery: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Additional notes..."
-                    value={newOrder.notes}
-                    onChange={(e) =>
-                      setNewOrder({ ...newOrder, notes: e.target.value })
-                    }
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  Cancel
+      {}
+      <PageHeader
+        title="Purchase Orders"
+        description="Manage supplier orders and deliveries (R2)"
+        actions={
+        canEdit &&
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-teal-600 hover:bg-teal-700">
+                  <Plus className="mr-2 h-4 w-4" /> Create PO
                 </Button>
-                <Button onClick={handleCreateOrder} className="bg-teal-600">
-                  Create Order
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Purchase Order</DialogTitle>
+                  <DialogDescription>
+                    Enter the details for your new purchase order.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supplier">Supplier *</Label>
+                    <Select
+                  value={newOrder.supplierId}
+                  onValueChange={(v) =>
+                  setNewOrder({ ...newOrder, supplierId: v })
+                  }>
+                  
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockSuppliers.map((s) =>
+                    <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                    )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery">Expected Delivery Date *</Label>
+                    <Input
+                  id="delivery"
+                  type="date"
+                  value={newOrder.expectedDelivery}
+                  onChange={(e) =>
+                  setNewOrder({ ...newOrder, expectedDelivery: e.target.value })
+                  } />
+                
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                  id="notes"
+                  placeholder="Additional notes..."
+                  value={newOrder.notes}
+                  onChange={(e) =>
+                  setNewOrder({ ...newOrder, notes: e.target.value })
+                  }
+                  rows={3} />
+                
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}>
+                
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateOrder} className="bg-teal-600">
+                    Create Order
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-4 p-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search PO # or supplier..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
-              <SelectItem value="received">Received</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Suppliers</SelectItem>
-              {mockSuppliers.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="ml-auto text-sm text-slate-400">
-            {filtered.length} orders
-          </span>
-        </CardContent>
-      </Card>
+        } />
+      
 
-      {/* Table */}
-      <Card>
+      {}
+      <FilterBar resultCount={filtered.length} resultLabel="orders">
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search PO # or supplier..." />
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="received">Received</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Supplier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Suppliers</SelectItem>
+            {mockSuppliers.map((s) =>
+            <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </FilterBar>
+
+      {}
+      <Card className="glass-card">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -326,8 +258,8 @@ export default function PurchaseOrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((order) => (
-                <TableRow key={order.id}>
+              {filtered.map((order) =>
+              <TableRow key={order.id}>
                   <TableCell className="font-mono font-medium">
                     {order.id}
                   </TableCell>
@@ -339,10 +271,11 @@ export default function PurchaseOrdersPage() {
                     £{order.totalAmount.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className={statusColors[order.status]}>
-                      {statusIcons[order.status]}
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
+                    <StatusBadge
+                    status={order.status}
+                    colorMap={PO_STATUS_COLORS}
+                    iconMap={PO_STATUS_ICONS} />
+                  
                   </TableCell>
                   <TableCell className="text-center">
                     <DropdownMenu>
@@ -354,69 +287,44 @@ export default function PurchaseOrdersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onClick={() =>
-                            router.push(`/purchase-orders/${order.id}`)
-                          }
-                        >
+                        onClick={() =>
+                        router.push(`/purchase-orders/${order.id}`)
+                        }>
+                        
                           <Eye className="mr-2 h-3 w-3" /> View Details
                         </DropdownMenuItem>
-                        {canEdit && order.status !== "received" && (
-                          <>
+                        {canEdit && order.status !== "received" &&
+                      <>
                             <DropdownMenuItem>
                               <Pencil className="mr-2 h-3 w-3" /> Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => handleDeleteOrder(order.id)}
-                            >
+                          className="text-red-600"
+                          onClick={() => handleDeleteOrder(order.id)}>
+                          
                               <Trash2 className="mr-2 h-3 w-3" /> Delete
                             </DropdownMenuItem>
                           </>
-                        )}
+                      }
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Total Orders</p>
-            <p className="text-2xl font-bold">{orders.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Pending (Draft/Sent)</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {orders.filter((o) => o.status === "draft" || o.status === "sent")
-                .length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Received</p>
-            <p className="text-2xl font-bold text-green-600">
-              {orders.filter((o) => o.status === "received").length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Total Value</p>
-            <p className="text-2xl font-bold text-teal-600">
-              £{orders.reduce((sum, o) => sum + o.totalAmount, 0).toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+      {}
+      <StatsGrid
+        stats={[
+        { label: "Total Orders", value: stats.total },
+        { label: "Pending (Draft/Sent)", value: stats.pending, color: "blue" },
+        { label: "Received", value: stats.received, color: "green" },
+        { label: "Total Value", value: `£${stats.value.toFixed(2)}`, color: "teal" }]
+        } />
+      
+    </div>);
+
 }

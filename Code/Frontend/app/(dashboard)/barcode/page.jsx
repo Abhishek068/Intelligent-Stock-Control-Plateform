@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   ScanBarcode,
   Search,
-  Package,
+
   CheckCircle,
   AlertTriangle,
   Camera,
-  X,
-} from "lucide-react";
+  X } from
+"lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,16 +21,16 @@ import { Separator } from "@/components/ui/separator";
 
 
 const mockProducts = [
-  { id: "1", sku: "SKU-001", name: "Wireless Mouse", stock: 12, price: 24.99, category: "Electronics", location: "A-3" },
-  { id: "2", sku: "SKU-002", name: "USB-C Cable (2m)", stock: 5, price: 9.99, category: "Cables", location: "B-2" },
-  { id: "3", sku: "SKU-003", name: "Desk Monitor Stand", stock: 8, price: 89.0, category: "Furniture", location: "C-1" },
-];
+{ id: "1", sku: "SKU-001", name: "Wireless Mouse", stock: 12, price: 24.99, category: "Electronics", location: "A-3" },
+{ id: "2", sku: "SKU-002", name: "USB-C Cable (2m)", stock: 5, price: 9.99, category: "Cables", location: "B-2" },
+{ id: "3", sku: "SKU-003", name: "Desk Monitor Stand", stock: 8, price: 89.0, category: "Furniture", location: "C-1" }];
+
 
 const scanHistory = [
-  { sku: "SKU-001", scannedAt: "2026-07-05 10:30:15", result: "found" },
-  { sku: "SKU-002", scannedAt: "2026-07-05 10:28:42", result: "found" },
-  { sku: "SKU-999", scannedAt: "2026-07-05 10:25:10", result: "not_found" },
-];
+{ sku: "SKU-001", scannedAt: "2026-07-05 10:30:15", result: "found" },
+{ sku: "SKU-002", scannedAt: "2026-07-05 10:28:42", result: "found" },
+{ sku: "SKU-999", scannedAt: "2026-07-05 10:25:10", result: "not_found" }];
+
 
 export default function ScannerPage() {
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -45,24 +45,24 @@ export default function ScannerPage() {
     }
 
     setIsScanning(true);
-    
+
     setTimeout(() => {
       const found = mockProducts.find((p) =>
-        p.sku.toLowerCase() === barcodeInput.trim().toLowerCase() ||
-        p.barcode === barcodeInput.trim()
+      p.sku.toLowerCase() === barcodeInput.trim().toLowerCase() ||
+      p.barcode === barcodeInput.trim()
       );
 
       setScannedProduct(found || null);
 
-     
+
       setHistory([
-        {
-          sku: barcodeInput.trim(),
-          scannedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
-          result: found ? "found" : "not_found",
-        },
-        ...history,
-      ]);
+      {
+        sku: barcodeInput.trim(),
+        scannedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+        result: found ? "found" : "not_found"
+      },
+      ...history]
+      );
 
       if (found) {
         toast.success(`✅ Found: ${found.name}`);
@@ -83,10 +83,10 @@ export default function ScannerPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-100">
             Barcode / QR Scanner
           </h1>
-          <p className="text-slate-500">Scan products to instantly retrieve details (R1)</p>
+          <p className="text-slate-400">Scan products to instantly retrieve details (R1)</p>
         </div>
         <Badge variant="outline" className="text-purple-600">
           <ScanBarcode className="mr-1 h-3 w-3" /> R1
@@ -111,14 +111,14 @@ export default function ScannerPage() {
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="border-purple-200 bg-white pl-9 focus-visible:ring-purple-500"
-                  disabled={isScanning}
-                />
+                  disabled={isScanning} />
+                
               </div>
               <Button
                 onClick={handleScan}
                 disabled={isScanning}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
+                className="bg-purple-600 hover:bg-purple-700">
+                
                 {isScanning ? "Scanning..." : <><ScanBarcode className="mr-2 h-4 w-4" /> Scan</>}
               </Button>
             </div>
@@ -126,9 +126,9 @@ export default function ScannerPage() {
         </CardContent>
       </Card>
 
-      {/* Scan Result */}
-      {scannedProduct && (
-        <Card className="border-green-200 bg-green-50/50">
+      {}
+      {scannedProduct &&
+      <Card className="border-green-200 bg-green-50/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-green-800">
@@ -136,11 +136,11 @@ export default function ScannerPage() {
                 Product Found
               </CardTitle>
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-slate-400"
-                onClick={() => setScannedProduct(null)}
-              >
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-slate-400"
+              onClick={() => setScannedProduct(null)}>
+              
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -154,25 +154,25 @@ export default function ScannerPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">{scannedProduct.name}</h3>
-                  <p className="text-sm text-slate-500">{scannedProduct.sku}</p>
+                  <h3 className="text-lg font-bold text-slate-100">{scannedProduct.name}</h3>
+                  <p className="text-sm text-slate-400">{scannedProduct.sku}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p className="text-xs text-slate-500">Stock</p>
+                  <p className="text-xs text-slate-400">Stock</p>
                   <p className="font-medium">{scannedProduct.stock} units</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Price</p>
+                  <p className="text-xs text-slate-400">Price</p>
                   <p className="font-medium">£{scannedProduct.price.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Category</p>
+                  <p className="text-xs text-slate-400">Category</p>
                   <p className="font-medium">{scannedProduct.category}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Location</p>
+                  <p className="text-xs text-slate-400">Location</p>
                   <p className="font-medium">{scannedProduct.location}</p>
                 </div>
               </div>
@@ -191,11 +191,11 @@ export default function ScannerPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      }
 
      
-      {scannedProduct === null && barcodeInput && (
-        <Card className="border-red-200 bg-red-50/50">
+      {scannedProduct === null && barcodeInput &&
+      <Card className="border-red-200 bg-red-50/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 text-red-700">
               <AlertTriangle className="h-6 w-6" />
@@ -206,36 +206,36 @@ export default function ScannerPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      }
 
    
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-sm font-medium">Scan History</CardTitle>
           <CardDescription>Recently scanned barcodes</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {history.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between rounded-lg border p-3 text-sm"
-              >
+            {history.map((item, idx) =>
+            <div
+              key={idx}
+              className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs">{item.sku}</span>
                   <Badge
-                    variant={item.result === "found" ? "default" : "destructive"}
-                    className={item.result === "found" ? "bg-green-500" : ""}
-                  >
+                  variant={item.result === "found" ? "default" : "destructive"}
+                  className={item.result === "found" ? "bg-green-500" : ""}>
+                  
                     {item.result === "found" ? "✅ Found" : "❌ Not Found"}
                   </Badge>
                 </div>
                 <span className="text-xs text-slate-400">{item.scannedAt}</span>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   ArrowLeft,
   Printer,
@@ -10,10 +10,10 @@ import {
   Clock,
   AlertCircle,
   Mail,
-  Edit,
-  Trash2,
-  Send,
-} from "lucide-react";
+
+  Trash2 } from
+
+"lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -31,12 +31,12 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
+  TableRow } from
+"@/components/ui/table";
+
 import { useUserStore } from "@/lib/store";
 
-// Mock data for detail view
+
 const mockInvoiceDetails = {
   "INV-2024-001": {
     id: "INV-2024-001",
@@ -53,12 +53,12 @@ const mockInvoiceDetails = {
     total: 1307.78,
     notes: "Please pay by the due date",
     items: [
-      { description: "Wireless Mouse", quantity: 50, unitPrice: 24.99, total: 1249.50 },
-    ],
+    { description: "Wireless Mouse", quantity: 50, unitPrice: 24.99, total: 1249.50 }],
+
     paymentHistory: [
-      { date: "2026-07-14", amount: 1307.78, method: "Credit Card", status: "completed" },
-    ],
-    createdBy: "Admin",
+    { date: "2026-07-14", amount: 1307.78, method: "Credit Card", status: "completed" }],
+
+    createdBy: "Admin"
   },
   "INV-2024-002": {
     id: "INV-2024-002",
@@ -75,25 +75,25 @@ const mockInvoiceDetails = {
     total: 918.75,
     notes: "Payment pending",
     items: [
-      { description: "USB-C Cable (2m)", quantity: 100, unitPrice: 8.75, total: 875.00 },
-    ],
+    { description: "USB-C Cable (2m)", quantity: 100, unitPrice: 8.75, total: 875.00 }],
+
     paymentHistory: [],
-    createdBy: "Manager",
-  },
+    createdBy: "Manager"
+  }
 };
 
 const statusColors = {
   paid: "bg-green-500",
   unpaid: "bg-amber-500",
   overdue: "bg-red-500",
-  draft: "bg-slate-400",
+  draft: "bg-slate-400"
 };
 
 const statusIcons = {
   paid: <CheckCircle className="mr-1 h-4 w-4" />,
   unpaid: <Clock className="mr-1 h-4 w-4" />,
   overdue: <AlertCircle className="mr-1 h-4 w-4" />,
-  draft: <Clock className="mr-1 h-4 w-4" />,
+  draft: <Clock className="mr-1 h-4 w-4" />
 };
 
 export default function InvoiceDetailPage() {
@@ -110,12 +110,12 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-2xl font-semibold text-slate-700">Invoice Not Found</p>
+        <p className="text-2xl font-semibold text-slate-300">Invoice Not Found</p>
         <Button onClick={() => router.push("/invoices")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Invoices
         </Button>
-      </div>
-    );
+      </div>);
+
   }
 
   const handleMarkAsPaid = () => {
@@ -128,21 +128,21 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/invoices")}
-          >
+            onClick={() => router.push("/invoices")}>
+            
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
               {invoice.id}
             </h1>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
               <span>Order: {invoice.orderId}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
               <span>{invoice.customer}</span>
@@ -163,41 +163,41 @@ export default function InvoiceDetailPage() {
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" /> PDF
           </Button>
-          {canEdit && invoice.status !== "paid" && (
-            <>
+          {canEdit && invoice.status !== "paid" &&
+          <>
               <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-                onClick={handleMarkAsPaid}
-              >
+              size="sm"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleMarkAsPaid}>
+              
                 <CheckCircle className="mr-2 h-4 w-4" /> Mark Paid
               </Button>
               <Button variant="destructive" size="sm">
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
               </Button>
             </>
-          )}
+          }
         </div>
       </div>
 
-      {/* Billing Info */}
+      {}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
+            <CardTitle className="text-sm font-medium text-slate-400">
               Bill To
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="font-medium text-lg">{invoice.customer}</p>
-            <p className="text-sm text-slate-500">{invoice.customerEmail}</p>
-            <p className="text-sm text-slate-500">{invoice.customerPhone}</p>
-            <p className="text-sm text-slate-500">{invoice.customerAddress}</p>
+            <p className="text-sm text-slate-400">{invoice.customerEmail}</p>
+            <p className="text-sm text-slate-400">{invoice.customerPhone}</p>
+            <p className="text-sm text-slate-400">{invoice.customerAddress}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
+            <CardTitle className="text-sm font-medium text-slate-400">
               Invoice Details
             </CardTitle>
           </CardHeader>
@@ -218,8 +218,8 @@ export default function InvoiceDetailPage() {
         </Card>
       </div>
 
-      {/* Items Table */}
-      <Card>
+      {}
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-sm font-medium">Invoice Items</CardTitle>
           <CardDescription>Products and services on this invoice</CardDescription>
@@ -235,8 +235,8 @@ export default function InvoiceDetailPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoice.items.map((item, idx) => (
-                <TableRow key={idx}>
+              {invoice.items.map((item, idx) =>
+              <TableRow key={idx}>
                   <TableCell className="font-medium">{item.description}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">£{item.unitPrice.toFixed(2)}</TableCell>
@@ -244,7 +244,7 @@ export default function InvoiceDetailPage() {
                     £{item.total.toFixed(2)}
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
               <TableRow>
                 <TableCell colSpan={3} className="text-right font-medium">
                   Subtotal
@@ -274,9 +274,9 @@ export default function InvoiceDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Payment History */}
-      {invoice.paymentHistory && invoice.paymentHistory.length > 0 && (
-        <Card>
+      {}
+      {invoice.paymentHistory && invoice.paymentHistory.length > 0 &&
+      <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Payment History</CardTitle>
             <CardDescription>Transaction records for this invoice</CardDescription>
@@ -292,8 +292,8 @@ export default function InvoiceDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoice.paymentHistory.map((payment, idx) => (
-                  <TableRow key={idx}>
+                {invoice.paymentHistory.map((payment, idx) =>
+              <TableRow key={idx}>
                     <TableCell>{payment.date}</TableCell>
                     <TableCell className="text-right font-mono">
                       £{payment.amount.toFixed(2)}
@@ -305,16 +305,16 @@ export default function InvoiceDetailPage() {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+              )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-      )}
+      }
 
-      {/* Payment Button (if unpaid) */}
-      {invoice.status === "unpaid" && (
-        <Card className="border-amber-200 bg-amber-50/50">
+      {}
+      {invoice.status === "unpaid" &&
+      <Card className="border-amber-200 bg-amber-50/50">
           <CardContent className="flex flex-wrap items-center justify-between p-4">
             <div>
               <p className="font-medium text-amber-800">Payment Required</p>
@@ -333,19 +333,19 @@ export default function InvoiceDetailPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      }
 
-      {/* Notes */}
-      {invoice.notes && (
-        <Card>
+      {}
+      {invoice.notes &&
+      <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm font-medium">Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">{invoice.notes}</p>
+            <p className="text-sm text-slate-400">{invoice.notes}</p>
           </CardContent>
         </Card>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

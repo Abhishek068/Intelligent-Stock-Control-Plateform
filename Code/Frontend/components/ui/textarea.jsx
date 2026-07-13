@@ -10,9 +10,9 @@ function Textarea({ className, ...props }) {
         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         className
       )}
-      {...props}
-    />
-  );
+      {...props} />);
+
+
 }
 
 export { Textarea };
