@@ -97,6 +97,12 @@ export const apiClient = {
       body: body !== undefined ? JSON.stringify(body) : undefined
     });
   },
+  put(path, body) {
+    return request(path, {
+      method: "PUT",
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+  },
   patch(path, body) {
     return request(path, {
       method: "PATCH",

@@ -28,7 +28,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatsGrid } from "@/components/shared/StatsGrid";
 import { ExplainabilitySheet } from "@/components/shared/ExplainabilitySheet";
 
-import { notificationsApi } from "@/lib/api";
+import { notificationsApi, analyticsApi } from "@/lib/api";
 
 const severityColors = {
   critical: "bg-red-500 text-white",
@@ -51,21 +51,40 @@ export default function AlertsPage() {
   const [readFilter, setReadFilter] = useState("all");
 
   useEffect(() => {
-    notificationsApi.list().then((items) =>
-    setAlerts(
-      items.map((a) => ({
+    Promise.all([
+      notificationsApi.list().catch(() => []),
+      analyticsApi.listPredictiveAlerts({ is_resolved: "false" }).catch(() => []),
+    ]).then(([items, predictive]) => {
+      const fromNotifications = items.map((a) => ({
         id: String(a.id),
-        type: a.notification_type.replace("_", "-"),
+        type: String(a.notification_type || "").replaceAll("_", "-"),
         severity: a.severity,
         title: a.title,
         message: a.message,
         product: a.related_entity_id,
         timestamp: new Date(a.created_at).toLocaleString(),
         read: a.is_read,
-        explanation: a.explanation_json
-      }))
-    )
-    );
+        explanation: a.explanation_json,
+        source: "notification",
+      }));
+      const existingTitles = new Set(fromNotifications.map((a) => a.title + a.product));
+      const fromPredictive = (predictive || [])
+        .filter((p) => !existingTitles.has(`Predicted Stockout${p.product}`))
+        .map((p) => ({
+          id: `pa-${p.id}`,
+          type: "predictive",
+          severity: String(p.severity || "warning").toLowerCase(),
+          title: `Predicted stockout: ${p.product_name}`,
+          message: `Stockout risk around ${p.predicted_stockout_date || "soon"}`,
+          product: p.product,
+          timestamp: p.generated_at ? new Date(p.generated_at).toLocaleString() : "",
+          read: false,
+          explanation: p.explanation_json,
+          source: "predictive",
+          predictiveId: p.id,
+        }));
+      setAlerts([...fromPredictive, ...fromNotifications]);
+    });
   }, []);
 
   const filteredAlerts = alerts.filter((alert) => {
@@ -78,8 +97,15 @@ export default function AlertsPage() {
   const unreadCount = alerts.filter((a) => !a.read).length;
 
   const markAsRead = async (id) => {
+    const alert = alerts.find((a) => a.id === id);
+    if (alert?.source === "predictive" && alert.predictiveId) {
+      await analyticsApi.resolvePredictiveAlert(alert.predictiveId);
+      setAlerts(alerts.map((a) => (a.id === id ? { ...a, read: true } : a)));
+      toast.success("Predictive alert resolved");
+      return;
+    }
     await notificationsApi.markRead(Number(id));
-    setAlerts(alerts.map((a) => a.id === id ? { ...a, read: true } : a));
+    setAlerts(alerts.map((a) => (a.id === id ? { ...a, read: true } : a)));
     toast.success("Alert marked as read");
   };
 
@@ -227,10 +253,10 @@ export default function AlertsPage() {
                           <div className="rounded-lg bg-purple-50 p-4">
                             <p className="font-medium">Why is this predicted?</p>
                             <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
-                              <li>Current Stock: <strong>{alert.currentStock}</strong></li>
-                              <li>Lead Time: <strong>{alert.leadTime} days</strong></li>
-                              <li>Forecast Demand: <strong>{alert.forecastDemand}</strong> units</li>
-                              <li>Predicted Stockout: <strong className="text-red-600">{alert.predictedDate}</strong></li>
+                              <li>Current Stock: <strong>{alert.explanation?.current_stock ?? "—"}</strong></li>
+                              <li>Lead Time: <strong>{alert.explanation?.lead_time_days ?? "—"} days</strong></li>
+                              <li>Avg Daily Demand: <strong>{alert.explanation?.avg_daily_demand ?? "—"}</strong></li>
+                              <li>Days Until Stockout: <strong className="text-red-600">{alert.explanation?.days_until_stockout ?? "—"}</strong></li>
                             </ul>
                           </div>
                         </ExplainabilitySheet>

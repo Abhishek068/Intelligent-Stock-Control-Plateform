@@ -33,7 +33,9 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 const COLORS = ["#0D9488", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444", "#6366F1"];
 
 export default function CategoriesPage() {
-  const { canEdit } = useRoleAccess();
+  const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
+  const canManage =
+    isSuperAdmin || hasPermission("categories", "create") || hasPermission("categories", "edit") || canEdit;
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,7 +116,7 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-100">Category Management</h1>
           <p className="text-slate-400">Organise products by category</p>
         </div>
-        {canEdit &&
+        {canManage &&
         <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" /> Add Category
           </Button>
@@ -138,19 +140,19 @@ export default function CategoriesPage() {
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Products</TableHead>
-                {canEdit && <TableHead className="w-12" />}
+                {canManage && <TableHead className="w-12" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ?
               <TableRow>
-                  <TableCell colSpan={canEdit ? 4 : 3} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow> :
               filtered.length === 0 ?
               <TableRow>
-                  <TableCell colSpan={canEdit ? 4 : 3} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400">
                     No categories found
                   </TableCell>
                 </TableRow> :
@@ -173,7 +175,7 @@ export default function CategoriesPage() {
                       <TableCell className="text-center">
                         <Badge variant="outline">{cat.product_count ?? 0}</Badge>
                       </TableCell>
-                      {canEdit &&
+                      {canManage &&
                     <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -54,6 +54,7 @@ function ReportContent({ data, title }) {
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState(REPORT_TYPES.inventory);
   const [reportData, setReportData] = useState([]);
+  const [movementSeries, setMovementSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const printRef = useRef(null);
 
@@ -61,10 +62,22 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const res = await analyticsApi.getReport(type);
-      if (res.success && res.data) setReportData(res.data);else
-      setReportData([]);
+      if (res.success && res.data) {
+        // movements API returns { totals, series }; flatten totals for the table
+        if (type === REPORT_TYPES.movements && !Array.isArray(res.data)) {
+          setReportData(res.data.totals || []);
+          setMovementSeries(res.data.series || []);
+        } else {
+          setReportData(Array.isArray(res.data) ? res.data : []);
+          setMovementSeries([]);
+        }
+      } else {
+        setReportData([]);
+        setMovementSeries([]);
+      }
     } catch (error) {
       setReportData([]);
+      setMovementSeries([]);
       toast.error(error instanceof ApiError ? error.message : "Failed to load report");
     } finally {
       setLoading(false);
@@ -224,6 +237,22 @@ export default function ReportsPage() {
             </TabsContent>
 
             <TabsContent value="movements">
+              {movementSeries.length > 0 && (
+                <div className="mb-6 h-64">
+                  <h3 className="mb-4 text-sm font-medium text-slate-400">Movements by Day</h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={movementSeries}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" fontSize={11} tickFormatter={(v) => String(v).slice(5)} />
+                      <YAxis fontSize={11} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="stock_in" fill="#0D9488" name="Stock In" />
+                      <Bar dataKey="stock_out" fill="#F59E0B" name="Stock Out" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>

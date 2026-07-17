@@ -1,8 +1,3 @@
-
-
-
-
-
 import {
   LayoutDashboard,
   Package,
@@ -21,165 +16,68 @@ import {
   Warehouse,
   ScanBarcode,
   Settings,
+  Users,
+  KeyRound,
+  Mail,
+  Activity,
+} from "lucide-react";
 
-  Users } from
-"lucide-react";
-
-
+/** Permission-aware nav (module codes). Empty modules = visible to authenticated users. */
 export const NAV_GROUPS = [
-{
-  label: "Overview",
-  items: [
   {
-    label: "Admin Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-    roles: ["admin"]
+    label: "Overview",
+    items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, module: "dashboard" }],
   },
   {
-    label: "Manager Dashboard",
-    href: "/manager",
-    icon: LayoutDashboard,
-    roles: ["manager"]
+    label: "Inventory",
+    items: [
+      { label: "Products", href: "/products", icon: Package, module: "products" },
+      { label: "Categories", href: "/categories", icon: Layers, module: "categories" },
+      { label: "Barcode / SKU", href: "/barcode", icon: ScanBarcode, module: "products" },
+      { label: "Warehouse", href: "/warehouse", icon: Warehouse, module: "settings" },
+      { label: "Stock-take", href: "/stock-take", icon: ClipboardCheck, module: "products" },
+    ],
   },
   {
-    label: "Staff Dashboard",
-    href: "/staff",
-    icon: LayoutDashboard,
-    roles: ["staff"]
-  }]
-
-},
-{
-  label: "Inventory",
-  items: [
-  { label: "Products", href: "/products", icon: Package, roles: [] },
-  {
-    label: "Categories",
-    href: "/categories",
-    icon: Layers,
-    roles: []
+    label: "Stock Operations",
+    items: [
+      { label: "Stock In", href: "/stock-in", icon: ArrowDownToLine, module: "stock_in" },
+      { label: "Stock Out", href: "/stock-out", icon: ArrowUpFromLine, module: "stock_out" },
+      { label: "Stock Transfer", href: "/stock-transfer", icon: ArrowLeftRight, module: "transfers" },
+      { label: "Stock Adjustment", href: "/stock-adjustment", icon: ClipboardCheck, module: "adjustments" },
+    ],
   },
   {
-    label: "Barcode / SKU",
-    href: "/barcode",
-    icon: ScanBarcode,
-    roles: []
-  }]
-
-},
-{
-  label: "Stock Operations",
-  items: [
-  {
-    label: "Stock In",
-    href: "/stock-in",
-    icon: ArrowDownToLine,
-    roles: []
+    label: "Procurement",
+    items: [
+      { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart, module: "reports" },
+      { label: "Suppliers", href: "/suppliers", icon: Users, module: "suppliers" },
+      { label: "Invoices", href: "/invoices", icon: Receipt, module: "reports" },
+    ],
   },
   {
-    label: "Stock Out",
-    href: "/stock-out",
-    icon: ArrowUpFromLine,
-    roles: []
+    label: "Intelligence",
+    items: [
+      { label: "Forecasting", href: "/forecasting", icon: TrendingUp, module: "forecasting" },
+      { label: "Reorder", href: "/reorder-recommendations", icon: Lightbulb, module: "forecasting" },
+      { label: "Alerts", href: "/alerts", icon: Bell, module: "alerts" },
+    ],
   },
   {
-    label: "Stock Transfer",
-    href: "/stock-transfer",
-    icon: ArrowLeftRight,
-    roles: []
+    label: "Reporting",
+    items: [
+      { label: "Reports", href: "/reports", icon: BarChart3, module: "reports" },
+      { label: "Audit Log", href: "/audit-log", icon: FileText, module: "audit" },
+      { label: "Activity Center", href: "/activity", icon: Activity, module: "dashboard" },
+    ],
   },
   {
-    label: "Stock Adjustment",
-    href: "/stock-adjustment",
-    icon: ClipboardCheck,
-    roles: []
+    label: "Administration",
+    items: [
+      { label: "Users", href: "/users", icon: Users, module: "users" },
+      { label: "Roles", href: "/roles", icon: KeyRound, module: "roles" },
+      { label: "Emails", href: "/emails", icon: Mail, module: "emails" },
+      { label: "Settings", href: "/settings", icon: Settings, module: "settings", action: "manage" },
+    ],
   },
-  {
-    label: "Stock-take",
-    href: "/stock-take",
-    icon: ClipboardCheck,
-    roles: []
-  }]
-
-},
-{
-  label: "Procurement",
-  items: [
-  {
-    label: "Purchase Orders",
-    href: "/purchase-orders",
-    icon: ShoppingCart,
-    roles: []
-  },
-  {
-    label: "Suppliers",
-    href: "/suppliers",
-    icon: Users,
-    roles: []
-  },
-  {
-    label: "Invoices",
-    href: "/invoices",
-    icon: Receipt,
-    roles: []
-  }]
-
-},
-{
-  label: "Intelligence",
-  items: [
-  {
-    label: "Forecasting",
-    href: "/forecasting",
-    icon: TrendingUp,
-    roles: []
-  },
-  {
-    label: "Reorder",
-    href: "/reorder-recommendations",
-    icon: Lightbulb,
-    roles: []
-  }]
-
-},
-{
-  label: "Reporting",
-  items: [
-  {
-    label: "Reports",
-    href: "/reports",
-    icon: BarChart3,
-    roles: []
-  },
-  {
-    label: "Alerts",
-    href: "/alerts",
-    icon: Bell,
-    roles: []
-  },
-  {
-    label: "Audit Log",
-    href: "/audit-log",
-    icon: FileText,
-    roles: ["admin", "manager"]
-  }]
-
-},
-{
-  label: "System",
-  items: [
-  {
-    label: "Warehouse",
-    href: "/warehouse",
-    icon: Warehouse,
-    roles: []
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-    roles: ["admin"]
-  }]
-
-}];
+];

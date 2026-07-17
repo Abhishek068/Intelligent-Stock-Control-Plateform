@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { productsApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { ModuleGate } from "@/components/shared/ModuleGate";
 
 const adjustmentReasons = [
 "Physical count discrepancy",
@@ -45,8 +46,9 @@ refine((data) => data.adjustedStock !== data.currentStock, {
   path: ["adjustedStock"]
 });
 
-export default function StockAdjustmentPage() {
-  const { canEdit, role } = useRoleAccess();
+function StockAdjustmentPageContent() {
+  const { canEdit, role, hasPermission, isSuperAdmin } = useRoleAccess();
+  const canAdjust = isSuperAdmin || hasPermission("adjustments", "create") || canEdit;
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [locationStock, setLocationStock] = useState(0);
@@ -94,8 +96,8 @@ export default function StockAdjustmentPage() {
   })();
 
   const onSubmit = async (data) => {
-    if (!canEdit) {
-      toast.warning("Admin or Manager role required");
+    if (!canAdjust) {
+      toast.warning("Adjustment permission required");
       return;
     }
     setIsSubmitting(true);
@@ -125,7 +127,7 @@ export default function StockAdjustmentPage() {
           <p className="text-slate-400">Correct inventory discrepancies</p>
         </div>
         <Badge variant="outline" className="text-amber-600">
-          <ShieldAlert className="mr-1 h-3 w-3" /> {canEdit ? "Can approve" : "Requires approval"}
+          <ShieldAlert className="mr-1 h-3 w-3" /> {canAdjust ? "Can adjust" : "Requires permission"}
         </Badge>
       </div>
 
@@ -279,11 +281,11 @@ export default function StockAdjustmentPage() {
                     } />
                   
 
-                  {!canEdit &&
+                  {!canAdjust &&
                   <Alert className="border-amber-200 bg-amber-50">
                       <Info className="h-4 w-4 text-amber-600" />
-                      <AlertTitle>Approval Required</AlertTitle>
-                      <AlertDescription>Only Admin or Manager can submit adjustments.</AlertDescription>
+                      <AlertTitle>Permission Required</AlertTitle>
+                      <AlertDescription>You need adjustments:create permission to submit.</AlertDescription>
                     </Alert>
                   }
 
@@ -314,7 +316,7 @@ export default function StockAdjustmentPage() {
                     <Button type="button" variant="outline" onClick={() => form.reset()}>
                       Reset
                     </Button>
-                    <Button type="submit" disabled={isSubmitting || !canEdit}>
+                    <Button type="submit" disabled={isSubmitting || !canAdjust}>
                       {isSubmitting ? "Processing..." : "Confirm Adjustment"}
                     </Button>
                   </div>
@@ -350,4 +352,12 @@ export default function StockAdjustmentPage() {
       </div>
     </div>);
 
+}
+
+export default function StockAdjustmentPage() {
+  return (
+    <ModuleGate module="adjustments" action="create">
+      <StockAdjustmentPageContent />
+    </ModuleGate>
+  );
 }

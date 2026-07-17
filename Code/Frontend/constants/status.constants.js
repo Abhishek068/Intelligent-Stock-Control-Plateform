@@ -18,20 +18,23 @@ export const INVOICE_STATUS_COLORS = {
   paid: "bg-green-500",
   unpaid: "bg-amber-500",
   overdue: "bg-red-500",
-  draft: "bg-slate-400"
+  draft: "bg-slate-400",
+  cancelled: "bg-slate-600",
 };
 
 export const INVOICE_STATUS_ICONS = {
   paid: CheckCircle,
   unpaid: Clock,
   overdue: AlertCircle,
-  draft: FileText
+  draft: FileText,
+  cancelled: XCircle,
 };
 
 
 export const PO_STATUS_COLORS = {
   draft: "bg-slate-400",
   sent: "bg-blue-500",
+  partial: "bg-amber-500",
   received: "bg-green-500",
   cancelled: "bg-red-500"
 };
@@ -39,6 +42,7 @@ export const PO_STATUS_COLORS = {
 export const PO_STATUS_ICONS = {
   draft: Clock,
   sent: Truck,
+  partial: AlertTriangle,
   received: CheckCircle,
   cancelled: XCircle
 };

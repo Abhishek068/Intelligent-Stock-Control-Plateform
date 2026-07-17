@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { productsApi, suppliersApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/stores/auth.store";
+import { ModuleGate } from "@/components/shared/ModuleGate";
 
 const stockInSchema = z.object({
   productId: z.string().min(1, "Please select a product"),
@@ -31,7 +32,7 @@ const stockInSchema = z.object({
   notes: z.string().optional()
 });
 
-export default function StockInPage() {
+function StockInPageContent() {
   const user = useAuthStore((s) => s.user);
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -176,4 +177,12 @@ export default function StockInPage() {
       </Card>
     </div>);
 
+}
+
+export default function StockInPage() {
+  return (
+    <ModuleGate module="stock_in" action="create">
+      <StockInPageContent />
+    </ModuleGate>
+  );
 }

@@ -4,7 +4,7 @@ from rest_framework import filters
 
 from core.mixins import OrganizationScopedViewSet
 
-from core.permissions import IsReadOnlyOrElevated
+from core.permissions import HasModulePermission
 
 from suppliers.models import Supplier
 
@@ -20,7 +20,8 @@ class SupplierViewSet(OrganizationScopedViewSet):
 
     serializer_class = SupplierSerializer
 
-    permission_classes = [IsReadOnlyOrElevated]
+    module_permission = "suppliers"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
 

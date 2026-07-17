@@ -33,9 +33,12 @@ export default function StaffDashboard() {
       if (statsRes.success && statsRes.data) setStats(statsRes.data);
       setAlerts(notifications.slice(0, 5));
       setReorderItems(
-        recommendations.
-        filter((r) => r.priority === "critical" || r.priority === "high").
-        slice(0, 5)
+        recommendations
+          .filter((r) => {
+            const p = String(r.priority || "").toLowerCase();
+            return p === "critical" || p === "high";
+          })
+          .slice(0, 5)
       );
     } finally {
       setLoading(false);

@@ -40,7 +40,9 @@ const emptyForm = {
 };
 
 export default function SuppliersPage() {
-  const { canEdit } = useRoleAccess();
+  const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
+  const canManage =
+    isSuperAdmin || hasPermission("suppliers", "create") || hasPermission("suppliers", "edit") || canEdit;
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -129,7 +131,7 @@ export default function SuppliersPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-100">Supplier Management</h1>
           <p className="text-slate-400">Manage suppliers and lead times</p>
         </div>
-        {canEdit &&
+        {canManage &&
         <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" /> Add Supplier
           </Button>
@@ -155,19 +157,19 @@ export default function SuppliersPage() {
                 <TableHead>Lead Time</TableHead>
                 <TableHead className="text-center">Products</TableHead>
                 <TableHead>Status</TableHead>
-                {canEdit && <TableHead className="w-12" />}
+                {canManage && <TableHead className="w-12" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ?
               <TableRow>
-                  <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 6 : 5} className="text-center text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow> :
               filtered.length === 0 ?
               <TableRow>
-                  <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 6 : 5} className="text-center text-slate-400">
                     No suppliers found
                   </TableCell>
                 </TableRow> :
@@ -197,7 +199,7 @@ export default function SuppliersPage() {
                         {sup.status}
                       </Badge>
                     </TableCell>
-                    {canEdit &&
+                    {canManage &&
                 <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

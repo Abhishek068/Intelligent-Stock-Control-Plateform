@@ -22,6 +22,8 @@ from inventory.models import InventoryBalance, Product
 
 from notifications.models import Notification
 
+from notifications.services import NotificationService
+
 from stock.models import StockOutTransaction
 
 
@@ -466,56 +468,38 @@ class AlertService:
 
         if current_stock == 0:
 
-            notif = Notification.objects.create(
-
+            notif = NotificationService.notify(
                 organization=organization,
-
                 notification_type=Notification.NotificationType.OUT_OF_STOCK,
-
                 title="Out of Stock",
-
                 message=f"{product.name} is completely out of stock.",
-
                 severity=Notification.Severity.CRITICAL,
-
+                priority="urgent",
                 related_entity_type="Product",
-
                 related_entity_id=str(product.id),
-
                 explanation_json={"current_stock": 0},
-
+                send_email=True,
             )
 
             alerts_created.append(notif)
 
         elif current_stock <= product.minimum_level:
 
-            notif = Notification.objects.create(
-
+            notif = NotificationService.notify(
                 organization=organization,
-
                 notification_type=Notification.NotificationType.LOW_STOCK,
-
                 title="Low Stock Warning",
-
                 message=f"{product.name} has dropped below minimum level ({product.minimum_level} units).",
-
                 severity=Notification.Severity.WARNING,
-
+                priority="high",
                 related_entity_type="Product",
-
                 related_entity_id=str(product.id),
-
                 explanation_json={
-
                     "current_stock": current_stock,
-
                     "minimum_level": product.minimum_level,
-
                     "lead_time": lead_time,
-
                 },
-
+                send_email=True,
             )
 
             alerts_created.append(notif)
@@ -572,32 +556,21 @@ class AlertService:
 
                 )
 
-                notif = Notification.objects.create(
-
+                notif = NotificationService.notify(
                     organization=organization,
-
                     notification_type=Notification.NotificationType.PREDICTIVE,
-
                     title="Predictive Stockout Alert",
-
                     message=f"{product.name} is predicted to stock out in {int(days_until_stockout)} days.",
-
                     severity=(
-
                         Notification.Severity.CRITICAL
-
                         if days_until_stockout <= lead_time / 2
-
                         else Notification.Severity.WARNING
-
                     ),
-
+                    priority="high",
                     related_entity_type="Product",
-
                     related_entity_id=str(product.id),
-
                     explanation_json=pa.explanation_json,
-
+                    send_email=True,
                 )
 
                 alerts_created.append(notif)

@@ -1,19 +1,16 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
 import {
   ArrowLeft,
-  Printer,
-  Download,
   Truck,
   CheckCircle,
   XCircle,
-  Clock,
-  Edit,
-  Trash2 } from
-"lucide-react";
-
+  Send,
+  PackageCheck,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +18,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle } from
-"@/components/ui/card";
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -30,211 +27,243 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from
-"@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ModuleGate } from "@/components/shared/ModuleGate";
+import { PO_STATUS_COLORS } from "@/constants/status.constants";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { purchaseOrdersApi, locationsApi } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 
-import { useUserStore } from "@/lib/store";
-
-const mockOrderDetails = {
-  "PO-2024-001": {
-    id: "PO-2024-001",
-    supplier: "TechSupply Ltd",
-    supplierContact: "John Doe",
-    supplierEmail: "john@techsupply.com",
-    orderDate: "2026-07-01",
-    expectedDelivery: "2026-07-10",
-    status: "received",
-    totalAmount: 1250.0,
-    notes: "Urgent order for Q3 inventory",
-    items: [
-    { product: "Wireless Mouse", sku: "SKU-001", quantity: 50, unitCost: 24.99, total: 1249.5 }],
-
-    createdBy: "Admin",
-    createdAt: "2026-07-01 10:30:00"
-  }
-};
-
-const statusColors = {
-  draft: "bg-slate-400",
-  sent: "bg-blue-500",
-  received: "bg-green-500",
-  cancelled: "bg-red-500"
-};
-
-const statusIcons = {
-  draft: <Clock className="mr-1 h-4 w-4" />,
-  sent: <Truck className="mr-1 h-4 w-4" />,
-  received: <CheckCircle className="mr-1 h-4 w-4" />,
-  cancelled: <XCircle className="mr-1 h-4 w-4" />
-};
-
-export default function PurchaseOrderDetailPage() {
+function PurchaseOrderDetailContent() {
   const params = useParams();
   const router = useRouter();
-  const { role } = useUserStore();
-  const canEdit = role === "admin" || role === "manager";
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const canApprove = isSuperAdmin || hasPermission("purchase_orders", "approve");
 
-  const order = useMemo(
-    () => mockOrderDetails[params.id],
-    [params.id]
-  );
+  const [order, setOrder] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [receiveLocation, setReceiveLocation] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [res, locs] = await Promise.all([
+        purchaseOrdersApi.get(params.id),
+        locationsApi.list().catch(() => []),
+      ]);
+      const data = res?.data || res;
+      setOrder(data);
+      setLocations(locs);
+      if (data?.location) setReceiveLocation(String(data.location));
+      else if (locs[0]) setReceiveLocation(String(locs[0].id));
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to load PO");
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [params.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const run = async (action) => {
+    setActing(true);
+    try {
+      if (action === "submit") await purchaseOrdersApi.submit(params.id);
+      if (action === "cancel") await purchaseOrdersApi.cancel(params.id);
+      if (action === "receive") {
+        await purchaseOrdersApi.receive(params.id, {
+          location: receiveLocation ? Number(receiveLocation) : null,
+        });
+      }
+      toast.success("Updated");
+      load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Action failed");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-slate-400 p-6">Loading...</p>;
+  }
 
   if (!order) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-2xl font-semibold text-slate-300">Order Not Found</p>
-        <Button onClick={() => router.push("/purchase-orders")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Orders
+      <div className="space-y-4 p-6">
+        <Button variant="ghost" onClick={() => router.push("/purchase-orders")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-      </div>);
-
+        <p className="text-slate-400">Purchase order not found.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/purchase-orders")}>
-            
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/purchase-orders")}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-              {order.id}
-            </h1>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <span>{order.supplier}</span>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span>{order.orderDate}</span>
-            </div>
+            <h1 className="text-2xl font-bold text-slate-100">{order.po_number}</h1>
+            <p className="text-slate-400">{order.supplier_name}</p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Badge className={statusColors[order.status] + " text-white px-3 py-1"}>
-            {statusIcons[order.status]}
-            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+          <Badge className={PO_STATUS_COLORS[order.status] || "bg-slate-400"}>
+            {order.status}
           </Badge>
-          <Button variant="outline" size="sm">
-            <Printer className="mr-2 h-4 w-4" /> Print
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" /> PDF
-          </Button>
-          {canEdit && order.status !== "received" &&
-          <>
-              <Button variant="outline" size="sm">
-                <Edit className="mr-2 h-4 w-4" /> Edit
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {canApprove && order.status === "draft" && (
+            <Button size="sm" onClick={() => run("submit")} disabled={acting}>
+              <Send className="mr-2 h-4 w-4" /> Submit
+            </Button>
+          )}
+          {canApprove && ["sent", "partial"].includes(order.status) && (
+            <Button size="sm" onClick={() => run("receive")} disabled={acting}>
+              <PackageCheck className="mr-2 h-4 w-4" /> Receive
+            </Button>
+          )}
+          {canApprove &&
+            ["draft", "sent", "partial"].includes(order.status) && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => run("cancel")}
+                disabled={acting}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Cancel
               </Button>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
-            </>
-          }
+            )}
         </div>
       </div>
 
-      
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">
-              Supplier
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-medium">{order.supplier}</p>
-            <p className="text-sm text-slate-400">{order.supplierContact}</p>
-            <p className="text-sm text-slate-400">{order.supplierEmail}</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">
-              Delivery
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              <span className="font-medium">Expected:</span> {order.expectedDelivery}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Ordered:</span> {order.orderDate}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">
-              Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-teal-600">
-              £{order.totalAmount.toFixed(2)}
-            </p>
-            <p className="text-sm text-slate-400">
-              {order.items.length} items · Created by {order.createdBy}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Order Items</CardTitle>
-          <CardDescription>Products included in this purchase order</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Unit Cost</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {order.items.map((item, idx) =>
-              <TableRow key={idx}>
-                  <TableCell className="font-medium">{item.product}</TableCell>
-                  <TableCell>{item.sku}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">£{item.unitCost.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono font-medium">
-                    £{item.total.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              )}
-              <TableRow className="bg-slate-900/50 font-semibold">
-                <TableCell colSpan={4} className="text-right">
-                  Total Amount:
-                </TableCell>
-                <TableCell className="text-right text-teal-600">
-                  £{order.totalAmount.toFixed(2)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-   
-      {order.notes &&
-      <Card className="glass-card">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="glass-card lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Notes</CardTitle>
+            <CardTitle>Line items</CardTitle>
+            <CardDescription>Ordered vs received quantities</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-400">{order.notes}</p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead className="text-right">Ordered</TableHead>
+                  <TableHead className="text-right">Received</TableHead>
+                  <TableHead className="text-right">Unit cost</TableHead>
+                  <TableHead className="text-right">Line total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(order.lines || []).map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell>{line.product_name}</TableCell>
+                    <TableCell className="font-mono text-xs">{line.product_sku}</TableCell>
+                    <TableCell className="text-right">{line.quantity_ordered}</TableCell>
+                    <TableCell className="text-right">{line.quantity_received}</TableCell>
+                    <TableCell className="text-right">
+                      £{Number(line.unit_cost).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      £{Number(line.line_total || 0).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
-      }
-    </div>);
 
+        <div className="space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm">Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Total</span>
+                <span className="font-mono">
+                  £{Number(order.total_amount || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Expected</span>
+                <span>{order.expected_delivery || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Location</span>
+                <span>{order.location_name || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Created by</span>
+                <span>{order.created_by_name || "—"}</span>
+              </div>
+              {order.notes && (
+                <p className="pt-2 text-slate-400 border-t border-white/5">{order.notes}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {canApprove && ["sent", "partial"].includes(order.status) && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Truck className="h-4 w-4" /> Receive into
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-2">
+                  <Label>Location</Label>
+                  <Select value={receiveLocation} onValueChange={setReceiveLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((l) => (
+                        <SelectItem key={l.id} value={String(l.id)}>
+                          {l.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => run("receive")}
+                  disabled={acting || !receiveLocation}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" /> Receive remaining
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PurchaseOrderDetailPage() {
+  return (
+    <ModuleGate module="purchase_orders" action="view">
+      <PurchaseOrderDetailContent />
+    </ModuleGate>
+  );
 }

@@ -1,14 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Plus,
-  MoreHorizontal,
-  Eye,
-  Pencil,
-  Trash2 } from
-"lucide-react";
+import { Plus, MoreHorizontal, Eye, Trash2, Send, PackageCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,22 +14,22 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from
-"@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from
-"@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -43,241 +37,387 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger } from
-"@/components/ui/dialog";
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { StatsGrid } from "@/components/shared/StatsGrid";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-
-
-
-import {
-  PO_STATUS_COLORS,
-  PO_STATUS_ICONS } from
-"@/constants/status.constants";
+import { ModuleGate } from "@/components/shared/ModuleGate";
+import { PO_STATUS_COLORS } from "@/constants/status.constants";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import {
+  purchaseOrdersApi,
+  suppliersApi,
+  productsApi,
+  locationsApi,
+} from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 
-export default function PurchaseOrdersPage() {
+function PurchaseOrdersPageContent() {
   const router = useRouter();
-  const { role, canEdit } = useRoleAccess();
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const canCreate = isSuperAdmin || hasPermission("purchase_orders", "create");
+  const canApprove = isSuperAdmin || hasPermission("purchase_orders", "approve");
+  const canDelete = isSuperAdmin || hasPermission("purchase_orders", "delete");
 
   const [orders, setOrders] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [newOrder, setNewOrder] = useState({
     supplierId: "",
+    locationId: "",
     expectedDelivery: "",
-    notes: ""
+    notes: "",
+    productId: "",
+    quantity: 1,
+    unitCost: "",
   });
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pos, sups, prods, locs] = await Promise.all([
+        purchaseOrdersApi.list(),
+        suppliersApi.list().catch(() => []),
+        productsApi.list().catch(() => []),
+        locationsApi.list().catch(() => []),
+      ]);
+      setOrders(pos);
+      setSuppliers(sups);
+      setProducts(prods);
+      setLocations(locs);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to load POs");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const filtered = orders.filter((order) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.supplier.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      String(order.po_number || "").toLowerCase().includes(q) ||
+      String(order.supplier_name || "").toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     const matchesSupplier =
-    supplierFilter === "all" || order.supplierId === supplierFilter;
+      supplierFilter === "all" || String(order.supplier) === supplierFilter;
     return matchesSearch && matchesStatus && matchesSupplier;
   });
 
-  const handleCreateOrder = () => {
-    if (!newOrder.supplierId || !newOrder.expectedDelivery) {
-      toast.error("Please fill in all required fields");
+  const stats = {
+    draft: orders.filter((o) => o.status === "draft").length,
+    sent: orders.filter((o) => o.status === "sent" || o.status === "partial").length,
+    received: orders.filter((o) => o.status === "received").length,
+    total: orders.length,
+  };
+
+  const handleCreateOrder = async () => {
+    if (!newOrder.supplierId || !newOrder.productId || !newOrder.quantity) {
+      toast.error("Supplier, product, and quantity are required");
       return;
     }
-    const supplier = mockSuppliers.find((s) => s.id === newOrder.supplierId);
-    const newId = `PO-2024-${String(orders.length + 1).padStart(3, "0")}`;
-    const order = {
-      id: newId,
-      supplier: supplier?.name || "Unknown",
-      supplierId: newOrder.supplierId,
-      orderDate: new Date().toISOString().split("T")[0],
-      expectedDelivery: newOrder.expectedDelivery,
-      status: "draft",
-      totalAmount: 0,
-      items: 0,
-      createdBy: role || "User"
-    };
-    setOrders([order, ...orders]);
-    setIsCreateDialogOpen(false);
-    setNewOrder({ supplierId: "", expectedDelivery: "", notes: "" });
-    toast.success(`Purchase Order ${newId} created`);
+    setSaving(true);
+    try {
+      const product = products.find((p) => String(p.id) === newOrder.productId);
+      const res = await purchaseOrdersApi.create({
+        supplier: Number(newOrder.supplierId),
+        location: newOrder.locationId ? Number(newOrder.locationId) : null,
+        expected_delivery: newOrder.expectedDelivery || null,
+        notes: newOrder.notes,
+        lines: [
+          {
+            product: Number(newOrder.productId),
+            quantity_ordered: Number(newOrder.quantity),
+            unit_cost: newOrder.unitCost
+              ? Number(newOrder.unitCost)
+              : product?.unit_price,
+          },
+        ],
+      });
+      const created = res?.data || res;
+      toast.success(`Created ${created.po_number || "PO"}`);
+      setIsCreateDialogOpen(false);
+      setNewOrder({
+        supplierId: "",
+        locationId: "",
+        expectedDelivery: "",
+        notes: "",
+        productId: "",
+        quantity: 1,
+        unitCost: "",
+      });
+      load();
+      if (created?.id) router.push(`/purchase-orders/${created.id}`);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Create failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteOrder = (id) => {
-    setOrders(orders.filter((o) => o.id !== id));
-    toast.success(`Order ${id} deleted`);
-  };
-
-  const stats = {
-    total: orders.length,
-    pending: orders.filter((o) => o.status === "draft" || o.status === "sent").length,
-    received: orders.filter((o) => o.status === "received").length,
-    value: orders.reduce((sum, o) => sum + o.totalAmount, 0)
+  const runAction = async (id, action) => {
+    try {
+      if (action === "submit") await purchaseOrdersApi.submit(id);
+      if (action === "receive") await purchaseOrdersApi.receive(id);
+      if (action === "cancel") await purchaseOrdersApi.cancel(id);
+      if (action === "delete") await purchaseOrdersApi.delete(id);
+      toast.success("Updated");
+      load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Action failed");
+    }
   };
 
   return (
     <div className="space-y-6">
-      {}
       <PageHeader
         title="Purchase Orders"
-        description="Manage supplier orders and deliveries (R2)"
+        description="Draft → submit → receive into inventory"
         actions={
-        canEdit &&
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          canCreate && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="mr-2 h-4 w-4" /> Create PO
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> New PO
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create Purchase Order</DialogTitle>
                   <DialogDescription>
-                    Enter the details for your new purchase order.
+                    Starts as draft. Submit to order, then receive to stock-in.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier">Supplier *</Label>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label>Supplier *</Label>
                     <Select
-                  value={newOrder.supplierId}
-                  onValueChange={(v) =>
-                  setNewOrder({ ...newOrder, supplierId: v })
-                  }>
-                  
+                      value={newOrder.supplierId}
+                      onValueChange={(v) => setNewOrder((s) => ({ ...s, supplierId: v }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockSuppliers.map((s) =>
-                    <SelectItem key={s.id} value={s.id}>
+                        {suppliers.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
                             {s.name}
                           </SelectItem>
-                    )}
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery">Expected Delivery Date *</Label>
-                    <Input
-                  id="delivery"
-                  type="date"
-                  value={newOrder.expectedDelivery}
-                  onChange={(e) =>
-                  setNewOrder({ ...newOrder, expectedDelivery: e.target.value })
-                  } />
-                
+                  <div className="grid gap-2">
+                    <Label>Receive location</Label>
+                    <Select
+                      value={newOrder.locationId}
+                      onValueChange={(v) => setNewOrder((s) => ({ ...s, locationId: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Optional" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations.map((l) => (
+                          <SelectItem key={l.id} value={String(l.id)}>
+                            {l.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
+                  <div className="grid gap-2">
+                    <Label>Product *</Label>
+                    <Select
+                      value={newOrder.productId}
+                      onValueChange={(v) => {
+                        const p = products.find((x) => String(x.id) === v);
+                        setNewOrder((s) => ({
+                          ...s,
+                          productId: v,
+                          unitCost: p ? String(p.unit_price) : s.unitCost,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.name} ({p.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Quantity *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={newOrder.quantity}
+                        onChange={(e) =>
+                          setNewOrder((s) => ({
+                            ...s,
+                            quantity: parseInt(e.target.value) || 1,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Unit cost</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newOrder.unitCost}
+                        onChange={(e) =>
+                          setNewOrder((s) => ({ ...s, unitCost: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Expected delivery</Label>
+                    <Input
+                      type="date"
+                      value={newOrder.expectedDelivery}
+                      onChange={(e) =>
+                        setNewOrder((s) => ({
+                          ...s,
+                          expectedDelivery: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Notes</Label>
                     <Textarea
-                  id="notes"
-                  placeholder="Additional notes..."
-                  value={newOrder.notes}
-                  onChange={(e) =>
-                  setNewOrder({ ...newOrder, notes: e.target.value })
-                  }
-                  rows={3} />
-                
+                      value={newOrder.notes}
+                      onChange={(e) =>
+                        setNewOrder((s) => ({ ...s, notes: e.target.value }))
+                      }
+                    />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(false)}>
-                
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateOrder} className="bg-teal-600">
-                    Create Order
+                  <Button onClick={handleCreateOrder} disabled={saving}>
+                    {saving ? "Creating..." : "Create Draft"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          )
+        }
+      />
 
-        } />
-      
+      <StatsGrid
+        stats={[
+          { label: "Total", value: stats.total, color: "blue" },
+          { label: "Draft", value: stats.draft, color: "slate" },
+          { label: "Open", value: stats.sent, color: "amber" },
+          { label: "Received", value: stats.received, color: "green" },
+        ]}
+      />
 
-      {}
-      <FilterBar resultCount={filtered.length} resultLabel="orders">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search PO # or supplier..." />
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
-            <SelectItem value="received">Received</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Supplier" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Suppliers</SelectItem>
-            {mockSuppliers.map((s) =>
-            <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </FilterBar>
-
-      {}
       <Card className="glass-card">
-        <CardContent className="p-0">
+        <CardContent className="p-4 space-y-4">
+          <FilterBar>
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search PO or supplier..."
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+                <SelectItem value="received">Received</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All suppliers</SelectItem>
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterBar>
+
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>PO #</TableHead>
                 <TableHead>Supplier</TableHead>
-                <TableHead>Order Date</TableHead>
-                <TableHead>Expected Delivery</TableHead>
-                <TableHead className="text-center">Items</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Expected</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((order) =>
-              <TableRow key={order.id}>
-                  <TableCell className="font-mono font-medium">
-                    {order.id}
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-slate-400">
+                    Loading...
                   </TableCell>
-                  <TableCell>{order.supplier}</TableCell>
-                  <TableCell>{order.orderDate}</TableCell>
-                  <TableCell>{order.expectedDelivery}</TableCell>
-                  <TableCell className="text-center">{order.items}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    £{order.totalAmount.toFixed(2)}
+                </TableRow>
+              )}
+              {!loading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-slate-400">
+                    No purchase orders
                   </TableCell>
-                  <TableCell className="text-center">
+                </TableRow>
+              )}
+              {filtered.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-mono text-sm">{order.po_number}</TableCell>
+                  <TableCell>{order.supplier_name}</TableCell>
+                  <TableCell>
                     <StatusBadge
-                    status={order.status}
-                    colorMap={PO_STATUS_COLORS}
-                    iconMap={PO_STATUS_ICONS} />
-                  
+                      status={order.status}
+                      colorMap={PO_STATUS_COLORS}
+                    />
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>{order.expected_delivery || "—"}</TableCell>
+                  <TableCell className="text-right font-mono">
+                    £{Number(order.total_amount || 0).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -287,44 +427,48 @@ export default function PurchaseOrdersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                        onClick={() =>
-                        router.push(`/purchase-orders/${order.id}`)
-                        }>
-                        
-                          <Eye className="mr-2 h-3 w-3" /> View Details
+                          onClick={() => router.push(`/purchase-orders/${order.id}`)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
-                        {canEdit && order.status !== "received" &&
-                      <>
-                            <DropdownMenuItem>
-                              <Pencil className="mr-2 h-3 w-3" /> Edit
-                            </DropdownMenuItem>
+                        {canApprove && order.status === "draft" && (
+                          <DropdownMenuItem onClick={() => runAction(order.id, "submit")}>
+                            <Send className="mr-2 h-4 w-4" /> Submit
+                          </DropdownMenuItem>
+                        )}
+                        {canApprove &&
+                          ["sent", "partial"].includes(order.status) && (
                             <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDeleteOrder(order.id)}>
-                          
-                              <Trash2 className="mr-2 h-3 w-3" /> Delete
+                              onClick={() => runAction(order.id, "receive")}
+                            >
+                              <PackageCheck className="mr-2 h-4 w-4" /> Receive all
                             </DropdownMenuItem>
-                          </>
-                      }
+                          )}
+                        {canDelete && order.status === "draft" && (
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => runAction(order.id, "delete")}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+    </div>
+  );
+}
 
-      {}
-      <StatsGrid
-        stats={[
-        { label: "Total Orders", value: stats.total },
-        { label: "Pending (Draft/Sent)", value: stats.pending, color: "blue" },
-        { label: "Received", value: stats.received, color: "green" },
-        { label: "Total Value", value: `£${stats.value.toFixed(2)}`, color: "teal" }]
-        } />
-      
-    </div>);
-
+export default function PurchaseOrdersPage() {
+  return (
+    <ModuleGate module="purchase_orders" action="view">
+      <PurchaseOrdersPageContent />
+    </ModuleGate>
+  );
 }

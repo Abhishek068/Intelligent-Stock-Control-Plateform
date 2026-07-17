@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,8 +10,10 @@ import {
   AlertCircle,
   ChevronRight,
   ChevronLeft,
-  Layers } from
-"lucide-react";
+  Layers,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,42 +25,63 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { productsApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
+import { ModuleGate } from "@/components/shared/ModuleGate";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
-const transferSchema = z.
-object({
-  sourceLocationId: z.string().min(1, "Source required"),
-  destinationLocationId: z.string().min(1, "Destination required"),
-  productId: z.string().min(1, "Product required"),
-  quantity: z.coerce.number().int().positive("Quantity must be positive"),
-  notes: z.string().optional()
-}).
-refine((data) => data.sourceLocationId !== data.destinationLocationId, {
-  message: "Source and destination must differ",
-  path: ["destinationLocationId"]
-});
+const transferSchema = z
+  .object({
+    sourceLocationId: z.string().min(1, "Source required"),
+    destinationLocationId: z.string().min(1, "Destination required"),
+    productId: z.string().min(1, "Product required"),
+    quantity: z.coerce.number().int().positive("Quantity must be positive"),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.sourceLocationId !== data.destinationLocationId, {
+    message: "Source and destination must differ",
+    path: ["destinationLocationId"],
+  });
 
-export default function StockTransferPage() {
+const STATUS_BADGE = {
+  draft: "bg-slate-600",
+  in_transit: "bg-amber-600",
+  completed: "bg-green-600",
+  cancelled: "bg-red-600",
+};
+
+function StockTransferPageContent() {
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const canCreate = isSuperAdmin || hasPermission("transfers", "create");
+  const canApprove = isSuperAdmin || hasPermission("transfers", "approve");
+
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [transfers, setTransfers] = useState([]);
   const [sourceStock, setSourceStock] = useState(0);
   const [destStock, setDestStock] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionId, setActionId] = useState(null);
   const [step, setStep] = useState(1);
-  const [completed, setCompleted] = useState(false);
+  const [createdDraft, setCreatedDraft] = useState(null);
 
   const form = useForm({
     resolver: zodResolver(transferSchema),
-    defaultValues: { quantity: 1, notes: "" }
+    defaultValues: { quantity: 1, notes: "" },
   });
+
+  const loadTransfers = useCallback(() => {
+    stockApi.listTransfers().then(setTransfers).catch(() => setTransfers([]));
+  }, []);
 
   useEffect(() => {
     Promise.all([productsApi.list(), locationsApi.list()]).then(([p, l]) => {
       setProducts(p);
       setLocations(l);
     });
-  }, []);
+    loadTransfers();
+  }, [loadTransfers]);
 
   const sourceId = form.watch("sourceLocationId");
   const destId = form.watch("destinationLocationId");
@@ -85,28 +108,34 @@ export default function StockTransferPage() {
 
   const goToConfirm = async () => {
     const valid = await form.trigger([
-    "sourceLocationId",
-    "destinationLocationId",
-    "productId",
-    "quantity"]
-    );
+      "sourceLocationId",
+      "destinationLocationId",
+      "productId",
+      "quantity",
+    ]);
     if (valid && !isOverTransfer) setStep(2);
   };
 
   const handleSubmit = async () => {
+    if (!canCreate) {
+      toast.error("You need transfers:create permission");
+      return;
+    }
     const data = form.getValues();
     setIsSubmitting(true);
     try {
-      await stockApi.transfer({
+      const res = await stockApi.transfer({
         product: Number(data.productId),
         source_location: Number(data.sourceLocationId),
         destination_location: Number(data.destinationLocationId),
         quantity: data.quantity,
-        notes: data.notes
+        notes: data.notes,
       });
-      toast.success("Transfer completed");
-      setCompleted(true);
+      const draft = res?.data ?? res;
+      setCreatedDraft(draft);
+      toast.success("Transfer draft created");
       setStep(3);
+      loadTransfers();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Transfer failed");
     } finally {
@@ -114,39 +143,68 @@ export default function StockTransferPage() {
     }
   };
 
+  const runAction = async (id, action) => {
+    if (!canApprove) {
+      toast.error("You need transfers:approve permission");
+      return;
+    }
+    setActionId(id);
+    try {
+      if (action === "ship") await stockApi.shipTransfer(id);
+      if (action === "complete") await stockApi.completeTransfer(id);
+      if (action === "cancel") await stockApi.cancelTransfer(id);
+      toast.success(
+        action === "ship"
+          ? "Marked in transit"
+          : action === "complete"
+            ? "Transfer completed"
+            : "Transfer cancelled"
+      );
+      loadTransfers();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Action failed");
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const resetForm = () => {
     form.reset({ quantity: 1, notes: "" });
     setStep(1);
-    setCompleted(false);
+    setCreatedDraft(null);
   };
+
+  const openTransfers = transfers.filter((t) =>
+    ["draft", "in_transit"].includes(t.status)
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-100">Stock Transfer</h1>
-          <p className="text-slate-400">Move inventory between locations</p>
+          <p className="text-slate-400">Draft → ship → complete between locations</p>
         </div>
         <Badge variant="outline" className="text-purple-600">
           <ArrowLeftRight className="mr-1 h-3 w-3" /> Transfer
         </Badge>
       </div>
 
-      {step === 1 &&
-      <Card className="glass-card">
+      {step === 1 && canCreate && (
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle>Step 1: Transfer Details</CardTitle>
-            <CardDescription>Atomic transfer via API with audit logging</CardDescription>
+            <CardDescription>Creates a draft; stock moves only when completed</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
                   <FormField
-                  control={form.control}
-                  name="sourceLocationId"
-                  render={({ field }) =>
-                  <FormItem>
+                    control={form.control}
+                    name="sourceLocationId"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Source *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -155,22 +213,23 @@ export default function StockTransferPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {locations.map((l) =>
-                        <SelectItem key={l.id} value={String(l.id)}>
+                            {locations.map((l) => (
+                              <SelectItem key={l.id} value={String(l.id)}>
                                 {l.name}
                               </SelectItem>
-                        )}
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
-                  } />
-                
+                    )}
+                  />
+
                   <FormField
-                  control={form.control}
-                  name="destinationLocationId"
-                  render={({ field }) =>
-                  <FormItem>
+                    control={form.control}
+                    name="destinationLocationId"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Destination *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -179,29 +238,30 @@ export default function StockTransferPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {locations.map((l) =>
-                        <SelectItem key={l.id} value={String(l.id)}>
+                            {locations.map((l) => (
+                              <SelectItem key={l.id} value={String(l.id)}>
                                 {l.name}
                               </SelectItem>
-                        )}
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
-                  } />
-                
+                    )}
+                  />
+
                   <FormField
-                  control={form.control}
-                  name="productId"
-                  render={({ field }) =>
-                  <FormItem className="flex flex-col">
+                    control={form.control}
+                    name="productId"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
                         <FormLabel>Product *</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="justify-between">
-                              {field.value ?
-                          products.find((p) => String(p.id) === field.value)?.name :
-                          "Select product..."}
+                              {field.value
+                                ? products.find((p) => String(p.id) === field.value)?.name
+                                : "Select product..."}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[300px] p-0">
@@ -209,62 +269,64 @@ export default function StockTransferPage() {
                               <CommandInput placeholder="Search..." />
                               <CommandEmpty>No product.</CommandEmpty>
                               <CommandGroup>
-                                {products.map((p) =>
-                            <CommandItem
-                              key={p.id}
-                              value={String(p.id)}
-                              onSelect={() => field.onChange(String(p.id))}>
-                              
+                                {products.map((p) => (
+                                  <CommandItem
+                                    key={p.id}
+                                    value={String(p.id)}
+                                    onSelect={() => field.onChange(String(p.id))}
+                                  >
                                     {p.name}
                                   </CommandItem>
-                            )}
+                                ))}
                               </CommandGroup>
                             </Command>
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
                       </FormItem>
-                  } />
-                
+                    )}
+                  />
+
                   <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) =>
-                  <FormItem>
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Quantity *</FormLabel>
                         <FormControl>
                           <Input
-                        type="number"
-                        min="1"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} />
-                      
+                            type="number"
+                            min="1"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
                         </FormControl>
-                        {sourceId && productId &&
-                    <p className="text-xs text-slate-400">
+                        {sourceId && productId && (
+                          <p className="text-xs text-slate-400">
                             Available at source: <strong>{sourceStock}</strong>
                           </p>
-                    }
+                        )}
                         <FormMessage />
                       </FormItem>
-                  } />
-                
+                    )}
+                  />
+
                   <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) =>
-                  <FormItem className="md:col-span-2">
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Notes</FormLabel>
                         <FormControl>
                           <Input placeholder="Optional transfer notes" {...field} />
                         </FormControl>
                       </FormItem>
-                  } />
-                
+                    )}
+                  />
                 </div>
 
-                {sourceId && destId && productId &&
-              <Alert className="border-blue-200 bg-blue-50">
+                {sourceId && destId && productId && (
+                  <Alert className="border-blue-200 bg-blue-50">
                     <Layers className="h-4 w-4 text-blue-600" />
                     <AlertTitle>Location Stock Overview</AlertTitle>
                     <AlertDescription>
@@ -284,15 +346,15 @@ export default function StockTransferPage() {
                       </div>
                     </AlertDescription>
                   </Alert>
-              }
+                )}
 
-                {isOverTransfer &&
-              <Alert variant="destructive">
+                {isOverTransfer && (
+                  <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Insufficient Stock</AlertTitle>
                     <AlertDescription>Only {sourceStock} available at source.</AlertDescription>
                   </Alert>
-              }
+                )}
 
                 <div className="flex justify-end">
                   <Button type="button" onClick={goToConfirm} disabled={isOverTransfer}>
@@ -303,13 +365,13 @@ export default function StockTransferPage() {
             </Form>
           </CardContent>
         </Card>
-      }
+      )}
 
-      {step === 2 &&
-      <Card className="border-purple-200">
+      {step === 2 && (
+        <Card className="border-purple-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-purple-600" /> Step 2: Confirm
+              <CheckCircle className="h-5 w-5 text-purple-600" /> Step 2: Confirm Draft
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -326,9 +388,10 @@ export default function StockTransferPage() {
               </div>
             </div>
             <Alert className="mt-4 border-amber-200 bg-amber-50">
-              <AlertTitle>Atomic Transfer</AlertTitle>
+              <AlertTitle>Draft only</AlertTitle>
               <AlertDescription>
-                Deducts from source and adds to destination in a single transaction.
+                Stock is not moved until someone with approve permission ships and completes the
+                transfer.
               </AlertDescription>
             </Alert>
             <div className="mt-4 flex justify-between">
@@ -336,24 +399,24 @@ export default function StockTransferPage() {
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? "Processing..." : "Confirm Transfer"}
+                {isSubmitting ? "Creating..." : "Create Draft"}
               </Button>
             </div>
           </CardContent>
         </Card>
-      }
+      )}
 
-      {step === 3 && completed &&
-      <Card className="border-green-200">
+      {step === 3 && createdDraft && (
+        <Card className="border-green-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700">
-              <CheckCircle className="h-5 w-5" /> Transfer Completed
+              <CheckCircle className="h-5 w-5" /> Draft Created
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-              Successfully moved {quantity} × {selectedProduct?.name} from {sourceLoc?.name} to{" "}
-              {destLoc?.name}.
+              Transfer #{createdDraft.id} created for {quantity} × {selectedProduct?.name}. Use the
+              open transfers table below to ship and complete.
             </p>
             <div className="mt-4 flex justify-end">
               <Button variant="outline" onClick={resetForm}>
@@ -362,7 +425,94 @@ export default function StockTransferPage() {
             </div>
           </CardContent>
         </Card>
-      }
-    </div>);
+      )}
 
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle>Open Transfers</CardTitle>
+          <CardDescription>Ship, complete, or cancel draft / in-transit transfers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>From → To</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {openTransfers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-slate-400">
+                    No open transfers
+                  </TableCell>
+                </TableRow>
+              )}
+              {openTransfers.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell>#{t.id}</TableCell>
+                  <TableCell>{t.product_name}</TableCell>
+                  <TableCell>
+                    {t.source_location_name} → {t.destination_location_name}
+                  </TableCell>
+                  <TableCell>{t.quantity}</TableCell>
+                  <TableCell>
+                    <Badge className={STATUS_BADGE[t.status] || "bg-slate-600"}>
+                      {t.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    {canApprove && t.status === "draft" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === t.id}
+                        onClick={() => runAction(t.id, "ship")}
+                      >
+                        <Truck className="mr-1 h-3 w-3" /> Ship
+                      </Button>
+                    )}
+                    {canApprove && ["draft", "in_transit"].includes(t.status) && (
+                      <Button
+                        size="sm"
+                        disabled={actionId === t.id}
+                        onClick={() => runAction(t.id, "complete")}
+                      >
+                        <CheckCircle className="mr-1 h-3 w-3" /> Complete
+                      </Button>
+                    )}
+                    {canApprove && ["draft", "in_transit"].includes(t.status) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={actionId === t.id}
+                        onClick={() => runAction(t.id, "cancel")}
+                      >
+                        <XCircle className="mr-1 h-3 w-3" /> Cancel
+                      </Button>
+                    )}
+                    {!canApprove && (
+                      <span className="text-xs text-slate-400">View only</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function StockTransferPage() {
+  return (
+    <ModuleGate module="transfers" action="view">
+      <StockTransferPageContent />
+    </ModuleGate>
+  );
 }

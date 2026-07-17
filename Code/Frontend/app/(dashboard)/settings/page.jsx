@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shield, Building, TrendingUp, Bell, Warehouse, Save, RefreshCw } from "lucide-react";
+import { Shield, Building, TrendingUp, Bell, Warehouse, Save, RefreshCw, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useUserStore } from "@/lib/store";
-import { settingsApi, locationsApi } from "@/lib/api";
-import { ApiError } from "@/lib/api/client";
-
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { settingsApi, locationsApi, scheduledReportsApi } from "@/lib/api";
+import { ApiError, unwrapList } from "@/lib/api/client";
 
 function SettingsCard({ title, description, children }) {
   return (
@@ -26,40 +25,46 @@ function SettingsCard({ title, description, children }) {
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>{children}</CardContent>
-    </Card>);
-
+    </Card>
+  );
 }
 
 export default function SettingsPage() {
-  const { role } = useUserStore();
+  const { isSuperAdmin, isAdmin } = useRoleAccess();
   const [settings, setSettings] = useState(null);
   const [locations, setLocations] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (role !== "admin") return;
-    Promise.all([settingsApi.get(), locationsApi.list()]).
-    then(([settingsRes, locs]) => {
-      if (settingsRes.success && settingsRes.data) setSettings(settingsRes.data);
-      setLocations(locs);
-    }).
-    catch(() => toast.error("Failed to load settings")).
-    finally(() => setLoading(false));
-  }, [role]);
+    if (!isSuperAdmin && !isAdmin) return;
+    Promise.all([
+      settingsApi.get(),
+      locationsApi.list().catch(() => []),
+      scheduledReportsApi.list().catch(() => ({ results: [] })),
+    ])
+      .then(([settingsRes, locs, sched]) => {
+        if (settingsRes.success && settingsRes.data) setSettings(settingsRes.data);
+        setLocations(locs);
+        setSchedules(unwrapList(sched));
+      })
+      .catch(() => toast.error("Failed to load settings"))
+      .finally(() => setLoading(false));
+  }, [isSuperAdmin, isAdmin]);
 
-  if (role !== "admin") {
+  if (!isSuperAdmin && !isAdmin) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
         <Shield className="h-16 w-16 text-slate-300" />
         <h2 className="text-2xl font-semibold">Access Denied</h2>
-        <p className="text-slate-400">Settings are only available to administrators.</p>
-      </div>);
-
+        <p className="text-slate-400">Settings are only available to Super Admin.</p>
+      </div>
+    );
   }
 
   const updateField = (field, value) => {
-    setSettings((prev) => prev ? { ...prev, [field]: value } : prev);
+    setSettings((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
   const handleSave = async () => {
@@ -71,11 +76,23 @@ export default function SettingsPage() {
         default_reorder_level: settings.default_reorder_level,
         enable_predictive_alerts: settings.enable_predictive_alerts,
         enable_email_notifications: settings.enable_email_notifications,
+        enable_push_notifications: settings.enable_push_notifications,
         forecast_model: settings.forecast_model,
         forecast_horizon_days: settings.forecast_horizon_days,
         company_name: settings.company_name,
         company_address: settings.company_address,
-        currency_code: settings.currency_code
+        currency_code: settings.currency_code,
+        session_timeout_minutes: settings.session_timeout_minutes,
+        jwt_access_minutes: settings.jwt_access_minutes,
+        jwt_refresh_days: settings.jwt_refresh_days,
+        remember_me_days: settings.remember_me_days,
+        max_login_attempts: settings.max_login_attempts,
+        lockout_duration_minutes: settings.lockout_duration_minutes,
+        password_min_length: settings.password_min_length,
+        password_require_uppercase: settings.password_require_uppercase,
+        password_require_lowercase: settings.password_require_lowercase,
+        password_require_number: settings.password_require_number,
+        password_require_special: settings.password_require_special,
       };
       const res = await settingsApi.update(settings.id, payload);
       if (res.success && res.data) {
@@ -90,7 +107,9 @@ export default function SettingsPage() {
   };
 
   if (loading || !settings) {
-    return <div className="flex h-[40vh] items-center justify-center text-slate-400">Loading settings...</div>;
+    return (
+      <div className="flex h-[40vh] items-center justify-center text-slate-400">Loading settings...</div>
+    );
   }
 
   return (
@@ -98,197 +117,279 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">System Settings</h1>
-          <p className="text-slate-400">Configure organisation defaults and forecasting behaviour</p>
+          <p className="text-slate-400">General, authentication, security, and forecast defaults</p>
         </div>
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ?
-          <>
+          {isSaving ? (
+            <>
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...
-            </> :
-
-          <>
+            </>
+          ) : (
+            <>
               <Save className="mr-2 h-4 w-4" /> Save Changes
             </>
-          }
+          )}
         </Button>
       </div>
 
-      <Tabs defaultValue="thresholds">
+      <Tabs defaultValue="general">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-800/50 p-1">
-          <TabsTrigger value="thresholds" className="text-xs">
-            <Bell className="mr-1 h-3 w-3" /> Thresholds
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="text-xs">
-            <Bell className="mr-1 h-3 w-3" /> Notifications
-          </TabsTrigger>
-          <TabsTrigger value="company" className="text-xs">
-            <Building className="mr-1 h-3 w-3" /> Company
-          </TabsTrigger>
-          <TabsTrigger value="forecast" className="text-xs">
-            <TrendingUp className="mr-1 h-3 w-3" /> Forecast
-          </TabsTrigger>
-          <TabsTrigger value="locations" className="text-xs">
-            <Warehouse className="mr-1 h-3 w-3" /> Locations
-          </TabsTrigger>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="auth">Authentication</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="forecast">Forecast</TabsTrigger>
+          <TabsTrigger value="reports">Scheduled Reports</TabsTrigger>
+          <TabsTrigger value="locations">Locations</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="thresholds">
-          <SettingsCard title="Default Stock Thresholds" description="Applied to new products">
+        <TabsContent value="general" className="mt-4 space-y-4">
+          <SettingsCard title="Company">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label htmlFor="min">Default Minimum Level</Label>
+                <Label>Company name</Label>
                 <Input
-                  id="min"
-                  type="number"
-                  value={settings.default_minimum_level}
-                  onChange={(e) => updateField("default_minimum_level", parseInt(e.target.value) || 0)} />
-                
-              </div>
-              <div>
-                <Label htmlFor="reorder">Default Reorder Level</Label>
-                <Input
-                  id="reorder"
-                  type="number"
-                  value={settings.default_reorder_level}
-                  onChange={(e) => updateField("default_reorder_level", parseInt(e.target.value) || 0)} />
-                
-              </div>
-            </div>
-          </SettingsCard>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <SettingsCard title="Alert & Notification Rules">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Predictive Alerts</Label>
-                  <p className="text-xs text-slate-400">Low stock and stockout risk notifications</p>
-                </div>
-                <Switch
-                  checked={settings.enable_predictive_alerts}
-                  onCheckedChange={(v) => updateField("enable_predictive_alerts", v)} />
-                
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-xs text-slate-400">Send alert emails to managers</p>
-                </div>
-                <Switch
-                  checked={settings.enable_email_notifications}
-                  onCheckedChange={(v) => updateField("enable_email_notifications", v)} />
-                
-              </div>
-            </div>
-          </SettingsCard>
-        </TabsContent>
-
-        <TabsContent value="company">
-          <SettingsCard title="Company Configuration">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label>Company Name</Label>
-                <Input
-                  value={settings.company_name}
-                  onChange={(e) => updateField("company_name", e.target.value)} />
-                
+                  value={settings.company_name || ""}
+                  onChange={(e) => updateField("company_name", e.target.value)}
+                />
               </div>
               <div>
                 <Label>Currency</Label>
-                <Select
-                  value={settings.currency_code}
-                  onValueChange={(v) => updateField("currency_code", v)}>
-                  
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={settings.currency_code || "GBP"}
+                  onChange={(e) => updateField("currency_code", e.target.value)}
+                />
               </div>
               <div className="md:col-span-2">
                 <Label>Address</Label>
                 <Input
-                  value={settings.company_address}
-                  onChange={(e) => updateField("company_address", e.target.value)} />
-                
+                  value={settings.company_address || ""}
+                  onChange={(e) => updateField("company_address", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Default minimum level</Label>
+                <Input
+                  type="number"
+                  value={settings.default_minimum_level ?? 10}
+                  onChange={(e) => updateField("default_minimum_level", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Default reorder level</Label>
+                <Input
+                  type="number"
+                  value={settings.default_reorder_level ?? 20}
+                  onChange={(e) => updateField("default_reorder_level", Number(e.target.value))}
+                />
               </div>
             </div>
           </SettingsCard>
         </TabsContent>
 
-        <TabsContent value="forecast">
-          <SettingsCard title="Forecast Model Defaults">
+        <TabsContent value="auth" className="mt-4 space-y-4">
+          <SettingsCard title="Session & JWT" description="Future: SSO / Google / Microsoft / LDAP / 2FA extension points">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label>Default Model</Label>
+                <Label>Session timeout (minutes)</Label>
+                <Input
+                  type="number"
+                  value={settings.session_timeout_minutes ?? 60}
+                  onChange={(e) => updateField("session_timeout_minutes", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>JWT access (minutes)</Label>
+                <Input
+                  type="number"
+                  value={settings.jwt_access_minutes ?? 60}
+                  onChange={(e) => updateField("jwt_access_minutes", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>JWT refresh (days)</Label>
+                <Input
+                  type="number"
+                  value={settings.jwt_refresh_days ?? 7}
+                  onChange={(e) => updateField("jwt_refresh_days", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Remember me (days)</Label>
+                <Input
+                  type="number"
+                  value={settings.remember_me_days ?? 30}
+                  onChange={(e) => updateField("remember_me_days", Number(e.target.value))}
+                />
+              </div>
+            </div>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-4 space-y-4">
+          <SettingsCard title="Password policy & lockout">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Min password length</Label>
+                <Input
+                  type="number"
+                  value={settings.password_min_length ?? 8}
+                  onChange={(e) => updateField("password_min_length", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Max login attempts</Label>
+                <Input
+                  type="number"
+                  value={settings.max_login_attempts ?? 5}
+                  onChange={(e) => updateField("max_login_attempts", Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Lockout duration (minutes)</Label>
+                <Input
+                  type="number"
+                  value={settings.lockout_duration_minutes ?? 30}
+                  onChange={(e) => updateField("lockout_duration_minutes", Number(e.target.value))}
+                />
+              </div>
+              <div className="flex items-center justify-between md:col-span-2">
+                <Label>Require uppercase</Label>
+                <Switch
+                  checked={!!settings.password_require_uppercase}
+                  onCheckedChange={(v) => updateField("password_require_uppercase", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between md:col-span-2">
+                <Label>Require lowercase</Label>
+                <Switch
+                  checked={!!settings.password_require_lowercase}
+                  onCheckedChange={(v) => updateField("password_require_lowercase", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between md:col-span-2">
+                <Label>Require number</Label>
+                <Switch
+                  checked={!!settings.password_require_number}
+                  onCheckedChange={(v) => updateField("password_require_number", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between md:col-span-2">
+                <Label>Require special character</Label>
+                <Switch
+                  checked={!!settings.password_require_special}
+                  onCheckedChange={(v) => updateField("password_require_special", v)}
+                />
+              </div>
+            </div>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="mt-4 space-y-4">
+          <SettingsCard title="Notification channels">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Predictive alerts</Label>
+                <Switch
+                  checked={!!settings.enable_predictive_alerts}
+                  onCheckedChange={(v) => updateField("enable_predictive_alerts", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Email notifications</Label>
+                <Switch
+                  checked={!!settings.enable_email_notifications}
+                  onCheckedChange={(v) => updateField("enable_email_notifications", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Push notifications</Label>
+                <Switch
+                  checked={!!settings.enable_push_notifications}
+                  onCheckedChange={(v) => updateField("enable_push_notifications", v)}
+                />
+              </div>
+            </div>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="forecast" className="mt-4 space-y-4">
+          <SettingsCard title="Forecast defaults">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Model</Label>
                 <Select
-                  value={settings.forecast_model}
-                  onValueChange={(v) => updateField("forecast_model", v)}>
-                  
+                  value={settings.forecast_model || "exponential_smoothing"}
+                  onValueChange={(v) => updateField("forecast_model", v)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ets">ETS (Exponential Smoothing)</SelectItem>
+                    <SelectItem value="exponential_smoothing">Exponential Smoothing</SelectItem>
                     <SelectItem value="moving_average">Moving Average</SelectItem>
-                    <SelectItem value="linear">Linear Trend</SelectItem>
+                    <SelectItem value="linear_regression">Linear Regression</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Forecast Horizon (days)</Label>
+                <Label>Horizon (days)</Label>
                 <Input
                   type="number"
-                  value={settings.forecast_horizon_days}
-                  onChange={(e) => updateField("forecast_horizon_days", parseInt(e.target.value) || 30)} />
-                
+                  value={settings.forecast_horizon_days ?? 30}
+                  onChange={(e) => updateField("forecast_horizon_days", Number(e.target.value))}
+                />
               </div>
             </div>
           </SettingsCard>
         </TabsContent>
 
-        <TabsContent value="locations">
-          <SettingsCard title="Warehouse Locations" description="Read-only — managed via inventory setup">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {locations.length === 0 ?
-                <TableRow>
-                    <TableCell colSpan={3} className="text-center text-slate-400">
-                      No locations configured
-                    </TableCell>
-                  </TableRow> :
-
-                locations.map((loc) =>
-                <TableRow key={loc.id}>
-                      <TableCell>{loc.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{loc.location_type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={loc.is_active ? "default" : "secondary"}>
-                          {loc.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                )
-                }
-              </TableBody>
-            </Table>
+        <TabsContent value="reports" className="mt-4">
+          <SettingsCard title="Scheduled reports" description="Configure delivery from Reports module; listed here for overview.">
+            <div className="space-y-2">
+              {schedules.map((s) => (
+                <div key={s.id} className="flex justify-between text-sm border-b border-white/5 py-2">
+                  <span>{s.name}</span>
+                  <span className="text-slate-500">
+                    {s.frequency} · {s.report_type}
+                  </span>
+                </div>
+              ))}
+              {schedules.length === 0 && <p className="text-sm text-slate-500">No scheduled reports yet</p>}
+            </div>
           </SettingsCard>
         </TabsContent>
-      </Tabs>
-    </div>);
 
+        <TabsContent value="locations" className="mt-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm">Locations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {locations.map((loc) => (
+                    <TableRow key={loc.id}>
+                      <TableCell>{loc.name}</TableCell>
+                      <TableCell>{loc.location_type}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{loc.is_active ? "Active" : "Inactive"}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }

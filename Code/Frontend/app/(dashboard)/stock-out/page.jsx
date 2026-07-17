@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { productsApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/stores/auth.store";
+import { ModuleGate } from "@/components/shared/ModuleGate";
 
 const stockOutSchema = z.object({
   productId: z.string().min(1, "Select a product"),
@@ -37,7 +38,7 @@ const DESTINATIONS = [
 { value: "Internal use", label: "Internal use" }];
 
 
-export default function StockOutPage() {
+function StockOutPageContent() {
   const user = useAuthStore((s) => s.user);
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -318,4 +319,12 @@ export default function StockOutPage() {
       </Card>
     </div>);
 
+}
+
+export default function StockOutPage() {
+  return (
+    <ModuleGate module="stock_out" action="create">
+      <StockOutPageContent />
+    </ModuleGate>
+  );
 }

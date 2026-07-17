@@ -12,7 +12,7 @@ from audit.models import ActivityLog
 
 from audit.serializers import ActivityLogSerializer
 
-from core.permissions import IsManagerOrAdmin
+from core.permissions import HasModulePermission
 
 
 
@@ -22,7 +22,8 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = ActivityLogSerializer
 
-    permission_classes = [IsManagerOrAdmin]
+    module_permission = "audit"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 

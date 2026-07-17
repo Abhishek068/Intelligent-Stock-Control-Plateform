@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HelpCircle, RefreshCw, Filter } from "lucide-react";
+import { HelpCircle, RefreshCw, Filter, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,24 +10,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { analyticsApi } from "@/lib/api";
+import { analyticsApi, purchaseOrdersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
+import { useRouter } from "next/navigation";
 
 const priorityColors = {
+  Critical: "bg-red-500 text-white",
   critical: "bg-red-500 text-white",
+  High: "bg-amber-500 text-white",
   high: "bg-amber-500 text-white",
+  Medium: "bg-blue-500 text-white",
   medium: "bg-blue-500 text-white",
-  low: "bg-green-500 text-white"
+  Low: "bg-green-500 text-white",
+  low: "bg-green-500 text-white",
 };
 
 const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
 
 export default function ReorderRecommendationsPage() {
+  const router = useRouter();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [creatingPo, setCreatingPo] = useState(false);
 
   const loadRecommendations = useCallback(async () => {
     setLoading(true);
@@ -52,9 +59,15 @@ export default function ReorderRecommendationsPage() {
   const filtered = useMemo(() => {
     let rows = recommendations;
     if (supplierFilter !== "all") rows = rows.filter((r) => r.supplier_name === supplierFilter);
-    if (priorityFilter !== "all") rows = rows.filter((r) => r.priority === priorityFilter.toLowerCase());
+    if (priorityFilter !== "all") {
+      rows = rows.filter(
+        (r) => String(r.priority || "").toLowerCase() === priorityFilter.toLowerCase()
+      );
+    }
     return [...rows].sort(
-      (a, b) => (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9)
+      (a, b) =>
+        (priorityOrder[String(a.priority || "").toLowerCase()] ?? 9) -
+        (priorityOrder[String(b.priority || "").toLowerCase()] ?? 9)
     );
   }, [recommendations, supplierFilter, priorityFilter]);
 
@@ -76,6 +89,30 @@ export default function ReorderRecommendationsPage() {
     }
   };
 
+  const handleCreatePos = async () => {
+    const ids = filtered.map((r) => r.product).filter(Boolean);
+    if (!ids.length) {
+      toast.error("No products to order");
+      return;
+    }
+    setCreatingPo(true);
+    try {
+      const res = await purchaseOrdersApi.fromReorder({ product_ids: ids });
+      const created = res?.data || [];
+      toast.success(
+        created.length
+          ? `Created ${created.length} draft PO(s)`
+          : "No POs created"
+      );
+      if (created[0]?.id) router.push(`/purchase-orders/${created[0].id}`);
+      else router.push("/purchase-orders");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "PO create failed");
+    } finally {
+      setCreatingPo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -83,10 +120,20 @@ export default function ReorderRecommendationsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-100">Reorder Recommendations</h1>
           <p className="text-slate-400">Smart replenishment suggestions from forecasting and lead times</p>
         </div>
-        <Button variant="outline" onClick={handleGenerate} disabled={isGenerating}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
-          {isGenerating ? "Generating..." : "Generate"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCreatePos}
+            disabled={creatingPo || filtered.length === 0}
+          >
+            <FilePlus className="mr-2 h-4 w-4" />
+            {creatingPo ? "Creating..." : "Create POs"}
+          </Button>
+          <Button variant="outline" onClick={handleGenerate} disabled={isGenerating}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
+            {isGenerating ? "Generating..." : "Generate"}
+          </Button>
+        </div>
       </div>
 
       <Card className="glass-card">
@@ -215,7 +262,7 @@ export default function ReorderRecommendationsPage() {
           <CardContent className="p-4">
             <p className="text-xs text-slate-400">Critical Items</p>
             <p className="text-2xl font-bold text-red-600">
-              {recommendations.filter((r) => r.priority === "critical").length}
+              {recommendations.filter((r) => String(r.priority).toLowerCase() === "critical").length}
             </p>
           </CardContent>
         </Card>
@@ -223,7 +270,7 @@ export default function ReorderRecommendationsPage() {
           <CardContent className="p-4">
             <p className="text-xs text-slate-400">High Priority</p>
             <p className="text-2xl font-bold text-amber-600">
-              {recommendations.filter((r) => r.priority === "high").length}
+              {recommendations.filter((r) => String(r.priority).toLowerCase() === "high").length}
             </p>
           </CardContent>
         </Card>

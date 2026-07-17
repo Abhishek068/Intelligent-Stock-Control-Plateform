@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Plus,
   MoreHorizontal,
-  Pencil,
   Trash2,
-  Calendar,
-  User,
+  Play,
   CheckCircle,
   Clock,
-  AlertTriangle } from
-"lucide-react";
+  AlertTriangle,
+  XCircle,
+  Save,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -23,23 +23,23 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from
-"@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from
-"@/components/ui/select";
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -47,166 +47,243 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger } from
-"@/components/ui/dialog";
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatsGrid } from "@/components/shared/StatsGrid";
 import { FilterBar } from "@/components/shared/FilterBar";
 import { SearchInput } from "@/components/shared/SearchInput";
-
-
+import { ModuleGate } from "@/components/shared/ModuleGate";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-
-const mockLocations = [];
-const mockStaffUsers = [];
+import { stockApi, locationsApi, usersApi } from "@/lib/api";
+import { ApiError, unwrapList } from "@/lib/api/client";
 
 const statusColors = {
   scheduled: "bg-blue-500",
   in_progress: "bg-amber-500",
-  completed: "bg-green-500"
+  completed: "bg-green-500",
+  cancelled: "bg-slate-500",
 };
 
 const statusIcons = {
-  scheduled: <Clock className="mr-1 h-3 w-3" />,
-  in_progress: <AlertTriangle className="mr-1 h-3 w-3" />,
-  completed: <CheckCircle className="mr-1 h-3 w-3" />
+  scheduled: Clock,
+  in_progress: AlertTriangle,
+  completed: CheckCircle,
+  cancelled: XCircle,
 };
 
-export default function StockTakePage() {
-  const { canEdit } = useRoleAccess();
+function StockTakePageContent() {
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const canCreate = isSuperAdmin || hasPermission("stock_take", "create");
+  const canEdit = isSuperAdmin || hasPermission("stock_take", "edit");
+  const canApprove = isSuperAdmin || hasPermission("stock_take", "approve");
+  const canDelete = isSuperAdmin || hasPermission("stock_take", "delete");
 
   const [schedules, setSchedules] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTake, setActiveTake] = useState(null);
+  const [countDraft, setCountDraft] = useState({});
   const [formData, setFormData] = useState({
     locationId: "",
     scheduledDate: "",
-    assignedUserId: ""
+    assignedUserId: "",
   });
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [takes, locs, userRes] = await Promise.all([
+        stockApi.listStockTakes(),
+        locationsApi.list().catch(() => []),
+        usersApi.list().catch(() => ({ results: [] })),
+      ]);
+      setSchedules(takes);
+      setLocations(locs);
+      setUsers(unwrapList(userRes));
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to load stock-takes");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const filtered = schedules.filter((s) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-    s.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.assignedUser.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      String(s.location_name || "").toLowerCase().includes(q) ||
+      String(s.assigned_to_name || "").toLowerCase().includes(q) ||
+      String(s.id).includes(q);
     const matchesStatus = statusFilter === "all" || s.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleSubmit = () => {
-    if (!formData.locationId || !formData.scheduledDate || !formData.assignedUserId) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    const location = mockLocations.find((l) => l.id === formData.locationId);
-    const newSchedule = {
-      id: `st-${Date.now()}`,
-      location: location?.name || "Unknown",
-      locationId: formData.locationId,
-      scheduledDate: formData.scheduledDate,
-      assignedUser: formData.assignedUserId,
-      status: "scheduled",
-      expectedItems: 0,
-      countedItems: 0
-    };
-    setSchedules([newSchedule, ...schedules]);
-    setIsDialogOpen(false);
-    setFormData({ locationId: "", scheduledDate: "", assignedUserId: "" });
-    toast.success("Stock-take scheduled");
-  };
-
-  const handleDelete = (id) => {
-    setSchedules(schedules.filter((s) => s.id !== id));
-    toast.success("Schedule deleted");
-  };
-
-  const handleStatusUpdate = (id, newStatus) => {
-    setSchedules(
-      schedules.map((s) =>
-      s.id === id ? { ...s, status: newStatus } : s
-      )
-    );
-    toast.success(`Status updated to ${newStatus}`);
-  };
-
   const stats = {
     total: schedules.length,
-    pending: schedules.filter((s) => s.status === "scheduled").length,
-    inProgress: schedules.filter((s) => s.status === "in_progress").length,
-    completed: schedules.filter((s) => s.status === "completed").length
+    scheduled: schedules.filter((s) => s.status === "scheduled").length,
+    in_progress: schedules.filter((s) => s.status === "in_progress").length,
+    completed: schedules.filter((s) => s.status === "completed").length,
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.locationId || !formData.scheduledDate) {
+      toast.error("Location and scheduled date are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await stockApi.createStockTake({
+        location: Number(formData.locationId),
+        scheduled_date: formData.scheduledDate,
+        assigned_to: formData.assignedUserId
+          ? Number(formData.assignedUserId)
+          : null,
+      });
+      toast.success("Stock-take scheduled");
+      setIsDialogOpen(false);
+      setFormData({ locationId: "", scheduledDate: "", assignedUserId: "" });
+      load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Create failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openTake = async (id) => {
+    try {
+      const res = await stockApi.getStockTake(id);
+      const data = res?.data || res;
+      setActiveTake(data);
+      const draft = {};
+      (data.lines || []).forEach((line) => {
+        draft[line.id] =
+          line.counted_qty != null ? String(line.counted_qty) : String(line.system_qty);
+      });
+      setCountDraft(draft);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to load take");
+    }
+  };
+
+  const runAction = async (id, action) => {
+    try {
+      if (action === "start") await stockApi.startStockTake(id);
+      if (action === "cancel") await stockApi.cancelStockTake(id);
+      if (action === "delete") await stockApi.deleteStockTake(id);
+      if (action === "complete") await stockApi.completeStockTake(id, true);
+      toast.success("Updated");
+      await load();
+      if (action !== "delete" && activeTake?.id === id) {
+        await openTake(id);
+      } else if (action === "delete") {
+        setActiveTake(null);
+      }
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Action failed");
+    }
+  };
+
+  const saveCounts = async () => {
+    if (!activeTake) return;
+    const counts = Object.entries(countDraft).map(([lineId, qty]) => ({
+      line_id: Number(lineId),
+      counted_qty: parseInt(qty, 10) || 0,
+    }));
+    try {
+      const res = await stockApi.recordStockTakeCounts(activeTake.id, counts);
+      const data = res?.data || res;
+      setActiveTake(data);
+      toast.success("Counts saved");
+      load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Save failed");
+    }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Stock-take Scheduling"
-        description="Plan and track physical inventory counts (R8)"
+        title="Stock-take"
+        description="Schedule counts, record variances, and post adjustments"
         actions={
-        canEdit &&
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          canCreate && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="mr-2 h-4 w-4" /> Schedule Stock-take
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> Schedule
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Schedule Stock-take</DialogTitle>
+                  <DialogTitle>Schedule stock-take</DialogTitle>
                   <DialogDescription>
-                    Assign a team member to count inventory at a location.
+                    Creates a scheduled count for one location. Start it to snapshot system qty.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
                     <Label>Location *</Label>
                     <Select
-                  value={formData.locationId}
-                  onValueChange={(v) =>
-                  setFormData({ ...formData, locationId: v })
-                  }>
-                  
+                      value={formData.locationId}
+                      onValueChange={(v) =>
+                        setFormData((s) => ({ ...s, locationId: v }))
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select location" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockLocations.map((loc) =>
-                    <SelectItem key={loc.id} value={loc.id}>
-                            {loc.name}
+                        {locations.map((l) => (
+                          <SelectItem key={l.id} value={String(l.id)}>
+                            {l.name}
                           </SelectItem>
-                    )}
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Date *</Label>
+                  <div className="grid gap-2">
+                    <Label>Scheduled date *</Label>
                     <Input
-                  type="date"
-                  value={formData.scheduledDate}
-                  onChange={(e) =>
-                  setFormData({ ...formData, scheduledDate: e.target.value })
-                  } />
-                
+                      type="date"
+                      value={formData.scheduledDate}
+                      onChange={(e) =>
+                        setFormData((s) => ({
+                          ...s,
+                          scheduledDate: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Assigned Staff *</Label>
+                  <div className="grid gap-2">
+                    <Label>Assigned to</Label>
                     <Select
-                  value={formData.assignedUserId}
-                  onValueChange={(v) =>
-                  setFormData({ ...formData, assignedUserId: v })
-                  }>
-                  
+                      value={formData.assignedUserId}
+                      onValueChange={(v) =>
+                        setFormData((s) => ({ ...s, assignedUserId: v }))
+                      }
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select staff member" />
+                        <SelectValue placeholder="Optional" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockStaffUsers.map((u) =>
-                    <SelectItem key={u} value={u}>
-                            {u}
+                        {users.map((u) => (
+                          <SelectItem key={u.id} value={String(u.id)}>
+                            {u.full_name || u.email || u.username}
                           </SelectItem>
-                    )}
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -215,96 +292,97 @@ export default function StockTakePage() {
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSubmit} className="bg-teal-600">
-                    Schedule
+                  <Button onClick={handleSubmit} disabled={saving}>
+                    {saving ? "Saving..." : "Create"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          )
+        }
+      />
 
-        } />
-      
-
-      <FilterBar resultCount={filtered.length} resultLabel="schedules">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search location or staff..." />
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-      </FilterBar>
+      <StatsGrid
+        stats={[
+          { label: "Total", value: stats.total, color: "blue" },
+          { label: "Scheduled", value: stats.scheduled, color: "slate" },
+          { label: "In progress", value: stats.in_progress, color: "amber" },
+          { label: "Completed", value: stats.completed, color: "green" },
+        ]}
+      />
 
       <Card className="glass-card">
-        <CardContent className="p-0">
+        <CardContent className="p-4 space-y-4">
+          <FilterBar>
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search location or assignee..."
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="in_progress">In progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterBar>
+
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Assigned Staff</TableHead>
-                <TableHead>Scheduled Date</TableHead>
-                <TableHead className="text-center">Expected Items</TableHead>
-                <TableHead className="text-center">Counted</TableHead>
-                <TableHead className="text-center">Progress</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Assigned</TableHead>
+                <TableHead>Progress</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-slate-400">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-slate-400">
+                    No stock-takes yet
+                  </TableCell>
+                </TableRow>
+              )}
               {filtered.map((s) => {
-                const progress = s.expectedItems > 0 ?
-                Math.round(s.countedItems / s.expectedItems * 100) :
-                0;
+                const Icon = statusIcons[s.status] || Clock;
                 return (
                   <TableRow key={s.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        {s.location}
-                      </div>
+                    <TableCell className="font-mono text-xs">#{s.id}</TableCell>
+                    <TableCell>{s.location_name}</TableCell>
+                    <TableCell>{s.scheduled_date}</TableCell>
+                    <TableCell>{s.assigned_to_name || "—"}</TableCell>
+                    <TableCell className="text-sm text-slate-400">
+                      {s.counted_items ?? 0}/{s.expected_items ?? 0}
+                      {s.variance_items ? (
+                        <span className="ml-2 text-amber-500">
+                          {s.variance_items} var
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-slate-400" />
-                        {s.assignedUser}
-                      </div>
-                    </TableCell>
-                    <TableCell>{s.scheduledDate}</TableCell>
-                    <TableCell className="text-center font-mono">
-                      {s.expectedItems}
-                    </TableCell>
-                    <TableCell className="text-center font-mono">
-                      {s.countedItems}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-slate-200">
-                          <div
-                            className="h-1.5 rounded-full bg-teal-500"
-                            style={{ width: `${Math.min(progress, 100)}%` }} />
-                          
-                        </div>
-                        <span className="text-xs font-mono">{progress}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[s.status]}>
-                        {statusIcons[s.status]}
-                        {s.status === "in_progress" ?
-                        "In Progress" :
-                        s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                      <Badge className={statusColors[s.status] || "bg-slate-500"}>
+                        <Icon className="mr-1 h-3 w-3" />
+                        {String(s.status).replace("_", " ")}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -313,51 +391,167 @@ export default function StockTakePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {canEdit && s.status !== "completed" &&
-                          <>
-                              <DropdownMenuItem
-                              onClick={() => handleStatusUpdate(s.id, "in_progress")}>
-                              
-                                <AlertTriangle className="mr-2 h-3 w-3" /> Start Count
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                              onClick={() => handleStatusUpdate(s.id, "completed")}>
-                              
-                                <CheckCircle className="mr-2 h-3 w-3" /> Complete
-                              </DropdownMenuItem>
-                            </>
-                          }
-                          <DropdownMenuItem>
-                            <Pencil className="mr-2 h-3 w-3" /> Edit
+                          <DropdownMenuItem onClick={() => openTake(s.id)}>
+                            Open / count
                           </DropdownMenuItem>
-                          {canEdit &&
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(s.id)}>
-                            
-                              <Trash2 className="mr-2 h-3 w-3" /> Delete
+                          {canEdit && s.status === "scheduled" && (
+                            <DropdownMenuItem onClick={() => runAction(s.id, "start")}>
+                              <Play className="mr-2 h-4 w-4" /> Start
                             </DropdownMenuItem>
-                          }
+                          )}
+                          {canApprove && s.status === "in_progress" && (
+                            <DropdownMenuItem
+                              onClick={() => runAction(s.id, "complete")}
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" /> Complete
+                            </DropdownMenuItem>
+                          )}
+                          {canApprove &&
+                            ["scheduled", "in_progress"].includes(s.status) && (
+                              <DropdownMenuItem
+                                onClick={() => runAction(s.id, "cancel")}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" /> Cancel
+                              </DropdownMenuItem>
+                            )}
+                          {canDelete && s.status === "scheduled" && (
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => runAction(s.id, "delete")}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                  </TableRow>);
-
+                  </TableRow>
+                );
               })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <StatsGrid
-        columns={4}
-        stats={[
-        { label: "Total Scheduled", value: stats.total },
-        { label: "Pending", value: stats.pending, color: "blue" },
-        { label: "In Progress", value: stats.inProgress, color: "amber" },
-        { label: "Completed", value: stats.completed, color: "green" }]
-        } />
-      
-    </div>);
+      {activeTake && (
+        <Card className="glass-card">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>
+                Count · {activeTake.location_name} (#{activeTake.id})
+              </CardTitle>
+              <CardDescription>
+                System qty was snapped when started. Completing posts adjustments for
+                variances.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canEdit && activeTake.status === "scheduled" && (
+                <Button size="sm" onClick={() => runAction(activeTake.id, "start")}>
+                  <Play className="mr-2 h-4 w-4" /> Start
+                </Button>
+              )}
+              {canEdit && activeTake.status === "in_progress" && (
+                <Button size="sm" variant="outline" onClick={saveCounts}>
+                  <Save className="mr-2 h-4 w-4" /> Save counts
+                </Button>
+              )}
+              {canApprove && activeTake.status === "in_progress" && (
+                <Button size="sm" onClick={() => runAction(activeTake.id, "complete")}>
+                  <CheckCircle className="mr-2 h-4 w-4" /> Complete & adjust
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setActiveTake(null)}>
+                Close
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(!activeTake.lines || activeTake.lines.length === 0) && (
+              <p className="text-sm text-slate-400">
+                {activeTake.status === "scheduled"
+                  ? "Start this stock-take to load product lines."
+                  : "No lines."}
+              </p>
+            )}
+            {activeTake.lines?.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">System</TableHead>
+                    <TableHead className="text-right">Counted</TableHead>
+                    <TableHead className="text-right">Variance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activeTake.lines.map((line) => {
+                    const counted =
+                      countDraft[line.id] != null
+                        ? parseInt(countDraft[line.id], 10) || 0
+                        : line.counted_qty;
+                    const variance =
+                      counted != null && !Number.isNaN(counted)
+                        ? counted - line.system_qty
+                        : line.variance;
+                    return (
+                      <TableRow key={line.id}>
+                        <TableCell>{line.product_name}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {line.product_sku}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {line.system_qty}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {activeTake.status === "in_progress" && canEdit ? (
+                            <Input
+                              className="ml-auto h-8 w-24 text-right"
+                              type="number"
+                              min="0"
+                              value={countDraft[line.id] ?? ""}
+                              onChange={(e) =>
+                                setCountDraft((d) => ({
+                                  ...d,
+                                  [line.id]: e.target.value,
+                                }))
+                              }
+                            />
+                          ) : (
+                            <span className="font-mono">
+                              {line.counted_qty ?? "—"}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-mono ${
+                            variance
+                              ? variance > 0
+                                ? "text-green-500"
+                                : "text-red-500"
+                              : "text-slate-400"
+                          }`}
+                        >
+                          {variance == null ? "—" : variance > 0 ? `+${variance}` : variance}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
+export default function StockTakePage() {
+  return (
+    <ModuleGate module="stock_take" action="view">
+      <StockTakePageContent />
+    </ModuleGate>
+  );
 }

@@ -10,11 +10,13 @@ from rest_framework.response import Response
 
 
 
-from analytics.models import DemandForecast, ReorderRecommendation
+from analytics.models import DemandForecast, PredictiveAlert, ReorderRecommendation
 
 from analytics.serializers import (
 
     DemandForecastSerializer,
+
+    PredictiveAlertSerializer,
 
     ReorderRecommendationSerializer,
 
@@ -22,7 +24,7 @@ from analytics.serializers import (
 
 from analytics.services import AlertService, ForecastingService, ReorderService
 
-from core.permissions import IsManagerOrAdmin, IsOrganizationMember
+from core.permissions import HasModulePermission, IsOrganizationMember
 
 from inventory.models import Product
 
@@ -34,7 +36,8 @@ from stock.models import StockInTransaction, StockOutTransaction, StockAdjustmen
 
 class ForecastViewSet(viewsets.ViewSet):
 
-    permission_classes = [IsManagerOrAdmin]
+    module_permission = "forecasting"
+    permission_classes = [HasModulePermission]
 
 
 
@@ -146,7 +149,8 @@ class ReorderRecommendationViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = ReorderRecommendationSerializer
 
-    permission_classes = [IsManagerOrAdmin]
+    module_permission = "forecasting"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [DjangoFilterBackend]
 
@@ -192,7 +196,8 @@ class ReorderRecommendationViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ReportViewSet(viewsets.ViewSet):
 
-    permission_classes = [IsManagerOrAdmin]
+    module_permission = "reports"
+    permission_classes = [HasModulePermission]
 
 
 
@@ -238,13 +243,54 @@ class ReportViewSet(viewsets.ViewSet):
 
         elif report_type == "movements":
 
+            from datetime import timedelta
+
+            from django.db.models import Count
+            from django.db.models.functions import TruncDate
+            from django.utils import timezone
+
+            days = min(int(request.query_params.get("days", 30)), 90)
+            since = timezone.now() - timedelta(days=days)
+
             ins = StockInTransaction.objects.filter(product__organization=org).count()
-
             outs = StockOutTransaction.objects.filter(product__organization=org).count()
-
             adjs = StockAdjustment.objects.filter(product__organization=org).count()
 
-            data = [{"type": "stock_in", "count": ins}, {"type": "stock_out", "count": outs}, {"type": "adjustments", "count": adjs}]
+            ins_series = (
+                StockInTransaction.objects.filter(
+                    product__organization=org, received_at__gte=since
+                )
+                .annotate(day=TruncDate("received_at"))
+                .values("day")
+                .annotate(count=Count("id"))
+            )
+            outs_series = (
+                StockOutTransaction.objects.filter(
+                    product__organization=org, issued_at__gte=since
+                )
+                .annotate(day=TruncDate("issued_at"))
+                .values("day")
+                .annotate(count=Count("id"))
+            )
+            by_day = {}
+            for row in ins_series:
+                key = row["day"].isoformat() if row["day"] else ""
+                by_day.setdefault(key, {"date": key, "stock_in": 0, "stock_out": 0})
+                by_day[key]["stock_in"] = row["count"]
+            for row in outs_series:
+                key = row["day"].isoformat() if row["day"] else ""
+                by_day.setdefault(key, {"date": key, "stock_in": 0, "stock_out": 0})
+                by_day[key]["stock_out"] = row["count"]
+
+            data = {
+                "totals": [
+                    {"type": "stock_in", "count": ins},
+                    {"type": "stock_out", "count": outs},
+                    {"type": "adjustments", "count": adjs},
+                ],
+                "series": [by_day[k] for k in sorted(by_day.keys())],
+                "days": days,
+            }
 
         elif report_type == "low_stock":
 
@@ -297,4 +343,26 @@ class ReportViewSet(viewsets.ViewSet):
 
 
         return Response({"success": True, "data": data})
+
+
+class PredictiveAlertViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PredictiveAlertSerializer
+    module_permission = "alerts"
+    permission_classes = [HasModulePermission]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["severity", "is_resolved"]
+
+    def get_queryset(self):
+        return PredictiveAlert.objects.filter(
+            product__organization=self.request.user.organization
+        ).select_related("product").order_by("-generated_at")
+
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        alert = self.get_object()
+        alert.is_resolved = True
+        alert.save(update_fields=["is_resolved"])
+        return Response(
+            {"success": True, "data": PredictiveAlertSerializer(alert).data}
+        )
 

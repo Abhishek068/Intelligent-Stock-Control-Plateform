@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from core.mixins import OrganizationScopedViewSet
 
-from core.permissions import IsAdminRole, IsManagerOrAdmin, IsReadOnlyOrElevated
+from core.permissions import HasModulePermission, IsSuperAdmin
 
 from core.models import OrganizationSettings
 
@@ -44,7 +44,8 @@ class CategoryViewSet(OrganizationScopedViewSet):
 
     serializer_class = CategorySerializer
 
-    permission_classes = [IsReadOnlyOrElevated]
+    module_permission = "categories"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
 
@@ -62,7 +63,8 @@ class LocationViewSet(OrganizationScopedViewSet):
 
     serializer_class = LocationSerializer
 
-    permission_classes = [IsReadOnlyOrElevated]
+    module_permission = "products"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
 
@@ -78,7 +80,8 @@ class ProductViewSet(OrganizationScopedViewSet):
 
     queryset = Product.objects.select_related("category", "supplier").all()
 
-    permission_classes = [IsReadOnlyOrElevated]
+    module_permission = "products"
+    permission_classes = [HasModulePermission]
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
@@ -98,7 +101,23 @@ class ProductViewSet(OrganizationScopedViewSet):
 
         return ProductSerializer
 
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        product = serializer.instance
+        try:
+            from activity.services import record_activity
 
+            record_activity(
+                organization=product.organization,
+                user=self.request.user,
+                event_type="product_added",
+                title=f"Product added: {product.name}",
+                description=f"SKU {product.sku}",
+                entity_type="Product",
+                entity_id=product.id,
+            )
+        except Exception:
+            pass
 
     @action(detail=False, methods=["get"])
 
@@ -118,6 +137,21 @@ class ProductViewSet(OrganizationScopedViewSet):
 
             return Response({"success": False, "error": "Product not found"}, status=404)
 
+        return Response({"success": True, "data": ProductDetailSerializer(product).data})
+
+    @action(detail=False, methods=["get"])
+    def lookup(self, request):
+        """Lookup by SKU or barcode."""
+        code = (request.query_params.get("code") or request.query_params.get("q") or "").strip()
+        if not code:
+            return Response(
+                {"success": False, "error": "code parameter required"},
+                status=400,
+            )
+        qs = self.get_queryset()
+        product = qs.filter(sku__iexact=code).first() or qs.filter(barcode__iexact=code).first()
+        if not product:
+            return Response({"success": False, "error": "Product not found"}, status=404)
         return Response({"success": True, "data": ProductDetailSerializer(product).data})
 
 
@@ -148,15 +182,25 @@ class InventoryBalanceViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SettingsViewSet(viewsets.ViewSet):
 
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsSuperAdmin]
 
 
 
     def _get_settings(self, request):
 
+        from accounts.services import ensure_default_organization
+
+        org = request.user.organization
+        if not org:
+            org = ensure_default_organization()
+            if request.user.is_superuser and not request.user.organization_id:
+                request.user.organization = org
+                request.user.status = request.user.Status.ACTIVE
+                request.user.save(update_fields=["organization", "status"])
+
         return OrganizationSettings.objects.get_or_create(
 
-            organization=request.user.organization
+            organization=org
 
         )[0]
 
@@ -190,7 +234,27 @@ class DashboardViewSet(viewsets.ViewSet):
 
     def list(self, request):
 
+        from accounts.services import ensure_default_organization
+
         org = request.user.organization
+        if not org and request.user.is_superuser:
+            org = ensure_default_organization()
+            request.user.organization = org
+            request.user.status = request.user.Status.ACTIVE
+            request.user.save(update_fields=["organization", "status"])
+
+        if not org:
+            return Response({"success": True, "data": {
+                "total_inventory_value": 0,
+                "low_stock_count": 0,
+                "out_of_stock_count": 0,
+                "open_alerts_count": 0,
+                "reorder_count": 0,
+                "total_products": 0,
+                "role": request.user.primary_role_name(),
+                "is_superuser": request.user.is_superuser,
+                "permissions": request.user.permission_map(),
+            }})
 
         products = Product.objects.filter(organization=org, is_active=True)
 
@@ -270,11 +334,92 @@ class DashboardViewSet(viewsets.ViewSet):
 
                     "total_products": products.count(),
 
-                    "role": request.user.role,
+                    "role": request.user.primary_role_name(),
+                    "is_superuser": request.user.is_superuser,
+                    "permissions": request.user.permission_map(),
 
                 },
 
             }
 
+        )
+
+    @action(detail=False, methods=["get"])
+    def trends(self, request):
+        """Movement series + top low-stock SKUs for dashboard charts."""
+        from datetime import timedelta
+
+        from django.db.models import Count
+        from django.db.models.functions import TruncDate
+        from django.utils import timezone
+
+        from stock.models import StockInTransaction, StockOutTransaction
+
+        org = request.user.organization
+        if not org:
+            return Response({"success": True, "data": {"movements": [], "top_low_stock": []}})
+
+        days = min(int(request.query_params.get("days", 14)), 90)
+        since = timezone.now() - timedelta(days=days)
+
+        ins = (
+            StockInTransaction.objects.filter(
+                product__organization=org, received_at__gte=since
+            )
+            .annotate(day=TruncDate("received_at"))
+            .values("day")
+            .annotate(count=Count("id"))
+        )
+        outs = (
+            StockOutTransaction.objects.filter(
+                product__organization=org, issued_at__gte=since
+            )
+            .annotate(day=TruncDate("issued_at"))
+            .values("day")
+            .annotate(count=Count("id"))
+        )
+        by_day = {}
+        for row in ins:
+            key = row["day"].isoformat() if row["day"] else ""
+            by_day.setdefault(key, {"name": key[5:] if key else "", "stock_in": 0, "stock_out": 0})
+            by_day[key]["stock_in"] = row["count"]
+        for row in outs:
+            key = row["day"].isoformat() if row["day"] else ""
+            by_day.setdefault(key, {"name": key[5:] if key else "", "stock_in": 0, "stock_out": 0})
+            by_day[key]["stock_out"] = row["count"]
+        movements = [by_day[k] for k in sorted(by_day.keys())]
+
+        products = Product.objects.filter(organization=org, is_active=True)
+        balances = InventoryBalance.objects.filter(product__organization=org)
+        stock_by_product = {}
+        for b in balances:
+            stock_by_product[b.product_id] = stock_by_product.get(b.product_id, 0) + b.quantity_on_hand
+
+        top_low = []
+        for p in products:
+            stock = stock_by_product.get(p.id, 0)
+            if stock <= p.minimum_level:
+                top_low.append(
+                    {
+                        "product_id": p.id,
+                        "product": p.name,
+                        "sku": p.sku,
+                        "stock": stock,
+                        "minimum_level": p.minimum_level,
+                        "reorder_level": p.reorder_level,
+                    }
+                )
+        top_low.sort(key=lambda x: x["stock"])
+        top_low = top_low[:10]
+
+        return Response(
+            {
+                "success": True,
+                "data": {
+                    "movements": movements,
+                    "top_low_stock": top_low,
+                    "days": days,
+                },
+            }
         )
 

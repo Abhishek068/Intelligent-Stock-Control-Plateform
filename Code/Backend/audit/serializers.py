@@ -12,7 +12,10 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
     user_name = serializers.CharField(source="user.display_name", read_only=True)
 
-    user_role = serializers.CharField(source="user.role", read_only=True)
+    user_role = serializers.SerializerMethodField()
+
+    def get_user_role(self, obj):
+        return obj.user.primary_role_name() if obj.user_id else None
 
 
 

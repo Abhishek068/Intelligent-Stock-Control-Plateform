@@ -1,19 +1,13 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
 import {
   ArrowLeft,
-  Printer,
-  Download,
   CheckCircle,
-  Clock,
-  AlertCircle,
-  Mail,
-
-  Trash2 } from
-
-"lucide-react";
+  Send,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,8 +16,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle } from
-"@/components/ui/card";
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -31,321 +25,223 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow } from
-"@/components/ui/table";
+  TableRow,
+} from "@/components/ui/table";
+import { ModuleGate } from "@/components/shared/ModuleGate";
+import { INVOICE_STATUS_COLORS } from "@/constants/status.constants";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { invoicesApi } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 
-import { useUserStore } from "@/lib/store";
-
-
-const mockInvoiceDetails = {
-  "INV-2024-001": {
-    id: "INV-2024-001",
-    orderId: "ORD-2024-001",
-    customer: "John Smith",
-    customerEmail: "john@example.com",
-    customerPhone: "+44 20 7123 4567",
-    customerAddress: "123 Main St, London, UK",
-    date: "2026-07-01",
-    dueDate: "2026-07-15",
-    status: "paid",
-    subtotal: 1245.50,
-    tax: 62.28,
-    total: 1307.78,
-    notes: "Please pay by the due date",
-    items: [
-    { description: "Wireless Mouse", quantity: 50, unitPrice: 24.99, total: 1249.50 }],
-
-    paymentHistory: [
-    { date: "2026-07-14", amount: 1307.78, method: "Credit Card", status: "completed" }],
-
-    createdBy: "Admin"
-  },
-  "INV-2024-002": {
-    id: "INV-2024-002",
-    orderId: "ORD-2024-002",
-    customer: "Sarah Johnson",
-    customerEmail: "sarah@example.com",
-    customerPhone: "+44 20 7123 4568",
-    customerAddress: "456 Park Ave, Manchester, UK",
-    date: "2026-07-03",
-    dueDate: "2026-07-17",
-    status: "unpaid",
-    subtotal: 875.00,
-    tax: 43.75,
-    total: 918.75,
-    notes: "Payment pending",
-    items: [
-    { description: "USB-C Cable (2m)", quantity: 100, unitPrice: 8.75, total: 875.00 }],
-
-    paymentHistory: [],
-    createdBy: "Manager"
-  }
-};
-
-const statusColors = {
-  paid: "bg-green-500",
-  unpaid: "bg-amber-500",
-  overdue: "bg-red-500",
-  draft: "bg-slate-400"
-};
-
-const statusIcons = {
-  paid: <CheckCircle className="mr-1 h-4 w-4" />,
-  unpaid: <Clock className="mr-1 h-4 w-4" />,
-  overdue: <AlertCircle className="mr-1 h-4 w-4" />,
-  draft: <Clock className="mr-1 h-4 w-4" />
-};
-
-export default function InvoiceDetailPage() {
+function InvoiceDetailContent() {
   const params = useParams();
   const router = useRouter();
-  const { role } = useUserStore();
-  const canEdit = role === "admin" || role === "manager";
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const canApprove = isSuperAdmin || hasPermission("invoices", "approve");
 
-  const invoice = useMemo(
-    () => mockInvoiceDetails[params.id],
-    [params.id]
-  );
+  const [invoice, setInvoice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await invoicesApi.get(params.id);
+      setInvoice(res?.data || res);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to load invoice");
+      setInvoice(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [params.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const run = async (action) => {
+    setActing(true);
+    try {
+      if (action === "issue") await invoicesApi.issue(params.id);
+      if (action === "mark_paid") await invoicesApi.markPaid(params.id);
+      if (action === "cancel") await invoicesApi.cancel(params.id);
+      toast.success("Updated");
+      load();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Action failed");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  if (loading) return <p className="p-6 text-slate-400">Loading...</p>;
   if (!invoice) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-2xl font-semibold text-slate-300">Invoice Not Found</p>
-        <Button onClick={() => router.push("/invoices")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Invoices
+      <div className="space-y-4 p-6">
+        <Button variant="ghost" onClick={() => router.push("/invoices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-      </div>);
-
+        <p className="text-slate-400">Invoice not found.</p>
+      </div>
+    );
   }
-
-  const handleMarkAsPaid = () => {
-    toast.success(`Invoice ${invoice.id} marked as paid`);
-  };
-
-  const handleSendEmail = () => {
-    toast.success(`Invoice ${invoice.id} sent to ${invoice.customerEmail}`);
-  };
 
   return (
     <div className="space-y-6">
-      {}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/invoices")}>
-            
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/invoices")}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-              {invoice.id}
-            </h1>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <span>Order: {invoice.orderId}</span>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span>{invoice.customer}</span>
-            </div>
+            <h1 className="text-2xl font-bold text-slate-100">{invoice.invoice_number}</h1>
+            <p className="text-slate-400">{invoice.customer_name}</p>
           </div>
+          <Badge className={INVOICE_STATUS_COLORS[invoice.status] || "bg-slate-400"}>
+            {invoice.status}
+          </Badge>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge className={statusColors[invoice.status] + " text-white px-3 py-1"}>
-            {statusIcons[invoice.status]}
-            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-          </Badge>
-          <Button variant="outline" size="sm" onClick={handleSendEmail}>
-            <Mail className="mr-2 h-4 w-4" /> Send Email
-          </Button>
-          <Button variant="outline" size="sm">
-            <Printer className="mr-2 h-4 w-4" /> Print
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" /> PDF
-          </Button>
-          {canEdit && invoice.status !== "paid" &&
-          <>
+          {canApprove && invoice.status === "draft" && (
+            <Button size="sm" onClick={() => run("issue")} disabled={acting}>
+              <Send className="mr-2 h-4 w-4" /> Issue
+            </Button>
+          )}
+          {canApprove && ["unpaid", "overdue"].includes(invoice.status) && (
+            <Button size="sm" onClick={() => run("mark_paid")} disabled={acting}>
+              <CheckCircle className="mr-2 h-4 w-4" /> Mark paid
+            </Button>
+          )}
+          {canApprove &&
+            ["draft", "unpaid", "overdue"].includes(invoice.status) && (
               <Button
-              size="sm"
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleMarkAsPaid}>
-              
-                <CheckCircle className="mr-2 h-4 w-4" /> Mark Paid
+                size="sm"
+                variant="destructive"
+                onClick={() => run("cancel")}
+                disabled={acting}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Cancel
               </Button>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
-            </>
-          }
+            )}
         </div>
       </div>
 
-      {}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">
-              Bill To
-            </CardTitle>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="glass-card lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Line items</CardTitle>
+            <CardDescription>Products / services billed</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="font-medium text-lg">{invoice.customer}</p>
-            <p className="text-sm text-slate-400">{invoice.customerEmail}</p>
-            <p className="text-sm text-slate-400">{invoice.customerPhone}</p>
-            <p className="text-sm text-slate-400">{invoice.customerAddress}</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">
-              Invoice Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-sm">
-              <span className="font-medium">Invoice Date:</span> {invoice.date}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Due Date:</span> {invoice.dueDate}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Created By:</span> {invoice.createdBy}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Order ID:</span> {invoice.orderId}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Invoice Items</CardTitle>
-          <CardDescription>Products and services on this invoice</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Unit Price</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoice.items.map((item, idx) =>
-              <TableRow key={idx}>
-                  <TableCell className="font-medium">{item.description}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">£{item.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    £{item.total.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              )}
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-medium">
-                  Subtotal
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  £{invoice.subtotal.toFixed(2)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-medium">
-                  Tax (5%)
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  £{invoice.tax.toFixed(2)}
-                </TableCell>
-              </TableRow>
-              <TableRow className="bg-teal-50 font-semibold">
-                <TableCell colSpan={3} className="text-right text-teal-900">
-                  Total
-                </TableCell>
-                <TableCell className="text-right font-mono text-lg text-teal-700">
-                  £{invoice.total.toFixed(2)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {}
-      {invoice.paymentHistory && invoice.paymentHistory.length > 0 &&
-      <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Payment History</CardTitle>
-            <CardDescription>Transaction records for this invoice</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Unit</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoice.paymentHistory.map((payment, idx) =>
-              <TableRow key={idx}>
-                    <TableCell>{payment.date}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      £{payment.amount.toFixed(2)}
+                {(invoice.lines || []).map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell>{line.description}</TableCell>
+                    <TableCell className="text-right">{line.quantity}</TableCell>
+                    <TableCell className="text-right">
+                      £{Number(line.unit_price).toLocaleString()}
                     </TableCell>
-                    <TableCell>{payment.method}</TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-500">
-                        <CheckCircle className="mr-1 h-3 w-3" /> Completed
-                      </Badge>
+                    <TableCell className="text-right">
+                      £{Number(line.line_total || 0).toLocaleString()}
                     </TableCell>
                   </TableRow>
-              )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-      }
 
-      {}
-      {invoice.status === "unpaid" &&
-      <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="flex flex-wrap items-center justify-between p-4">
-            <div>
-              <p className="font-medium text-amber-800">Payment Required</p>
-              <p className="text-sm text-amber-700">
-                This invoice is due on {invoice.dueDate}. Total: £{invoice.total.toFixed(2)}
+        <div className="space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm">Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Subtotal</span>
+                <span className="font-mono">
+                  £{Number(invoice.subtotal || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Tax ({invoice.tax_rate}%)</span>
+                <span className="font-mono">
+                  £{Number(invoice.tax_amount || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between font-semibold border-t border-white/5 pt-2">
+                <span>Total</span>
+                <span className="font-mono">
+                  £{Number(invoice.total_amount || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between pt-2">
+                <span className="text-slate-400">Issued</span>
+                <span>{invoice.issue_date || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Due</span>
+                <span>{invoice.due_date || "—"}</span>
+              </div>
+              {invoice.notes && (
+                <p className="pt-2 text-slate-400 border-t border-white/5">{invoice.notes}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-sm">Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              <p className="font-medium text-slate-200">{invoice.customer_name}</p>
+              <p className="text-slate-400">{invoice.customer_email || "—"}</p>
+              <p className="text-slate-400">{invoice.customer_phone || "—"}</p>
+              <p className="text-slate-500 text-xs whitespace-pre-wrap">
+                {invoice.customer_address || ""}
               </p>
-            </div>
-            <div className="flex gap-2">
-              <Button className="bg-amber-600 hover:bg-amber-700">
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="1" y="4" width="22" height="16" rx="2" />
-                  <path d="M7 12h10" />
-                </svg>
-                Pay Now
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      }
+            </CardContent>
+          </Card>
 
-      {}
-      {invoice.notes &&
-      <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-400">{invoice.notes}</p>
-          </CardContent>
-        </Card>
-      }
-    </div>);
+          {(invoice.payments || []).length > 0 && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-sm">Payments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {invoice.payments.map((p) => (
+                  <div key={p.id} className="flex justify-between border-b border-white/5 pb-2">
+                    <div>
+                      <p>£{Number(p.amount).toLocaleString()}</p>
+                      <p className="text-xs text-slate-500">
+                        {p.method} · {p.paid_at ? new Date(p.paid_at).toLocaleString() : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
+export default function InvoiceDetailPage() {
+  return (
+    <ModuleGate module="invoices" action="view">
+      <InvoiceDetailContent />
+    </ModuleGate>
+  );
 }

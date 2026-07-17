@@ -81,7 +81,9 @@ export function ProductTable() {
   const [categories, setCategories] = React.useState([]);
   const [suppliers, setSuppliers] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
-  const { canEdit } = useRoleAccess();
+  const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
+  const canManageProducts =
+    isSuperAdmin || hasPermission("products", "create") || hasPermission("products", "edit") || canEdit;
 
   const loadProducts = React.useCallback(async () => {
     setLoading(true);
@@ -126,13 +128,13 @@ export function ProductTable() {
   }, [loadProducts]);
 
   React.useEffect(() => {
-    if (dialogOpen && canEdit) {
+    if (dialogOpen && canManageProducts) {
       Promise.all([categoriesApi.list(), suppliersApi.list()]).then(([c, s]) => {
         setCategories(c);
         setSuppliers(s);
       });
     }
-  }, [dialogOpen, canEdit]);
+  }, [dialogOpen, canManageProducts]);
 
   const openCreate = () => {
     setEditingRow(null);
@@ -291,7 +293,7 @@ export function ProductTable() {
               <DropdownMenuItem onClick={() => router.push(`/products/${row.original.id}`)}>
                 View details
               </DropdownMenuItem>
-              {canEdit &&
+              {canManageProducts &&
           <>
                   <DropdownMenuItem onClick={() => openEdit(row.original)}>Edit</DropdownMenuItem>
                   <DropdownMenuItem
@@ -307,7 +309,7 @@ export function ProductTable() {
 
     }],
 
-    [canEdit, router, openEdit, handleDelete]
+    [canManageProducts, router, openEdit, handleDelete]
   );
 
   const table = useReactTable({
@@ -362,7 +364,7 @@ export function ProductTable() {
                 )}
             </DropdownMenuContent>
           </DropdownMenu>
-          {canEdit &&
+          {canManageProducts &&
             <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={openCreate}>
               + Add Product
             </Button>
