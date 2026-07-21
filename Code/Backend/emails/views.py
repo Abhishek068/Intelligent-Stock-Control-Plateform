@@ -39,6 +39,8 @@ class EmailQueueSerializer(serializers.ModelSerializer):
             "template_key",
             "recipient",
             "subject",
+            "body_html",
+            "body_text",
             "status",
             "attempts",
             "error_message",

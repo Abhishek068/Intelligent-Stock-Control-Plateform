@@ -15,9 +15,12 @@ import {
   DollarSign,
   RefreshCw,
   Shield,
+  Tags,
+  Truck,
 } from "lucide-react";
 import { adminDashboardApi, dashboardApi, analyticsApi, productsApi } from "@/lib/api";
 import { ForecastChart, ReorderRecommendations } from "@/features/dashboard/components";
+import { useAuthStore } from "@/stores/auth.store";
 
 function buildForecastChart(chart) {
   if (!chart) return [];
@@ -85,6 +88,33 @@ export default function AdminDashboard() {
     loadDashboard();
   }, []);
 
+  useEffect(() => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
+      : "http://localhost:8000";
+    const sseUrl = `${baseUrl}/api/v1/dashboard/stream/?token=${token}`;
+
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "activity") {
+          loadDashboard();
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
   const u = admin?.users || {};
   const e = admin?.emails || {};
   const inv = admin?.inventory || {};
@@ -112,12 +142,18 @@ export default function AdminDashboard() {
         <Link href="/users">
           <div><StatCard title="Total Users" value={u.total} icon={Users} color="indigo" /></div>
         </Link>
-        <StatCard title="Managers" value={u.managers} icon={Shield} color="violet" />
-        <StatCard title="Staff" value={u.staff} icon={Users} color="sky" />
+        <Link href="/users">
+          <div><StatCard title="Managers" value={u.managers} icon={Shield} color="violet" /></div>
+        </Link>
+        <Link href="/users">
+          <div><StatCard title="Staff" value={u.staff} icon={Users} color="sky" /></div>
+        </Link>
         <Link href="/users">
           <div><StatCard title="Pending Verification" value={u.pending_verification} icon={AlertCircle} color="amber" /></div>
         </Link>
-        <StatCard title="Suspended" value={u.suspended} icon={AlertCircle} color="rose" />
+        <Link href="/users">
+          <div><StatCard title="Suspended" value={u.suspended} icon={AlertCircle} color="rose" /></div>
+        </Link>
         <Link href="/emails">
           <div><StatCard title="Email Queued" value={e.queued} icon={Mail} color="cyan" /></div>
         </Link>
@@ -129,7 +165,7 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Link href="/reports">
           <div>
             <StatCard
@@ -148,6 +184,12 @@ export default function AdminDashboard() {
         </Link>
         <Link href="/products">
           <div><StatCard title="Products" value={inv.products ?? stats?.total_products} icon={Package} color="indigo" /></div>
+        </Link>
+        <Link href="/categories">
+          <div><StatCard title="Categories" value={inv.categories} icon={Tags} color="sky" /></div>
+        </Link>
+        <Link href="/suppliers">
+          <div><StatCard title="Suppliers" value={inv.suppliers} icon={Truck} color="orange" /></div>
         </Link>
         <Link href="/alerts">
           <div><StatCard title="Low Stock" value={inv.low_stock ?? stats?.low_stock_count} icon={AlertCircle} color="amber" /></div>
@@ -228,7 +270,7 @@ function StatCard({ title, value, icon: Icon, color }) {
     emerald: "bg-emerald-500/10 text-emerald-400",
   };
   return (
-    <Card className="glass-card">
+    <Card className="glass-card hover:bg-white/[0.04] hover:border-white/20 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">{title}</CardTitle>
         <div className={`p-2 rounded-lg ${colorMap[color] || colorMap.indigo}`}>

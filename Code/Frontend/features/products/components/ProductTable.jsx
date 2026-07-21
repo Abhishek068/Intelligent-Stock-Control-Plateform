@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable } from
 "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Printer } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { productsApi, analyticsApi, categoriesApi, suppliersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { SearchInput } from "@/components/shared/SearchInput";
+import { BulkImportDialog } from "./BulkImportDialog";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,8 @@ export function ProductTable() {
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [printingBarcodes, setPrintingBarcodes] = React.useState(false);
   const [editingRow, setEditingRow] = React.useState(null);
   const [form, setForm] = React.useState(emptyProductForm);
   const [categories, setCategories] = React.useState([]);
@@ -333,6 +336,32 @@ export function ProductTable() {
     onGlobalFilterChange: setGlobalFilter
   });
 
+  const handlePrintBarcodes = React.useCallback(async () => {
+    setPrintingBarcodes(true);
+    try {
+      const selectedRows = table.getFilteredSelectedRowModel().rows;
+      const productIds = selectedRows.map((r) => r.original.id);
+
+      const res = await productsApi.printBarcodes(productIds);
+
+      const blob = new Blob([res], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "barcodes.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Barcodes PDF generated successfully!");
+    } catch (err) {
+      toast.error("Failed to generate barcodes: " + (err.message || err));
+    } finally {
+      setPrintingBarcodes(false);
+    }
+  }, [table]);
+
   return (
     <Card className="border-slate-800 bg-card text-card-foreground p-6 shadow-sm">
       <CardContent className="p-0 space-y-4">
@@ -364,11 +393,20 @@ export function ProductTable() {
                 )}
             </DropdownMenuContent>
           </DropdownMenu>
-          {canManageProducts &&
-            <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={openCreate}>
-              + Add Product
-            </Button>
-            }
+          {canManageProducts && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handlePrintBarcodes} disabled={printingBarcodes}>
+                <Printer className="mr-2 h-3.5 w-3.5" />
+                {printingBarcodes ? "Printing..." : "Print Barcodes"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                Bulk Import
+              </Button>
+              <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={openCreate}>
+                + Add Product
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -531,6 +569,7 @@ export function ProductTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} onSuccess={loadProducts} />
     </Card>);
 
 }

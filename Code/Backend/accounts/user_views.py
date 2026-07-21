@@ -41,7 +41,8 @@ class UserViewSet(viewsets.ModelViewSet):
         "set_roles": "manage",
     }
     permission_classes = [IsAuthenticated, HasModulePermission]
-    filterset_fields = ["status"]
+    filterset_classes = None
+    filterset_fields = ["status", "roles__name"]
     search_fields = ["email", "first_name", "last_name", "phone"]
     ordering_fields = ["email", "date_joined", "last_login", "status"]
 

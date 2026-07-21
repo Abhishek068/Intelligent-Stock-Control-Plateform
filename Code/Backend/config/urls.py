@@ -14,7 +14,7 @@ from accounts.views import (
     ResetPasswordView,
     VerifyEmailView,
 )
-from activity.views import ActivityEventViewSet, AdminDashboardView, GlobalSearchView
+from activity.views import ActivityEventViewSet, AdminDashboardView, GlobalSearchView, DashboardStreamView
 from analytics.views import (
     ForecastViewSet,
     PredictiveAlertViewSet,
@@ -95,6 +95,7 @@ urlpatterns = [
     path("api/v1/auth/verify-email/", VerifyEmailView.as_view(), name="auth-verify-email"),
     path("api/v1/permissions/catalog/", PermissionCatalogView.as_view(), name="permission-catalog"),
     path("api/v1/admin-dashboard/", AdminDashboardView.as_view(), name="admin-dashboard"),
+    path("api/v1/dashboard/stream/", DashboardStreamView.as_view(), name="dashboard-stream"),
     path("api/v1/search/", GlobalSearchView.as_view(), name="global-search"),
     path("api/v1/", include(router.urls)),
 ]

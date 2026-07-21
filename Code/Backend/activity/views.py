@@ -216,3 +216,55 @@ class GlobalSearchView(APIView):
                 )
 
         return Response({"success": True, "data": {"results": results, "query": q}})
+
+
+class DashboardStreamView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        import json
+        import time
+        from django.http import StreamingHttpResponse
+        from django.utils import timezone
+        from rest_framework_simplejwt.tokens import AccessToken
+        from accounts.models import User
+        from activity.models import ActivityEvent
+
+        user = request.user
+        if not user or not user.is_authenticated:
+            token_str = request.query_params.get("token")
+            if token_str:
+                try:
+                    access_token = AccessToken(token_str)
+                    user = User.objects.get(id=access_token["user_id"])
+                except Exception:
+                    return Response({"success": False, "error": "Unauthorized"}, status=401)
+            else:
+                return Response({"success": False, "error": "Unauthorized"}, status=401)
+
+        def event_stream():
+            last_check = timezone.now()
+            yield ": keep-alive\n\n"
+
+            while True:
+                org = user.organization
+                events = ActivityEvent.objects.filter(created_at__gt=last_check)
+                if org:
+                    events = events.filter(organization=org)
+
+                for event in events.order_by("created_at"):
+                    data = {
+                        "type": "activity",
+                        "title": event.title,
+                        "event_type": event.event_type,
+                        "created_at": event.created_at.isoformat()
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
+
+                last_check = timezone.now()
+                time.sleep(2)
+
+        response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response

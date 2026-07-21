@@ -32,6 +32,7 @@ export default function EmailsPage() {
     reply_to: "",
   });
   const [editTpl, setEditTpl] = useState(null);
+  const [viewEmail, setViewEmail] = useState(null);
 
   const load = async () => {
     try {
@@ -150,8 +151,8 @@ export default function EmailsPage() {
                   key={item.id}
                   className="flex items-center justify-between border-b border-white/5 py-2 text-sm gap-3"
                 >
-                  <div className="min-w-0">
-                    <p className="text-slate-200 truncate">{item.subject}</p>
+                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setViewEmail(item)}>
+                    <p className="text-slate-200 truncate font-medium hover:text-indigo-400">{item.subject}</p>
                     <p className="text-xs text-slate-500">{item.recipient}</p>
                     {item.error_message && (
                       <p className="text-xs text-rose-400 mt-1 truncate">{item.error_message}</p>
@@ -204,15 +205,27 @@ export default function EmailsPage() {
               <CardTitle className="text-slate-100">Email logs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {logs.map((log) => (
-                <div key={log.id} className="border-b border-white/5 py-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-200">{log.subject}</span>
-                    <Badge variant="outline">{log.status}</Badge>
+              {logs.map((log) => {
+                const qItem = queue.find((qi) => qi.id === log.queue_item);
+                return (
+                  <div key={log.id} className="border-b border-white/5 py-2 text-sm">
+                    <div className="flex justify-between items-start">
+                      <div className={qItem ? "cursor-pointer flex-1 min-w-0" : "flex-1 min-w-0"} onClick={() => qItem && setViewEmail(qItem)}>
+                        <span className={`text-slate-200 font-medium ${qItem ? "hover:text-indigo-400" : ""}`}>{log.subject}</span>
+                        <p className="text-xs text-slate-500 mt-0.5">{log.recipient}</p>
+                      </div>
+                      <Badge variant="outline" className={log.status === "failed" ? "border-rose-500 text-rose-400 shrink-0" : "border-emerald-500 text-emerald-400 shrink-0"}>
+                        {log.status}
+                      </Badge>
+                    </div>
+                    {log.provider_response && (
+                      <pre className="mt-1.5 p-2 rounded bg-black/40 text-[10px] text-slate-400 font-mono whitespace-pre-wrap max-h-24 overflow-y-auto">
+                        {log.provider_response}
+                      </pre>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500">{log.recipient}</p>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -301,6 +314,51 @@ export default function EmailsPage() {
             </Button>
             <Button onClick={saveTemplate}>
               <Save className="mr-2 h-4 w-4" /> Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewEmail} onOpenChange={(v) => !v && setViewEmail(null)}>
+        <DialogContent className="bg-slate-900 border-white/10 text-slate-100 max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-slate-200">Email Preview</DialogTitle>
+          </DialogHeader>
+          {viewEmail && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-sm border-b border-white/5 pb-3">
+                <div className="text-slate-400 font-medium">Recipient:</div>
+                <div className="col-span-2 text-slate-200 font-mono select-all">{viewEmail.recipient}</div>
+                <div className="text-slate-400 font-medium">Subject:</div>
+                <div className="col-span-2 text-slate-200 font-semibold">{viewEmail.subject}</div>
+                <div className="text-slate-400 font-medium">Status:</div>
+                <div className="col-span-2 capitalize"><Badge variant="outline">{viewEmail.status}</Badge></div>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Content</h4>
+                <div 
+                  className="p-4 rounded-lg bg-slate-950 border border-white/5 text-slate-300 text-sm overflow-x-auto"
+                  dangerouslySetInnerHTML={{ __html: viewEmail.body_html || `<pre class="font-mono text-xs whitespace-pre-wrap">${viewEmail.body_text || ''}</pre>` }}
+                />
+              </div>
+              {viewEmail.body_text && viewEmail.body_text.includes("token=") && (
+                <div className="p-3 rounded bg-indigo-500/10 border border-indigo-500/25 flex flex-col gap-2">
+                  <span className="text-xs font-medium text-indigo-300">Test Verification Link:</span>
+                  <a 
+                    href={viewEmail.body_text.match(/https?:\/\/[^\s]+/)?.[0] || "#"} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-xs text-indigo-450 underline break-all font-mono hover:text-indigo-300 cursor-pointer"
+                  >
+                    {viewEmail.body_text.match(/https?:\/\/[^\s]+/)?.[0] || "Click here to verify"}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setViewEmail(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

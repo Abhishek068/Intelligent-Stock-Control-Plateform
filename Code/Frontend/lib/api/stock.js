@@ -23,12 +23,12 @@ export const stockApi = {
     return unwrapList(res);
   },
 
-  shipTransfer(id) {
-    return apiClient.post(`/stock-transfers/${id}/ship/`);
+  shipTransfer(id, productId) {
+    return apiClient.post(`/stock-transfers/${id}/ship/`, { product_id: productId });
   },
 
-  completeTransfer(id) {
-    return apiClient.post(`/stock-transfers/${id}/complete/`);
+  completeTransfer(id, productId) {
+    return apiClient.post(`/stock-transfers/${id}/complete/`, { product_id: productId });
   },
 
   cancelTransfer(id) {

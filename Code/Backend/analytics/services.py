@@ -91,87 +91,78 @@ class ForecastingService:
 
 
         if len(series) >= 14:
-
             train = series.iloc[:-7] if len(series) > 7 else series
-
             test = series.iloc[-7:] if len(series) > 7 else pd.Series(dtype=float)
 
-
-
             try:
-
                 if train.sum() > 0 and train.std() > 0:
+                    import math
+                    from statsmodels.tsa.arima.model import ARIMA
 
-                    model = ExponentialSmoothing(
-
+                    # 1. Fit Holt-Winters Exponential Smoothing
+                    model_hw = ExponentialSmoothing(
                         train, trend="add", seasonal=None, initialization_method="estimated"
+                    )
+                    fitted_hw = model_hw.fit(optimized=True)
+                    pred_hw = fitted_hw.forecast(len(test)) if len(test) > 0 else pd.Series(dtype=float)
 
+                    # 2. Fit ARIMA(1, 1, 0)
+                    model_arima = ARIMA(train, order=(1, 1, 0))
+                    fitted_arima = model_arima.fit()
+                    pred_arima = fitted_arima.forecast(len(test)) if len(test) > 0 else pd.Series(dtype=float)
+
+                    # 3. Fit Naive Baseline
+                    pred_naive = pd.Series([train.iloc[-1]] * len(test), index=test.index) if len(test) > 0 else pd.Series(dtype=float)
+
+                    # Calculate MAE for model selection on test split
+                    mae_hw = float(np.mean(np.abs(test.values - pred_hw.values))) if len(test) > 0 else 999999.0
+                    mae_arima = float(np.mean(np.abs(test.values - pred_arima.values))) if len(test) > 0 else 999999.0
+                    mae_naive = float(np.mean(np.abs(test.values - pred_naive.values))) if len(test) > 0 else 999999.0
+
+                    # Choose the model with the minimum MAE error
+                    best_model = min(
+                        (mae_hw, "exponential_smoothing", fitted_hw),
+                        (mae_arima, "arima", fitted_arima),
+                        (mae_naive, "naive_baseline", None),
+                        key=lambda x: x[0]
                     )
 
-                    fitted = model.fit(optimized=True)
+                    mae, model_name, fitted_model = best_model
 
-                    forecast = fitted.forecast(horizon_days)
-
-                    predicted_total = Decimal(str(max(0, forecast.sum())))
-
-                    model_name = "exponential_smoothing"
-
-
-
-                    if len(test) > 0:
-
-                        naive_pred = pd.Series([train.iloc[-1]] * len(test), index=test.index)
-
-                        model_pred = fitted.forecast(len(test))
-
-                        mae = float(np.mean(np.abs(test.values - model_pred.values)))
-
-                        rmse = float(np.sqrt(np.mean((test.values - model_pred.values) ** 2)))
-
-                        naive_mae = float(np.mean(np.abs(test.values - naive_pred.values)))
-
-                        if mae >= naive_mae:
-
-                            predicted_total = Decimal(str(max(0, naive_pred.sum() * (horizon_days / max(len(test), 1)))))
-
-                            model_name = "naive_baseline"
-
-                            mae = naive_mae
-
-                            rmse = float(np.sqrt(np.mean((test.values - naive_pred.values) ** 2)))
-
-                        if test.sum() > 0:
-
-                            mape = float(np.mean(np.abs((test.values - model_pred.values) / np.maximum(test.values, 1))) * 100)
+                    if model_name == "exponential_smoothing":
+                        forecast_res = fitted_model.forecast(horizon_days)
+                        predicted_total = Decimal(str(max(0, forecast_res.sum())))
+                        if len(test) > 0:
+                            rmse = float(np.sqrt(np.mean((test.values - pred_hw.values) ** 2)))
+                            mape = float(np.mean(np.abs((test.values - pred_hw.values) / np.maximum(test.values, 1.0))) * 100)
+                    elif model_name == "arima":
+                        forecast_res = fitted_model.forecast(horizon_days)
+                        predicted_total = Decimal(str(max(0, forecast_res.sum())))
+                        if len(test) > 0:
+                            rmse = float(np.sqrt(np.mean((test.values - pred_arima.values) ** 2)))
+                            mape = float(np.mean(np.abs((test.values - pred_arima.values) / np.maximum(test.values, 1.0))) * 100)
+                    else:
+                        predicted_total = Decimal(str(max(0, pred_naive.sum() * (horizon_days / max(len(test), 1)))))
+                        if len(test) > 0:
+                            rmse = float(np.sqrt(np.mean((test.values - pred_naive.values) ** 2)))
+                            mape = float(np.mean(np.abs((test.values - pred_naive.values) / np.maximum(test.values, 1.0))) * 100)
 
                 else:
-
                     avg_daily = float(train.mean()) if len(train) else 0
-
                     predicted_total = Decimal(str(max(0, avg_daily * horizon_days)))
-
                     model_name = "average_demand"
-
             except Exception:
-
                 avg_daily = float(series.mean()) if len(series) else 0
-
                 predicted_total = Decimal(str(max(0, avg_daily * horizon_days)))
-
                 model_name = "average_demand"
 
         elif len(series) > 0:
-
             avg_daily = float(series.mean())
-
             predicted_total = Decimal(str(max(0, avg_daily * horizon_days)))
-
             model_name = "average_demand"
 
         else:
-
             predicted_total = Decimal("0")
-
             model_name = "no_history"
 
 
@@ -348,83 +339,103 @@ class ReorderService:
 
 
 
+        # Advanced Upgrade: Economic Order Quantity (EOQ) calculation
+        annual_demand = avg_daily * 365
+        setup_cost = 50.0  # Estimated ordering/setup cost per purchase order
+        unit_price = float(product.unit_price) if product.unit_price else 10.0
+        holding_cost = max(0.5, unit_price * 0.15)  # 15% annual holding cost, minimum $0.50
+
+        if annual_demand > 0:
+            import math
+            eoq = int(math.sqrt((2 * annual_demand * setup_cost) / holding_cost))
+        else:
+            eoq = 0
+
         suggested = max(0, reorder_point - current_stock + int(predicted_demand / 30))
+        if suggested > 0:
+            suggested = max(suggested, eoq)
 
         if suggested == 0 and current_stock <= product.minimum_level:
-
-            suggested = max(product.reorder_level, reorder_point - current_stock)
-
-
+            suggested = max(product.reorder_level, reorder_point - current_stock, eoq)
 
         if current_stock <= 0:
-
             priority = ReorderRecommendation.Priority.CRITICAL
-
             stockout_risk = Decimal("95")
-
         elif current_stock <= product.minimum_level:
-
             priority = ReorderRecommendation.Priority.HIGH
-
             stockout_risk = Decimal("75")
-
         elif current_stock <= reorder_point:
-
             priority = ReorderRecommendation.Priority.MEDIUM
-
             stockout_risk = Decimal("50")
-
         else:
-
             priority = ReorderRecommendation.Priority.LOW
-
             stockout_risk = Decimal("20")
 
-
-
         explanation = {
-
             "current_stock": current_stock,
-
             "lead_time_days": lead_time,
-
             "avg_daily_demand": round(avg_daily, 2),
-
             "safety_stock": safety_stock,
-
             "reorder_point_formula": "avg_daily_demand * lead_time + safety_stock",
-
             "predicted_demand_30d": round(predicted_demand, 2),
-
+            "economic_order_quantity": eoq,
+            "eoq_formula": "sqrt((2 * annual_demand * setup_cost) / holding_cost)"
         }
-
-
 
         ReorderRecommendation.objects.filter(product=product, is_active=True).update(is_active=False)
 
-
-
-        return ReorderRecommendation.objects.create(
-
+        rec = ReorderRecommendation.objects.create(
             product=product,
-
             current_stock=current_stock,
-
             lead_time_days=lead_time,
-
             predicted_demand=Decimal(str(round(predicted_demand, 2))),
-
             reorder_point=reorder_point,
-
             suggested_quantity=max(suggested, 1) if current_stock <= reorder_point else suggested,
-
             priority=priority,
-
             stockout_risk=stockout_risk,
-
             explanation_json=explanation,
-
         )
+
+        if (current_stock <= reorder_point) and product.supplier:
+            try:
+                from procurement.models import PurchaseOrder, PurchaseOrderLine
+                from procurement.services import PurchaseOrderService
+                from accounts.models import User
+
+                po = PurchaseOrder.objects.filter(
+                    organization=product.organization,
+                    supplier=product.supplier,
+                    status=PurchaseOrder.Status.DRAFT
+                ).first()
+
+                qty_to_order = rec.suggested_quantity or max(product.reorder_level, 1)
+
+                if not po:
+                    creator = User.objects.filter(organization=product.organization).first()
+                    if creator:
+                        PurchaseOrderService.create_order(
+                            organization=product.organization,
+                            supplier=product.supplier,
+                            user=creator,
+                            lines=[{
+                                "product": product,
+                                "quantity_ordered": qty_to_order,
+                                "unit_cost": product.unit_price,
+                            }]
+                        )
+                else:
+                    if not po.lines.filter(product=product).exists():
+                        PurchaseOrderLine.objects.create(
+                            purchase_order=po,
+                            product=product,
+                            quantity_ordered=qty_to_order,
+                            unit_cost=product.unit_price,
+                        )
+                        po.recalculate_total()
+            except Exception:
+                pass
+
+        return rec
 
 
 
@@ -507,53 +518,53 @@ class AlertService:
 
 
         if avg_daily > 0:
-
             days_until_stockout = current_stock / avg_daily
 
             if days_until_stockout <= lead_time and current_stock > 0:
-
                 stockout_date = timezone.now().date() + timedelta(days=int(days_until_stockout))
-
                 threshold_date = timezone.now().date() + timedelta(days=lead_time)
 
+                # Advanced Upgrade: Multi-Factor Risk Calculations
+                series = ForecastingService._daily_demand_series(product)
+                demand_std = float(series.std()) if len(series) > 1 else 0.0
+                volatility = "high" if (avg_daily > 0 and demand_std / avg_daily > 0.5) else "normal"
 
+                # Probability calculation scaled by lead time urgency
+                if days_until_stockout <= 0:
+                    stockout_probability = 100.0
+                else:
+                    ratio = days_until_stockout / (lead_time or 1.0)
+                    stockout_probability = round(max(10.0, min(99.0, (1.0 - ratio) * 100.0)), 1)
+                    if volatility == "high":
+                        stockout_probability = min(99.0, stockout_probability + 15.0)
+
+                # Estimated Financial Impact (catered lead time deficit value)
+                unit_price = float(product.unit_price) if product.unit_price else 10.0
+                financial_impact = round(unit_price * avg_daily * lead_time, 2)
 
                 PredictiveAlert.objects.filter(product=product, is_resolved=False).update(
-
                     is_resolved=True
-
                 )
 
                 pa = PredictiveAlert.objects.create(
-
                     product=product,
-
                     predicted_stockout_date=stockout_date,
-
                     threshold_date=threshold_date,
-
                     severity=(
-
                         PredictiveAlert.Severity.CRITICAL
-
-                        if days_until_stockout <= lead_time / 2
-
+                        if days_until_stockout <= lead_time / 2 or volatility == "high"
                         else PredictiveAlert.Severity.WARNING
-
                     ),
-
                     explanation_json={
-
                         "current_stock": current_stock,
-
                         "avg_daily_demand": round(avg_daily, 2),
-
                         "days_until_stockout": round(days_until_stockout, 1),
-
                         "lead_time_days": lead_time,
-
+                        "stockout_probability": stockout_probability,
+                        "demand_volatility": volatility,
+                        "estimated_financial_impact": financial_impact,
+                        "risk_reason": "High Volatility Stockout Risk" if volatility == "high" else "Normal Lead-time Replenishment"
                     },
-
                 )
 
                 notif = NotificationService.notify(

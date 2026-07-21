@@ -76,22 +76,226 @@ class ForecastViewSet(viewsets.ViewSet):
         latest = DemandForecast.objects.filter(product=product).order_by("-generated_at").first()
 
         return Response(
+            {
+                "success": True,
+                "data": {
+                    "chart": chart,
+                    "latest_forecast": DemandForecastSerializer(latest).data if latest else None,
+                },
+            }
+        )
+
+
+
+    @action(detail=False, methods=["get"])
+
+    def summary(self, request):
+
+        org = request.user.organization
+
+
+
+        # 1. Get latest forecast per product (database agnostic)
+
+        all_forecasts = DemandForecast.objects.filter(
+
+            product__organization=org
+
+        ).select_related("product").order_by("-generated_at")
+
+
+
+        seen_products = set()
+
+        latest_forecasts = []
+
+        for f in all_forecasts:
+
+            if f.product_id not in seen_products:
+
+                seen_products.add(f.product_id)
+
+                latest_forecasts.append(f)
+
+
+
+        # Top 10 products by predicted demand
+
+        top_10 = sorted(latest_forecasts, key=lambda x: x.predicted_demand, reverse=True)[:10]
+
+        top_10_data = [
 
             {
 
-                "success": True,
+                "product_id": f.product.id,
 
-                "data": {
+                "product_name": f.product.name,
 
-                    "chart": chart,
+                "sku": f.product.sku,
 
-                    "latest_forecast": DemandForecastSerializer(latest).data if latest else None,
-
-                },
+                "predicted_demand": float(f.predicted_demand)
 
             }
 
+            for f in top_10
+
+        ]
+
+
+
+        # 2. Predicted vs Actual Sales (weekly / monthly timelines)
+
+        import collections
+
+        from django.utils import timezone
+
+        from datetime import timedelta
+
+
+
+        end_date = timezone.now().date()
+
+        start_date = end_date - timedelta(days=90)
+
+
+
+        # Actual sales in last 90 days
+
+        txns = StockOutTransaction.objects.filter(
+
+            product__organization=org,
+
+            issued_at__date__gte=start_date,
+
+            issued_at__date__lte=end_date
+
         )
+
+
+
+        # Group actual by week and month
+
+        actual_weekly = collections.defaultdict(float)
+
+        actual_monthly = collections.defaultdict(float)
+
+        for t in txns:
+
+            date_val = t.issued_at
+
+            week_str = date_val.strftime("%Y-W%W")
+
+            month_str = date_val.strftime("%Y-%m")
+
+            actual_weekly[week_str] += float(t.quantity)
+
+            actual_monthly[month_str] += float(t.quantity)
+
+
+
+        # Group predictions by week and month (distributing predicted_demand over the horizon)
+
+        predicted_weekly = collections.defaultdict(float)
+
+        predicted_monthly = collections.defaultdict(float)
+
+        for f in latest_forecasts:
+
+            days = (f.forecast_period_end - f.forecast_period_start).days
+
+            if days <= 0:
+
+                continue
+
+            daily_rate = float(f.predicted_demand) / days
+
+
+
+            # distribute daily rates
+
+            curr = f.forecast_period_start
+
+            while curr <= f.forecast_period_end:
+
+                week_str = curr.strftime("%Y-W%W")
+
+                month_str = curr.strftime("%Y-%m")
+
+                predicted_weekly[week_str] += daily_rate
+
+                predicted_monthly[month_str] += daily_rate
+
+                curr += timedelta(days=1)
+
+
+
+        # Weekly demand trend merging
+
+        all_weeks = sorted(list(set(actual_weekly.keys()) | set(predicted_weekly.keys())))
+
+        weekly_trend = []
+
+        for w in all_weeks:
+
+            weekly_trend.append({
+
+                "label": w,
+
+                "actual": round(actual_weekly.get(w, 0), 2),
+
+                "predicted": round(predicted_weekly.get(w, 0), 2)
+
+            })
+
+
+
+        # Monthly demand trend merging
+
+        all_months = sorted(list(set(actual_monthly.keys()) | set(predicted_monthly.keys())))
+
+        monthly_forecast = []
+
+        for m in all_months:
+
+            monthly_forecast.append({
+
+                "label": m,
+
+                "actual": round(actual_monthly.get(m, 0), 2),
+
+                "predicted": round(predicted_monthly.get(m, 0), 2)
+
+            })
+
+
+
+        total_predicted = sum(float(f.predicted_demand) for f in latest_forecasts)
+
+        total_actual_90 = sum(float(t.quantity) for t in txns)
+
+
+
+        return Response({
+
+            "success": True,
+
+            "data": {
+
+                "top_10": top_10_data,
+
+                "weekly_trend": weekly_trend,
+
+                "monthly_forecast": monthly_forecast,
+
+                "total_predicted_demand": total_predicted,
+
+                "total_actual_sales_90_days": total_actual_90
+
+            }
+
+        })
+
+
 
 
 
@@ -335,6 +539,54 @@ class ReportViewSet(viewsets.ViewSet):
                         }
 
                     )
+
+        elif report_type == "forecast":
+
+            from analytics.models import DemandForecast
+
+            all_forecasts = DemandForecast.objects.filter(
+
+                product__organization=org
+
+            ).select_related("product").order_by("-generated_at")
+
+
+
+            seen_products = set()
+
+            latest_forecasts = []
+
+            for f in all_forecasts:
+
+                if f.product_id not in seen_products:
+
+                    seen_products.add(f.product_id)
+
+                    latest_forecasts.append(f)
+
+
+
+            data = [
+
+                {
+
+                    "product": f.product.name,
+
+                    "sku": f.product.sku,
+
+                    "model": f.model_name,
+
+                    "start_date": f.forecast_period_start.strftime("%Y-%m-%d"),
+
+                    "end_date": f.forecast_period_end.strftime("%Y-%m-%d"),
+
+                    "predicted_demand": float(f.predicted_demand),
+
+                }
+
+                for f in latest_forecasts
+
+            ]
 
         else:
 

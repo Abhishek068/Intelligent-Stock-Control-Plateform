@@ -167,6 +167,8 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
 
 class StockTransferSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sku = serializers.CharField(source="product.sku", read_only=True)
+    product_barcode = serializers.CharField(source="product.barcode", read_only=True, default=None)
     source_location_name = serializers.CharField(
         source="source_location.name", read_only=True
     )
@@ -180,6 +182,8 @@ class StockTransferSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
+            "product_sku",
+            "product_barcode",
             "source_location",
             "source_location_name",
             "destination_location",

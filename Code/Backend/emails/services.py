@@ -109,7 +109,7 @@ def queue_email(
     if subject_override:
         subject = subject_override
 
-    return EmailQueue.objects.create(
+    item = EmailQueue.objects.create(
         organization=organization,
         template_key=template_key,
         recipient=recipient,
@@ -119,6 +119,11 @@ def queue_email(
         context_json=context,
         status=EmailQueue.Status.QUEUED,
     )
+    try:
+        process_queue_item(item)
+    except Exception:
+        logger.exception("Failed to process queue item synchronously")
+    return item
 
 
 def _send_via_brevo(config: EmailProviderConfig, item: EmailQueue) -> tuple[bool, str]:

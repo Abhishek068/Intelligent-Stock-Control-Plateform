@@ -6,6 +6,7 @@ class IsOrganizationMember(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
+
         if user.is_superuser:
             return True
         return getattr(user, "organization_id", None) is not None

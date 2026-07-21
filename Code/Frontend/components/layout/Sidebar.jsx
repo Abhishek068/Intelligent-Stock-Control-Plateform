@@ -13,8 +13,7 @@ import {
   AlertTriangle,
   FileText,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
+  Menu,
   Warehouse,
   ScanBarcode,
   Calendar,
@@ -117,24 +116,39 @@ export function Sidebar() {
     >
       <div
         className={cn(
-          "flex h-16 items-center border-b border-white/5 px-4 transition-all duration-300",
-          sidebarCollapsed ? "justify-center" : "justify-between"
+          "flex h-16 items-center border-b border-white/5 transition-all duration-300",
+          sidebarCollapsed ? "justify-center px-1" : "justify-between px-4"
         )}
       >
-        {!sidebarCollapsed && (
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-gradient leading-tight">StockSense</span>
-            <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase leading-none mt-0.5">
-              Operations
-            </span>
+        {sidebarCollapsed ? (
+          <div className="flex items-center gap-1">
+            <img src="/logo.jpg" alt="Logo" className="w-6 h-6 rounded object-cover shrink-0" />
+            <button
+              onClick={toggleSidebar}
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors shrink-0"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
           </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <img src="/logo.jpg" alt="Logo" className="w-7 h-7 rounded object-cover" />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-gradient leading-tight">Stock Control System</span>
+                <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase leading-none mt-0.5">
+                  Operations
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={toggleSidebar}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          </>
         )}
-        <button
-          onClick={toggleSidebar}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
-        >
-          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
       </div>
 
       <div
@@ -167,9 +181,6 @@ export function Sidebar() {
                           : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                       )}
                     >
-                      {isActive && (
-                        <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r bg-indigo-500" />
-                      )}
                       <item.icon
                         className={cn(
                           "h-5 w-5 shrink-0",

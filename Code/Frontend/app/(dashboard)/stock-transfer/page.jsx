@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -59,6 +61,11 @@ function StockTransferPageContent() {
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [transfers, setTransfers] = useState([]);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanAction, setScanAction] = useState(null);
+  const [scanTransfer, setScanTransfer] = useState(null);
+  const [scannedCode, setScannedCode] = useState("");
+  const [scanError, setScanError] = useState("");
   const [sourceStock, setSourceStock] = useState(0);
   const [destStock, setDestStock] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,15 +150,15 @@ function StockTransferPageContent() {
     }
   };
 
-  const runAction = async (id, action) => {
+  const runAction = async (id, action, code = null) => {
     if (!canApprove) {
       toast.error("You need transfers:approve permission");
       return;
     }
     setActionId(id);
     try {
-      if (action === "ship") await stockApi.shipTransfer(id);
-      if (action === "complete") await stockApi.completeTransfer(id);
+      if (action === "ship") await stockApi.shipTransfer(id, code);
+      if (action === "complete") await stockApi.completeTransfer(id, code);
       if (action === "cancel") await stockApi.cancelTransfer(id);
       toast.success(
         action === "ship"
@@ -161,11 +168,43 @@ function StockTransferPageContent() {
             : "Transfer cancelled"
       );
       loadTransfers();
+      setScanOpen(false);
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Action failed");
     } finally {
       setActionId(null);
     }
+  };
+
+  const handleActionClick = (t, act) => {
+    if (act === "cancel") {
+      runAction(t.id, "cancel");
+      return;
+    }
+    setScanTransfer(t);
+    setScanAction(act);
+    setScannedCode("");
+    setScanError("");
+    setScanOpen(true);
+  };
+
+  const handleVerifyScan = (e) => {
+    e.preventDefault();
+    if (!scannedCode.trim()) {
+      setScanError("Please enter or scan a barcode/SKU.");
+      return;
+    }
+    const cleanCode = scannedCode.trim();
+    const expected = scanTransfer;
+    if (
+      cleanCode !== String(expected.product) &&
+      cleanCode.toLowerCase() !== (expected.product_sku || "").toLowerCase() &&
+      cleanCode !== (expected.product_barcode || "")
+    ) {
+      setScanError("Verification failed: Scanned code does not match this product.");
+      return;
+    }
+    runAction(expected.id, scanAction, cleanCode);
   };
 
   const resetForm = () => {
@@ -471,7 +510,7 @@ function StockTransferPageContent() {
                         size="sm"
                         variant="outline"
                         disabled={actionId === t.id}
-                        onClick={() => runAction(t.id, "ship")}
+                        onClick={() => handleActionClick(t, "ship")}
                       >
                         <Truck className="mr-1 h-3 w-3" /> Ship
                       </Button>
@@ -480,7 +519,7 @@ function StockTransferPageContent() {
                       <Button
                         size="sm"
                         disabled={actionId === t.id}
-                        onClick={() => runAction(t.id, "complete")}
+                        onClick={() => handleActionClick(t, "complete")}
                       >
                         <CheckCircle className="mr-1 h-3 w-3" /> Complete
                       </Button>
@@ -505,6 +544,56 @@ function StockTransferPageContent() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Scan Verification Dialog */}
+      <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-indigo-500" />
+              Scan Verification Required
+            </DialogTitle>
+            <DialogDescription>
+              To confirm this stock transfer, scan or input the barcode/SKU for:
+              <strong className="block mt-1 text-slate-200">
+                {scanTransfer?.product_name} ({scanTransfer?.product_sku})
+              </strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleVerifyScan} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="barcode-scan">Scan Barcode / SKU</Label>
+              <Input
+                id="barcode-scan"
+                placeholder="Scan or type product barcode/SKU..."
+                value={scannedCode}
+                onChange={(e) => {
+                  setScannedCode(e.target.value);
+                  setScanError("");
+                }}
+                autoFocus
+                className="w-full font-mono bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              {scanError && (
+                <p className="text-xs text-rose-500 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {scanError}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="ghost" onClick={() => setScanOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Verify & Confirm
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

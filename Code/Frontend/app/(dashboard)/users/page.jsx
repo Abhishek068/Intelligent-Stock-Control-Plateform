@@ -49,6 +49,7 @@ export default function UsersPage() {
   const [catalog, setCatalog] = useState({ modules: [], actions: [] });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [search, setSearch] = useState("");
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -82,6 +83,7 @@ export default function UsersPage() {
       const params = {};
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
+      if (roleFilter) params.roles__name = roleFilter;
       const [uRes, rRes, cRes] = await Promise.all([
         usersApi.list(params),
         rolesApi.list(),
@@ -98,8 +100,18 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get("role") || "";
+      if (roleParam) {
+        setRoleFilter(roleParam);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [statusFilter, roleFilter]);
 
   const invite = async () => {
     try {
@@ -244,7 +256,7 @@ export default function UsersPage() {
           onKeyDown={(e) => e.key === "Enter" && load()}
         />
         <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-[220px]">
+          <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -253,6 +265,16 @@ export default function UsersPage() {
                 {s.label}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={roleFilter || "all"} onValueChange={(v) => setRoleFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            <SelectItem value="Manager">Manager</SelectItem>
+            <SelectItem value="Staff">Staff</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={load}>

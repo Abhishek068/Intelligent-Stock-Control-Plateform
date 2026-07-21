@@ -77,11 +77,9 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="relative z-10 pointer-events-none select-none">
           <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-xl bg-indigo-500/20 p-3 backdrop-blur-md border border-indigo-500/30">
-              <ShieldCheck className="h-10 w-10 text-indigo-400" />
-            </div>
+            <img src="/logo.jpg" alt="Logo" className="w-14 h-14 rounded-xl object-cover border border-white/10" />
             <span className="text-3xl font-bold tracking-tight">
-              Stock<span className="text-indigo-400">Sense</span>
+              Stock Control <span className="text-indigo-400">System</span>
             </span>
           </div>
           <h2 className="mt-4 text-3xl font-semibold leading-tight text-slate-100">
@@ -95,52 +93,66 @@ export default function LoginPage() {
 
       <div className="flex flex-col justify-center relative p-12 sm:p-10 lg:p-12 lg:min-h-screen">
         <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-3xl -z-10" />
-        <div className="mx-auto w-full max-w-md">
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader className="px-6 py-6 text-center">
-              <CardTitle className="text-2xl font-bold text-slate-100">Welcome Back</CardTitle>
-              <CardDescription className="text-slate-400">Sign in to your account</CardDescription>
+        <div className="mx-auto w-full max-w-md relative">
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
+          
+          <Card className="border border-white/10 bg-slate-900/30 backdrop-blur-2xl shadow-[0_0_50px_0_rgba(99,102,241,0.08)] rounded-2xl">
+            <CardHeader className="px-8 pt-8 pb-4 text-center">
+              <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                Welcome Back
+              </CardTitle>
+              <CardDescription className="text-slate-400 mt-2 text-sm">
+                Sign in to manage your inventory dashboard
+              </CardDescription>
+              <div className="h-0.5 w-12 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto mt-4 rounded-full opacity-60" />
             </CardHeader>
-            <CardContent className="px-6">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-300">
+            <CardContent className="px-8 pb-8 pt-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-2.5">
+                  <Label htmlFor="email" className="text-sm font-semibold text-slate-300">
                     Email address
                   </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input id="email" type="email" placeholder="you@company.com" className="pl-10" {...register("email")} />
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors duration-200" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@company.com"
+                      className="pl-10 bg-slate-950/50 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 rounded-lg"
+                      {...register("email")}
+                    />
                   </div>
-                  {errors.email && <p className="text-sm text-rose-500">{errors.email.message}</p>}
+                  {errors.email && <p className="text-xs text-rose-400 font-medium mt-1">{errors.email.message}</p>}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-slate-300">
+                    <Label htmlFor="password" className="text-sm font-semibold text-slate-300">
                       Password
                     </Label>
-                    <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300">
+                    <Link href="/forgot-password" className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors duration-200">
                       Forgot password?
                     </Link>
                   </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors duration-200" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 bg-slate-950/50 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 rounded-lg"
                       {...register("password")}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-400 transition-colors duration-200"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {errors.password && <p className="text-sm text-rose-500">{errors.password.message}</p>}
+                  {errors.password && <p className="text-xs text-rose-400 font-medium mt-1">{errors.password.message}</p>}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -148,20 +160,24 @@ export default function LoginPage() {
                     id="remember"
                     checked={remember}
                     onCheckedChange={(v) => setRemember(!!v)}
-                    className="border-white/10 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                    className="border-white/20 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 rounded"
                   />
-                  <Label htmlFor="remember" className="text-sm font-normal text-slate-400 cursor-pointer">
+                  <Label htmlFor="remember" className="text-sm font-medium text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
                     Remember me
                   </Label>
                 </div>
 
                 {loginError && (
-                  <Alert variant="destructive" className="bg-rose-500/10 border-rose-500/20 text-rose-400">
-                    <AlertDescription>{loginError}</AlertDescription>
+                  <Alert variant="destructive" className="bg-rose-500/10 border-rose-500/20 text-rose-400 rounded-lg">
+                    <AlertDescription className="text-xs font-medium">{loginError}</AlertDescription>
                   </Alert>
                 )}
 
-                <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
+                  disabled={isLoading}
+                >
                   {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>

@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 "use client";
 
 import { useState } from "react";
@@ -75,7 +64,7 @@ export function BarcodeScannerCard({
               if (e.key === "Enter") handleScan();
             }}
             className={v.input} />
-          
+
           <Button variant="outline" className={v.button} onClick={handleScan}>
             Scan
           </Button>

@@ -37,6 +37,10 @@ export const analyticsApi = {
     return apiClient.get(`/forecasts/?product=${productId}`);
   },
 
+  getForecastSummary() {
+    return apiClient.get("/forecasts/summary/");
+  },
+
   generateForecast(productId, horizonDays = 30) {
     return apiClient.post("/forecasts/generate/", {
       product_id: productId,

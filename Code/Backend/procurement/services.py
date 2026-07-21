@@ -162,6 +162,26 @@ class PurchaseOrderService:
             purchase_order.save(
                 update_fields=["status", "received_at", "updated_at"]
             )
+            try:
+                supplier = purchase_order.supplier
+                received_pos = PurchaseOrder.objects.filter(
+                    supplier=supplier,
+                    status=PurchaseOrder.Status.RECEIVED,
+                    submitted_at__isnull=False,
+                    received_at__isnull=False
+                )
+                total_days = 0.0
+                count = 0
+                for po in received_pos:
+                    delta = po.received_at - po.submitted_at
+                    total_days += delta.total_seconds() / 86400.0
+                    count += 1
+                if count > 0:
+                    avg_days = max(1, int(round(total_days / count)))
+                    supplier.lead_time_days = avg_days
+                    supplier.save(update_fields=["lead_time_days", "updated_at"])
+            except Exception:
+                pass
         elif any_received:
             purchase_order.status = PurchaseOrder.Status.PARTIAL
             purchase_order.save(update_fields=["status", "updated_at"])

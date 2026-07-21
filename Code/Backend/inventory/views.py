@@ -21,17 +21,12 @@ from accounts.serializers import OrganizationSettingsSerializer
 from inventory.models import Category, InventoryBalance, Location, Product
 
 from inventory.serializers import (
-
     CategorySerializer,
-
     InventoryBalanceSerializer,
-
     LocationSerializer,
-
     ProductDetailSerializer,
-
     ProductSerializer,
-
+    ProductChangeHistorySerializer,
 )
 
 
@@ -153,6 +148,264 @@ class ProductViewSet(OrganizationScopedViewSet):
         if not product:
             return Response({"success": False, "error": "Product not found"}, status=404)
         return Response({"success": True, "data": ProductDetailSerializer(product).data})
+
+    def perform_update(self, serializer):
+        serializer.instance._changed_by = self.request.user
+        super().perform_update(serializer)
+        product = serializer.instance
+        try:
+            from activity.services import record_activity
+
+            record_activity(
+                organization=product.organization,
+                user=self.request.user,
+                event_type="product_updated",
+                title=f"Product updated: {product.name}",
+                description=f"SKU {product.sku}",
+                entity_type="Product",
+                entity_id=product.id,
+            )
+        except Exception:
+            pass
+
+    @action(detail=False, methods=["post"])
+    def bulk_import(self, request):
+        import csv
+        import io
+        from decimal import Decimal
+        from django.db import transaction
+        from inventory.models import Category, Product
+        from suppliers.models import Supplier
+
+        file = request.FILES.get("file")
+        if not file:
+            return Response({"success": False, "error": "No file uploaded"}, status=400)
+
+        org = request.user.organization
+
+        try:
+            decoded_file = file.read().decode("utf-8")
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+        except Exception as e:
+            return Response(
+                {"success": False, "error": f"Invalid CSV file format: {str(e)}"},
+                status=400,
+            )
+
+        errors = []
+        success_count = 0
+
+        with transaction.atomic():
+            for idx, row in enumerate(reader, start=2):
+                sku = (row.get("sku") or "").strip()
+                name = (row.get("name") or "").strip()
+                category_name = (row.get("category") or "").strip()
+                supplier_name = (row.get("supplier") or "").strip()
+                unit_price_str = (row.get("unit_price") or "0").strip()
+                minimum_level_str = (row.get("minimum_level") or "10").strip()
+                reorder_level_str = (row.get("reorder_level") or "20").strip()
+                barcode = (row.get("barcode") or "").strip()
+                description = (row.get("description") or "").strip()
+
+                if not sku or not name:
+                    errors.append(f"Row {idx}: SKU and Name are required.")
+                    continue
+
+                if Product.objects.filter(organization=org, sku=sku).exists():
+                    errors.append(f"Row {idx}: Product with SKU {sku} already exists.")
+                    continue
+
+                category = None
+                if category_name:
+                    category, _ = Category.objects.get_or_create(
+                        organization=org, name=category_name
+                    )
+                else:
+                    errors.append(f"Row {idx}: Category name is required.")
+                    continue
+
+                supplier = None
+                if supplier_name:
+                    supplier = Supplier.objects.filter(
+                        organization=org, name__iexact=supplier_name
+                    ).first()
+                    if not supplier:
+                        errors.append(
+                            f"Row {idx}: Supplier '{supplier_name}' not found. Please create it first."
+                        )
+                        continue
+                else:
+                    errors.append(f"Row {idx}: Supplier name is required.")
+                    continue
+
+                try:
+                    unit_price = Decimal(unit_price_str)
+                    minimum_level = int(minimum_level_str)
+                    reorder_level = int(reorder_level_str)
+                except Exception:
+                    errors.append(f"Row {idx}: Invalid price or stock thresholds.")
+                    continue
+
+                Product.objects.create(
+                    organization=org,
+                    category=category,
+                    supplier=supplier,
+                    sku=sku,
+                    name=name,
+                    description=description,
+                    unit_price=unit_price,
+                    minimum_level=minimum_level,
+                    reorder_level=reorder_level,
+                    barcode=barcode,
+                    _changed_by=request.user,
+                )
+                success_count += 1
+
+            if errors:
+                transaction.set_rollback(True)
+                return Response({"success": False, "errors": errors}, status=400)
+
+        return Response({"success": True, "count": success_count})
+
+    @action(detail=True, methods=["get"])
+    def history(self, request, pk=None):
+        product = self.get_object()
+        history_qs = product.change_histories.all()
+        serializer = ProductChangeHistorySerializer(history_qs, many=True)
+        return Response({"success": True, "data": serializer.data})
+
+    @action(detail=False, methods=["post"], url_path="barcodes/print")
+    def print_barcodes(self, request):
+        product_ids = request.data.get("product_ids") or []
+        org = request.user.organization
+
+        qs = Product.objects.filter(organization=org)
+        if product_ids:
+            qs = qs.filter(id__in=product_ids)
+        else:
+            qs = qs.filter(is_active=True)
+
+        products = list(qs)
+        if not products:
+            return Response(
+                {"success": False, "error": "No products selected to print barcodes."},
+                status=400,
+            )
+
+        try:
+            import io
+            from django.http import HttpResponse
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+            from reportlab.lib.styles import ParagraphStyle
+            from reportlab.graphics.shapes import Drawing
+            from reportlab.graphics.barcode.qr import QrCodeWidget
+
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=letter,
+                leftMargin=36,
+                rightMargin=36,
+                topMargin=36,
+                bottomMargin=36,
+            )
+            story = []
+
+            data = []
+            row = []
+            for p in products:
+                qr = QrCodeWidget(value=p.barcode or p.sku)
+                qr.barWidth = 60
+                qr.barHeight = 60
+                d = Drawing(60, 60)
+                d.add(qr)
+
+                name_style = ParagraphStyle(
+                    "LabelName",
+                    fontName="Helvetica-Bold",
+                    fontSize=8,
+                    leading=9,
+                    textColor="#1e293b",
+                )
+                sku_style = ParagraphStyle(
+                    "LabelSku",
+                    fontName="Courier",
+                    fontSize=8,
+                    leading=9,
+                    textColor="#475569",
+                )
+
+                info = [
+                    Paragraph(
+                        p.name[:25] + "..." if len(p.name) > 25 else p.name,
+                        name_style,
+                    ),
+                    Paragraph(p.sku, sku_style),
+                ]
+
+                label_table = Table([[d, info]], colWidths=[65, 105])
+                label_table.setStyle(
+                    TableStyle(
+                        [
+                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ("PADDING", (0, 0), (-1, -1), 2),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ]
+                    )
+                )
+
+                wrapper = Table([[label_table]], colWidths=[172])
+                wrapper.setStyle(
+                    TableStyle(
+                        [
+                            ("BOX", (0, 0), (-1, -1), 0.5, "#cbd5e1"),
+                            ("BACKGROUND", (0, 0), (-1, -1), "#f8fafc"),
+                            ("TOPPADDING", (0, 0), (-1, -1), 4),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                        ]
+                    )
+                )
+
+                row.append(wrapper)
+                if len(row) == 3:
+                    data.append(row)
+                    row = []
+            if row:
+                while len(row) < 3:
+                    row.append("")
+                data.append(row)
+
+            grid_table = Table(data, colWidths=[180, 180, 180])
+            grid_table.setStyle(
+                TableStyle(
+                    [
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ]
+                )
+            )
+
+            story.append(grid_table)
+            doc.build(story)
+
+            pdf_data = buffer.getvalue()
+            buffer.close()
+
+            response = HttpResponse(pdf_data, content_type="application/pdf")
+            response["Content-Disposition"] = 'attachment; filename="barcodes.pdf"'
+            return response
+        except Exception as e:
+            return Response(
+                {"success": False, "error": f"Failed to generate barcode PDF: {str(e)}"},
+                status=500,
+            )
 
 
 

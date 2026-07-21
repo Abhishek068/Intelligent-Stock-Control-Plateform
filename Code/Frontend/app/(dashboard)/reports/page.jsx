@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, FileSpreadsheet, Package, AlertTriangle, Activity } from "lucide-react";
+import { FileText, FileSpreadsheet, Package, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useReactToPrint } from "react-to-print";
@@ -17,7 +17,8 @@ import { ApiError } from "@/lib/api/client";
 const REPORT_TYPES = {
   inventory: "inventory",
   movements: "movements",
-  low_stock: "low_stock"
+  low_stock: "low_stock",
+  forecast: "forecast"
 };
 
 function ReportContent({ data, title }) {
@@ -126,7 +127,8 @@ export default function ReportsPage() {
   const tabTitles = {
     inventory: "Inventory Valuation Report",
     movements: "Stock Movements Summary",
-    low_stock: "Low Stock Report"
+    low_stock: "Low Stock Report",
+    forecast: "Demand Forecast Report"
   };
 
   return (
@@ -165,6 +167,9 @@ export default function ReportsPage() {
           </TabsTrigger>
           <TabsTrigger value="low_stock" className="text-xs">
             <AlertTriangle className="mr-1 h-3 w-3" /> Low Stock
+          </TabsTrigger>
+          <TabsTrigger value="forecast" className="text-xs">
+            <TrendingUp className="mr-1 h-3 w-3" /> Forecast
           </TabsTrigger>
         </TabsList>
 
@@ -312,6 +317,45 @@ export default function ReportsPage() {
                       </TableRow>
                   )
                   }
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="forecast">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Model Used</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead className="text-right">Projected Demand</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-slate-400">Loading...</TableCell>
+                    </TableRow>
+                  ) : reportData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-slate-400">No forecast data generated yet</TableCell>
+                    </TableRow>
+                  ) : (
+                    reportData.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{item.product}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.sku}</TableCell>
+                        <TableCell className="capitalize text-xs text-slate-400">{item.model?.replace(/_/g, " ")}</TableCell>
+                        <TableCell className="text-xs">{item.start_date}</TableCell>
+                        <TableCell className="text-xs">{item.end_date}</TableCell>
+                        <TableCell className="text-right font-mono text-indigo-400 font-semibold">
+                          {Number(item.predicted_demand).toLocaleString()} units
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>

@@ -84,6 +84,7 @@ class StockService:
             location=location,
             quantity=quantity,
             unit_cost=unit_cost,
+            quantity_remaining=quantity,
             received_at=kwargs.get("received_at") or timezone.now(),
             reference=kwargs.get("reference", ""),
             notes=kwargs.get("notes", ""),
@@ -126,10 +127,32 @@ class StockService:
         balance.quantity_on_hand -= quantity
         balance.save(update_fields=["quantity_on_hand", "updated_at"])
 
+        qty_to_deduct = quantity
+        total_cogs = 0.0
+
+        batches = StockInTransaction.objects.select_for_update().filter(
+            product=product,
+            location=location,
+            quantity_remaining__gt=0
+        ).order_by("received_at", "id")
+
+        for batch in batches:
+            if qty_to_deduct <= 0:
+                break
+            take = min(qty_to_deduct, batch.quantity_remaining)
+            batch.quantity_remaining -= take
+            batch.save(update_fields=["quantity_remaining", "updated_at"])
+            total_cogs += float(batch.unit_cost or 0) * take
+            qty_to_deduct -= take
+
+        if qty_to_deduct > 0:
+            total_cogs += float(product.unit_price or 0) * qty_to_deduct
+
         txn = StockOutTransaction.objects.create(
             product=product,
             location=location,
             quantity=quantity,
+            cogs=total_cogs,
             issued_at=kwargs.get("issued_at") or timezone.now(),
             issued_to=kwargs.get("issued_to", ""),
             reference=kwargs.get("reference", ""),

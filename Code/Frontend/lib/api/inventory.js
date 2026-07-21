@@ -40,6 +40,25 @@ export const productsApi = {
   delete(id) {
     return apiClient.delete(`/products/${id}/`);
   },
+  bulkImport(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.post("/products/bulk-import/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  history(id) {
+    return apiClient.get(`/products/${id}/history/`);
+  },
+  printBarcodes(productIds) {
+    return apiClient.post(
+      "/products/barcodes/print/",
+      { product_ids: productIds },
+      { responseType: "blob" }
+    );
+  },
 };
 
 export const categoriesApi = {

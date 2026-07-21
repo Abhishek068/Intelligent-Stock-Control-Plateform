@@ -2,14 +2,10 @@ from decimal import Decimal
 
 
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
-
 from django.db import models
-
-
-
 from core.models import Organization, TimeStampedModel
-
 from suppliers.models import Supplier
 
 
@@ -157,8 +153,39 @@ class Product(TimeStampedModel):
 
 
     def __str__(self):
-
         return f"{self.sku} — {self.name}"
+
+    def save(self, *args, **kwargs):
+        changed_by = kwargs.pop("changed_by", None) or getattr(self, "_changed_by", None)
+        if self.pk:
+            try:
+                original = Product.objects.get(pk=self.pk)
+                diff = {}
+                fields_to_track = [
+                    "name",
+                    "description",
+                    "unit_price",
+                    "minimum_level",
+                    "reorder_level",
+                    "is_active",
+                ]
+                for field in fields_to_track:
+                    old_val = getattr(original, field)
+                    new_val = getattr(self, field)
+                    if old_val != new_val:
+                        from decimal import Decimal
+                        old_val_serial = float(old_val) if isinstance(old_val, Decimal) else old_val
+                        new_val_serial = float(new_val) if isinstance(new_val, Decimal) else new_val
+                        diff[field] = {"old": old_val_serial, "new": new_val_serial}
+                if diff:
+                    super().save(*args, **kwargs)
+                    ProductChangeHistory.objects.create(
+                        product=self, changed_by=changed_by, diff=diff
+                    )
+                    return
+            except Product.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
 
 
 
@@ -203,8 +230,26 @@ class InventoryBalance(TimeStampedModel):
 
 
     @property
-
     def available_quantity(self):
-
         return max(0, self.quantity_on_hand - self.reserved_qty)
+
+
+class ProductChangeHistory(TimeStampedModel):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="change_histories"
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_changes",
+    )
+    diff = models.JSONField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"History {self.product.sku} at {self.created_at}"
 

@@ -30,6 +30,7 @@ export default function ProductDetailPage() {
   const [forecast, setForecast] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
   const [movements, setMovements] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,19 +40,21 @@ export default function ProductDetailPage() {
     async function load() {
       setLoading(true);
       try {
-        const [detail, recs, ins, outs, adjs, forecastRes] = await Promise.all([
+        const [detail, recs, ins, outs, adjs, forecastRes, historyRes] = await Promise.all([
         productsApi.get(productId),
         analyticsApi.listRecommendations().catch(() => []),
         stockApi.listStockIn(productId).catch(() => []),
         stockApi.listStockOut(productId).catch(() => []),
         stockApi.listAdjustments(productId).catch(() => []),
-        analyticsApi.getForecast(productId).catch(() => null)]
+        analyticsApi.getForecast(productId).catch(() => null),
+        productsApi.history(productId).catch(() => null)]
         );
 
         if (!mounted) return;
         setProduct(detail);
         setRecommendation(recs.find((r) => String(r.product) === String(productId)) ?? null);
         setForecast(forecastRes?.success ? forecastRes.data : null);
+        if (historyRes?.success) setHistory(historyRes.data);
 
         const combined = [
         ...ins.map((t) => ({
@@ -185,6 +188,7 @@ export default function ProductDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="movements">Movements</TabsTrigger>
           <TabsTrigger value="forecast">Forecast</TabsTrigger>
+          <TabsTrigger value="history">Audit History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -335,6 +339,49 @@ export default function ProductDetailPage() {
                 }
                 </div>
               }
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Audit History & Version Control</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {history.length === 0 ? (
+                <p className="text-center text-slate-500 py-6 text-sm">No changes recorded for this product.</p>
+              ) : (
+                <div className="relative border-l border-white/10 pl-6 space-y-8 py-2 ml-4">
+                  {history.map((h) => (
+                    <div key={h.id} className="relative">
+                      <div className="absolute -left-[31px] top-1.5 h-3.5 w-3.5 rounded-full bg-indigo-500 border-2 border-slate-950" />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-sm text-slate-100">
+                          Updated by <span className="text-indigo-400">{h.changed_by_name}</span>
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {new Date(h.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1.5 bg-white/[0.02] border border-white/5 rounded-lg p-3">
+                        {Object.entries(h.diff).map(([field, diffVal]) => (
+                          <div key={field} className="text-sm flex flex-wrap gap-2 items-center">
+                            <span className="text-slate-400 capitalize min-w-[120px]">{field.replaceAll("_", " ")}:</span>
+                            <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded text-xs line-through max-w-[150px] truncate" title={String(diffVal.old)}>
+                              {String(diffVal.old ?? "—")}
+                            </span>
+                            <span className="text-slate-500">→</span>
+                            <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-xs font-medium max-w-[150px] truncate" title={String(diffVal.new)}>
+                              {String(diffVal.new ?? "—")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

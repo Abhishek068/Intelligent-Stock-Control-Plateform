@@ -101,10 +101,36 @@ class StockTransferViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def ship(self, request, pk=None):
+        transfer = self.get_object()
+        scanned_id = request.data.get("product_id")
+        if not scanned_id:
+            return Response(
+                {"success": False, "error": "Scanning product (SKU, barcode, or ID) is required to ship."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        p = transfer.product
+        if str(scanned_id).strip() not in [str(p.id), p.sku, p.barcode]:
+            return Response(
+                {"success": False, "error": "Scanned code does not match this transfer's product."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return self._transition(request, StockService.ship_transfer)
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
+        transfer = self.get_object()
+        scanned_id = request.data.get("product_id")
+        if not scanned_id:
+            return Response(
+                {"success": False, "error": "Scanning product (SKU, barcode, or ID) is required to complete receipt."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        p = transfer.product
+        if str(scanned_id).strip() not in [str(p.id), p.sku, p.barcode]:
+            return Response(
+                {"success": False, "error": "Scanned code does not match this transfer's product."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return self._transition(request, StockService.complete_transfer)
 
     @action(detail=True, methods=["post"])

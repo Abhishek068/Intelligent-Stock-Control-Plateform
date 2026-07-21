@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 
 
-from inventory.models import Category, InventoryBalance, Location, Product
+from inventory.models import Category, InventoryBalance, Location, Product, ProductChangeHistory
 
 
 
@@ -243,4 +243,17 @@ class InventoryBalanceSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = fields
+
+
+class ProductChangeHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductChangeHistory
+        fields = ["id", "changed_by", "changed_by_name", "diff", "created_at"]
+
+    def get_changed_by_name(self, obj):
+        if obj.changed_by:
+            return obj.changed_by.get_full_name() or obj.changed_by.email
+        return "System"
 

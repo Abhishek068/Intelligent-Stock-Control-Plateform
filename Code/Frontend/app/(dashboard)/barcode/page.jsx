@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ScanBarcode,
@@ -31,6 +31,127 @@ export default function ScannerPage() {
   const [scannedProduct, setScannedProduct] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [history, setHistory] = useState([]);
+  const [showCamera, setShowCamera] = useState(false);
+  const [html5QrCode, setHtml5QrCode] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.Html5Qrcode) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/html5-qrcode";
+      script.async = true;
+      document.body.appendChild(script);
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    }
+  }, []);
+
+  const startCameraScan = () => {
+    if (typeof window === "undefined" || !window.Html5Qrcode) {
+      toast.error("Scanner library is loading, please wait...");
+      return;
+    }
+    setShowCamera(true);
+
+    setTimeout(() => {
+      try {
+        const scanner = new window.Html5Qrcode("camera-reader");
+        setHtml5QrCode(scanner);
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        scanner.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            setBarcodeInput(decodedText);
+            toast.success("Code scanned successfully!");
+            
+            // Auto trigger lookup
+            productsApi.lookup(decodedText).then((res) => {
+              const product = res?.data || res;
+              if (product?.id) {
+                const mapped = {
+                  id: product.id,
+                  sku: product.sku,
+                  name: product.name,
+                  stock: product.stock ?? 0,
+                  price: product.unit_price,
+                  category: product.category_name,
+                  barcode: product.barcode,
+                  status: product.status,
+                };
+                setScannedProduct(mapped);
+                setHistory((prev) => [
+                  {
+                    sku: decodedText,
+                    scannedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+                    result: "found",
+                    name: mapped.name,
+                  },
+                  ...prev.slice(0, 19),
+                ]);
+                toast.success(`Found: ${mapped.name}`);
+              }
+            }).catch((err) => {
+              setScannedProduct(null);
+              setHistory((prev) => [
+                {
+                  sku: decodedText,
+                  scannedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+                  result: "not_found",
+                },
+                ...prev.slice(0, 19),
+              ]);
+              toast.error("Product not found");
+            });
+
+            // Stop scanner
+            if (scanner.isScanning) {
+              scanner.stop().then(() => {
+                setShowCamera(false);
+                setHtml5QrCode(null);
+              }).catch(console.error);
+            } else {
+              setShowCamera(false);
+              setHtml5QrCode(null);
+            }
+          },
+          (errorMessage) => {
+            // parse errors silently
+          }
+        ).catch((err) => {
+          toast.error("Failed to start camera: " + err);
+          setShowCamera(false);
+        });
+      } catch (err) {
+        toast.error("Failed to initialize scanner: " + err);
+        setShowCamera(false);
+      }
+    }, 100);
+  };
+
+  const stopCameraScan = () => {
+    if (html5QrCode) {
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          setShowCamera(false);
+          setHtml5QrCode(null);
+        }).catch((err) => {
+          console.error(err);
+          setShowCamera(false);
+          setHtml5QrCode(null);
+        });
+      } else {
+        setShowCamera(false);
+        setHtml5QrCode(null);
+      }
+    } else {
+      setShowCamera(false);
+    }
+  };
 
   const handleScan = async () => {
     const code = barcodeInput.trim();
@@ -108,9 +229,13 @@ export default function ScannerPage() {
       <Card className="border-purple-200/20 bg-purple-500/5">
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-4">
-            <div className="rounded-full bg-purple-500/20 p-4 text-purple-400">
+            <button
+              onClick={showCamera ? stopCameraScan : startCameraScan}
+              className="rounded-full bg-purple-500/20 p-4 text-purple-400 hover:bg-purple-500/30 hover:scale-105 transition-all duration-200 focus:outline-none cursor-pointer"
+              title="Click to start camera scan"
+            >
               <Camera className="h-10 w-10" />
-            </div>
+            </button>
             <p className="text-sm text-slate-400 text-center max-w-md">
               Use a USB/handheld scanner into the field below, or type a SKU /
               barcode manually.
@@ -136,6 +261,24 @@ export default function ScannerPage() {
           </div>
         </CardContent>
       </Card>
+
+      {showCamera && (
+        <Card className="border-indigo-500/30 bg-slate-900/60 p-6">
+          <CardContent className="flex flex-col items-center justify-center p-0 relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-slate-450 hover:text-slate-200"
+              onClick={stopCameraScan}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <CardTitle className="text-base font-semibold mb-4 text-slate-200">Live Camera Scanner</CardTitle>
+            <div id="camera-reader" className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-800 bg-black"></div>
+            <p className="text-xs text-slate-400 mt-2 text-center">Position the barcode or QR code inside the frame to scan.</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="glass-card">

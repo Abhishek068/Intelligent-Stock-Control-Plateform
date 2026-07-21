@@ -43,10 +43,9 @@ class StockInTransaction(TimeStampedModel):
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
 
     unit_cost = models.DecimalField(
-
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))], default=0
-
     )
+    quantity_remaining = models.PositiveIntegerField(default=0)
 
     reference = models.CharField(max_length=100, blank=True)
 
@@ -103,6 +102,7 @@ class StockOutTransaction(TimeStampedModel):
     notes = models.TextField(blank=True)
 
     issued_at = models.DateTimeField()
+    cogs = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     created_by = models.ForeignKey(
 
