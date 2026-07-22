@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingCart, Clock, RefreshCw, DollarSign, AlertCircle, Package } from "lucide-react";
+import { ShoppingCart, Clock, RefreshCw, DollarSign, AlertCircle, Package, ShieldAlert } from "lucide-react";
 
 import { ForecastChart, ReorderRecommendations } from "@/features/dashboard/components";
 import { dashboardApi, analyticsApi, productsApi } from "@/lib/api";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 function buildForecastChart(chart) {
   if (!chart) return [];
@@ -28,6 +29,9 @@ function buildForecastChart(chart) {
 }
 
 export default function ManagerDashboard() {
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const can = (module, action = "view") => isSuperAdmin || hasPermission(module, action);
+
   const [stats, setStats] = useState(null);
   const [reorderItems, setReorderItems] = useState([]);
   const [forecastData, setForecastData] = useState([]);
@@ -39,12 +43,12 @@ export default function ManagerDashboard() {
     setLoading(true);
     try {
       const [statsRes, recommendations, trendsRes, products] = await Promise.all([
-        dashboardApi.getStats(),
-        analyticsApi.listRecommendations(),
+        dashboardApi.getStats().catch(() => null),
+        analyticsApi.listRecommendations().catch(() => []),
         dashboardApi.getTrends(14).catch(() => null),
         productsApi.list().catch(() => []),
       ]);
-      if (statsRes.success && statsRes.data) setStats(statsRes.data);
+      if (statsRes?.success && statsRes.data) setStats(statsRes.data);
       setReorderItems(
         recommendations.slice(0, 5).map((r) => ({
           product: r.product_name,
@@ -94,6 +98,10 @@ export default function ManagerDashboard() {
       )
     : 0;
 
+  const hasNoOps = !can("forecasting") && !can("alerts") && !can("reports");
+
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -135,6 +143,7 @@ export default function ManagerDashboard() {
             </CardContent>
           </Card>
         </Link>
+
         <Link href="/alerts">
           <Card className="glass-card hover:border-amber-500/30 transition-colors h-full">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -152,6 +161,7 @@ export default function ManagerDashboard() {
             </CardContent>
           </Card>
         </Link>
+
         <Link href="/reorder-recommendations">
           <Card className="glass-card hover:border-blue-500/30 transition-colors h-full">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
@@ -169,6 +179,7 @@ export default function ManagerDashboard() {
             </CardContent>
           </Card>
         </Link>
+
         <Link href="/alerts">
           <Card className="glass-card hover:border-rose-500/30 transition-colors h-full">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">

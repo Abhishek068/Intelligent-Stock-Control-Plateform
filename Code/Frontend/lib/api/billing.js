@@ -58,4 +58,17 @@ export const invoicesApi = {
   cancel(id) {
     return apiClient.post(`/invoices/${id}/cancel/`);
   },
+
+  async downloadPdf(id, invoiceNumber = "") {
+    const res = await apiClient.get(`/invoices/${id}/pdf/`, { responseType: "blob" });
+    const blob = res.data || res;
+    const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Invoice-${invoiceNumber || id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

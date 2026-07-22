@@ -159,13 +159,17 @@ function StockInPageContent() {
               <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>
               } />
 
-              {selectedProduct && quantity > 0 &&
-              <Alert className="border-teal-200 bg-teal-50">
-                  <CheckCircle className="h-4 w-4 text-teal-600" />
-                  <AlertTitle>Receipt Summary</AlertTitle>
-                  <AlertDescription>Receiving <strong>{quantity}</strong> × <strong>{selectedProduct.name}</strong> as {user?.role}.</AlertDescription>
-                </Alert>
-              }
+              {selectedProduct && quantity > 0 && (
+                <div className="flex items-center gap-3 rounded-lg border border-teal-500/20 bg-teal-950/20 p-4 text-teal-200">
+                  <CheckCircle className="h-5 w-5 shrink-0 text-teal-400" />
+                  <div>
+                    <h5 className="font-semibold text-teal-100 text-sm">Receipt Summary</h5>
+                    <p className="text-xs text-teal-300/90 mt-0.5">
+                      Receiving <strong className="text-teal-50 font-bold">{quantity}</strong> × <strong className="text-teal-50 font-bold">{selectedProduct.name}</strong> as {user?.role}.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => form.reset()}>Reset</Button>

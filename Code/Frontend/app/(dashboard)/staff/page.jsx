@@ -11,12 +11,19 @@ import {
   ArrowUpFromLine,
   ClipboardList,
   RefreshCw,
-  AlertTriangle } from
-"lucide-react";
+  AlertTriangle,
+  ShieldAlert,
+  Package,
+  BellRing
+} from "lucide-react";
 
 import { dashboardApi, analyticsApi, notificationsApi } from "@/lib/api";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 export default function StaffDashboard() {
+  const { isSuperAdmin, hasPermission } = useRoleAccess();
+  const can = (module, action = "view") => isSuperAdmin || hasPermission(module, action);
+
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [reorderItems, setReorderItems] = useState([]);
@@ -26,12 +33,12 @@ export default function StaffDashboard() {
     setLoading(true);
     try {
       const [statsRes, notifications, recommendations] = await Promise.all([
-      dashboardApi.getStats(),
-      notificationsApi.list({ is_read: "false" }),
-      analyticsApi.listRecommendations().catch(() => [])]
-      );
-      if (statsRes.success && statsRes.data) setStats(statsRes.data);
-      setAlerts(notifications.slice(0, 5));
+        dashboardApi.getStats().catch(() => null),
+        notificationsApi.list({ is_read: "false" }).catch(() => []),
+        analyticsApi.listRecommendations().catch(() => []),
+      ]);
+      if (statsRes?.success && statsRes.data) setStats(statsRes.data);
+      setAlerts(Array.isArray(notifications) ? notifications.slice(0, 5) : []);
       setReorderItems(
         recommendations
           .filter((r) => {
@@ -48,6 +55,8 @@ export default function StaffDashboard() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const hasNoOps = !can("stock_in") && !can("stock_out") && !can("products") && !can("notifications");
 
   return (
     <div className="space-y-6">
@@ -72,6 +81,7 @@ export default function StaffDashboard() {
             </CardContent>
           </Card>
         </Link>
+
         <Link href="/stock-out">
           <Card className="glass-card cursor-pointer border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent hover:border-emerald-500/40 hover:bg-emerald-500/20 transition-all h-full">
             <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
@@ -82,14 +92,22 @@ export default function StaffDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Card className="glass-card">
-          <CardContent className="p-4 h-full flex flex-col justify-center">
+
+        <Card className="glass-card hover:border-indigo-500/20 transition-all duration-200">
+          <CardContent className="p-5 h-full flex flex-col justify-center relative overflow-hidden">
+            <div className="absolute right-3 top-3 p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+              <Package className="h-4 w-4" />
+            </div>
             <p className="text-xs text-slate-400 uppercase tracking-wider">Products Tracked</p>
             <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.total_products ?? "—"}</p>
           </CardContent>
         </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 h-full flex flex-col justify-center">
+
+        <Card className="glass-card hover:border-amber-500/20 transition-all duration-200">
+          <CardContent className="p-5 h-full flex flex-col justify-center relative overflow-hidden">
+            <div className="absolute right-3 top-3 p-2 bg-amber-500/10 rounded-lg text-amber-400">
+              <BellRing className="h-4 w-4" />
+            </div>
             <p className="text-xs text-slate-400 uppercase tracking-wider">Open Alerts</p>
             <p className="text-3xl font-bold text-amber-500 mt-2">{stats?.open_alerts_count ?? "—"}</p>
           </CardContent>
@@ -105,19 +123,19 @@ export default function StaffDashboard() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-48">
-              {alerts.length === 0 ?
-              <p className="text-sm text-slate-400">No open alerts</p> :
-
-              alerts.map((a) =>
-              <div key={a.id} className="mb-3 rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm">
+              {alerts.length === 0 ? (
+                <p className="text-sm text-slate-400">No open alerts</p>
+              ) : (
+                alerts.map((a) => (
+                  <div key={a.id} className="mb-3 rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-slate-200">{a.title}</span>
                       <Badge variant="outline" className="border-white/10 text-slate-400">{a.severity}</Badge>
                     </div>
                     <p className="mt-1 text-xs text-slate-400">{a.message}</p>
                   </div>
-              )
-              }
+                ))
+              )}
             </ScrollArea>
             <Link href="/alerts">
               <Button variant="link" className="mt-2 px-0 text-indigo-400">
@@ -135,23 +153,23 @@ export default function StaffDashboard() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-48">
-              {reorderItems.length === 0 ?
-              <p className="text-sm text-slate-400">No critical items</p> :
-
-              reorderItems.map((item) =>
-              <div
-                key={item.id}
-                className="mb-2 flex items-center justify-between rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm">
-                
+              {reorderItems.length === 0 ? (
+                <p className="text-sm text-slate-400">No critical items</p>
+              ) : (
+                reorderItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="mb-2 flex items-center justify-between rounded-lg border border-white/5 bg-slate-900/50 p-3 text-sm"
+                  >
                     <span className="text-slate-200">{item.product_name}</span>
                     <span className="font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">Stock: {item.current_stock}</span>
                   </div>
-              )
-              }
+                ))
+              )}
             </ScrollArea>
           </CardContent>
         </Card>
       </div>
-    </div>);
-
+    </div>
+  );
 }

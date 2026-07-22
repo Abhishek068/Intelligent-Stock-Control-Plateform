@@ -27,6 +27,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         "receive": "approve",
         "cancel": "approve",
         "from_reorder": "create",
+        "pdf": "view",
     }
     permission_classes = [HasModulePermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -93,7 +94,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         po.save()
         return Response({"success": True, "data": PurchaseOrderSerializer(po).data})
 
-    def _transition(self, request, fn, **extra):
+    def _transition(self, view_request, fn, **extra):
         po = self.get_object()
         try:
             result = fn(purchase_order=po, **extra)
@@ -228,3 +229,93 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        po = self.get_object()
+        
+        import io
+        from django.http import FileResponse
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        
+        styles = getSampleStyleSheet()
+        normal = styles["Normal"]
+        
+        story = []
+        
+        header_data = [
+            [
+                Paragraph("<b><font size=20 color='#0d9488'>StockSense</font></b><br/><font size=9 color='#334155'>Inventory Intelligence Systems</font>", normal),
+                Paragraph(f"<b><font size=24 color='#0f172a'>PURCHASE ORDER</font></b><br/><font size=10 color='#334155'># {po.po_number}</font>", normal)
+            ]
+        ]
+        header_table = Table(header_data, colWidths=[270, 270])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 20))
+        
+        supplier_email = po.supplier.email or ""
+        supplier_phone = po.supplier.phone or ""
+        location_name = po.location.name if po.location else "Not Specified"
+        location_address = po.location.address if po.location else ""
+        
+        metadata_data = [
+            [
+                Paragraph(f"<b>SUPPLIER:</b><br/>{po.supplier.name}<br/>{supplier_email}<br/>{supplier_phone}<br/>{po.supplier.contact_name or ''}", normal),
+                Paragraph(f"<b>Deliver To:</b> {location_name}<br/>{location_address}<br/><br/><b>PO Date:</b> {po.created_at.date()}<br/><b>Status:</b> {po.status.upper()}", normal)
+            ]
+        ]
+        metadata_table = Table(metadata_data, colWidths=[270, 270])
+        metadata_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(metadata_table)
+        story.append(Spacer(1, 20))
+        
+        table_data = [
+            [
+                Paragraph("<b>Product</b>", normal),
+                Paragraph("<b>Ordered</b>", normal),
+                Paragraph("<b>Received</b>", normal),
+                Paragraph("<b>Unit Cost</b>", normal),
+                Paragraph("<b>Line Total</b>", normal)
+            ]
+        ]
+        
+        for line in po.lines.all():
+            table_data.append([
+                Paragraph(f"{line.product.name} (SKU: {line.product.sku})", normal),
+                Paragraph(str(line.quantity_ordered), normal),
+                Paragraph(str(line.quantity_received), normal),
+                Paragraph(f"£{line.unit_cost}", normal),
+                Paragraph(f"£{line.line_total}", normal)
+            ])
+            
+        table_data.append(["", "", "", Paragraph("<b>Grand Total:</b>", normal), Paragraph(f"£{po.total_amount}", normal)])
+        
+        items_table = Table(table_data, colWidths=[200, 60, 60, 110, 110])
+        items_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f8fafc")),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor("#cbd5e1")),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('TOPPADDING', (0, 1), (-1, -1), 6),
+            ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor("#e2e8f0")),
+            ('LINEABOVE', (3, -1), (4, -1), 1, colors.HexColor("#cbd5e1")),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(items_table)
+        
+        doc.build(story)
+        buffer.seek(0)
+        return FileResponse(buffer, as_attachment=True, filename=f"PO-{po.po_number}.pdf")

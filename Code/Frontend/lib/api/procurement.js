@@ -38,4 +38,17 @@ export const purchaseOrdersApi = {
   fromReorder(data) {
     return apiClient.post("/purchase-orders/from_reorder/", data);
   },
+
+  async downloadPdf(id, poNumber = "") {
+    const res = await apiClient.get(`/purchase-orders/${id}/pdf/`, { responseType: "blob" });
+    const blob = res.data || res;
+    const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `PO-${poNumber || id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

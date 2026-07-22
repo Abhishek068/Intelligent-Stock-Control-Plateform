@@ -9,6 +9,7 @@ import {
   XCircle,
   Send,
   PackageCheck,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -129,6 +130,20 @@ function PurchaseOrderDetailContent() {
           </Badge>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              try {
+                await purchaseOrdersApi.downloadPdf(order.id, order.po_number);
+                toast.success("PDF Downloaded");
+              } catch (err) {
+                toast.error("Failed to download PDF");
+              }
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" /> Download PDF
+          </Button>
           {canApprove && order.status === "draft" && (
             <Button size="sm" onClick={() => run("submit")} disabled={acting}>
               <Send className="mr-2 h-4 w-4" /> Submit

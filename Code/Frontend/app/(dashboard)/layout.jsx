@@ -6,6 +6,7 @@ import { useAuthStore, useUIStore } from "@/lib/store";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
+import { authApi } from "@/lib/api";
 
 export default function DashboardLayout({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -14,6 +15,18 @@ export default function DashboardLayout({ children }) {
   const { sidebarCollapsed } = useUIStore();
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    authApi
+      .me()
+      .then((res) => {
+        if (res?.success && res.data) {
+          useAuthStore.getState().setUser(res.data);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isHydrated) return;

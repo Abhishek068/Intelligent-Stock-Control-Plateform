@@ -59,9 +59,9 @@ export function Sidebar() {
         { name: "Products", href: "/products", icon: Package, show: can("products") },
         { name: "Categories", href: "/categories", icon: Users, show: can("categories") },
         { name: "Suppliers", href: "/suppliers", icon: Users, show: can("suppliers") },
-        { name: "Warehouse", href: "/warehouse", icon: Warehouse, show: can("settings") || can("products") },
-        { name: "Barcode Scanner", href: "/barcode", icon: ScanBarcode, show: can("products") },
-        { name: "Stock-take", href: "/stock-take", icon: Calendar, show: can("stock_take") || can("products") },
+        { name: "Warehouse", href: "/warehouse", icon: Warehouse, show: can("settings") },
+        { name: "Barcode Scanner", href: "/barcode", icon: ScanBarcode, show: can("products", "edit") || can("stock_take") },
+        { name: "Stock-take", href: "/stock-take", icon: Calendar, show: can("stock_take") },
       ],
     },
     {
@@ -91,7 +91,7 @@ export function Sidebar() {
         { name: "Reports", href: "/reports", icon: BarChart3, show: can("reports") },
         { name: "Scheduled Reports", href: "/scheduled-reports", icon: Calendar, show: can("reports", "manage") || isSuperAdmin },
         { name: "Audit Log", href: "/audit-log", icon: History, show: can("audit") },
-        { name: "Activity Center", href: "/activity", icon: Activity, show: can("dashboard") || isSuperAdmin },
+        { name: "Activity Center", href: "/activity", icon: Activity, show: can("audit") || isSuperAdmin },
       ],
     },
     {
