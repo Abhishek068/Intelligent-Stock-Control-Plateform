@@ -117,6 +117,8 @@ class EmailTemplateViewSet(viewsets.ModelViewSet):
         serializer.save(organization=self.request.user.organization)
 
 
+
+
 class EmailQueueViewSet(viewsets.ReadOnlyModelViewSet):
     module_permission = "emails"
     permission_classes = [IsAuthenticated, HasModulePermission]

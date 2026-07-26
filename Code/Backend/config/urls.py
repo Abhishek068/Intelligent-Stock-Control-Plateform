@@ -1,8 +1,21 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
+
+
+def _seed_view(request):
+    """Temporary view to seed mock data. Will be removed after seeding."""
+    import io, traceback
+    from django.core.management import call_command
+    out = io.StringIO()
+    try:
+        call_command("seed_mock_data", stdout=out)
+        return JsonResponse({"status": "success", "output": out.getvalue()})
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e), "traceback": traceback.format_exc(), "output": out.getvalue()})
 
 from accounts.user_views import PermissionCatalogView, RoleViewSet, UserViewSet
 from accounts.views import (
@@ -82,6 +95,7 @@ router.register(r"scheduled-reports", ScheduledReportViewSet, basename="schedule
 router.register(r"activity", ActivityEventViewSet, basename="activity")
 
 urlpatterns = [
+    path("api/v1/seed/", _seed_view, name="seed-mock-data"),  # TEMPORARY – remove after seeding
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
