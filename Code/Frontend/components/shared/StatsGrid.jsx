@@ -37,15 +37,18 @@ export function StatsGrid({ stats, columns = 4 }) {
         return (
           <Card
             key={stat.label || index}
-            className={stat.highlight ? `border-l-4 ${colors.border} shadow-sm` : ""}>
+            className={`overflow-hidden ${stat.highlight ? `border-l-4 ${colors.border} shadow-sm` : ""}`}>
             
             <CardContent className="p-4">
-              <p className="text-xs text-slate-500">{stat.label}</p>
-              <p className={`text-2xl font-bold ${colors.text}`}>
+              <p className="text-xs text-slate-500 truncate" title={stat.label}>{stat.label}</p>
+              <p
+                className={`text-2xl font-bold truncate tracking-tight ${colors.text}`}
+                title={typeof stat.value === "string" || typeof stat.value === "number" ? String(stat.value) : undefined}
+              >
                 {stat.value}
               </p>
               {stat.subtitle &&
-              <p className="text-xs text-slate-400 mt-1">{stat.subtitle}</p>
+              <p className="text-xs text-slate-400 mt-1 truncate" title={stat.subtitle}>{stat.subtitle}</p>
               }
             </CardContent>
           </Card>);

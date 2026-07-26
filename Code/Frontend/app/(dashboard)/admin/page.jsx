@@ -172,9 +172,9 @@ export default function AdminDashboard() {
               title="Inventory Value"
               value={
                 inv.inventory_value != null
-                  ? `£${Number(inv.inventory_value).toLocaleString()}`
+                  ? `£${Number(inv.inventory_value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                   : stats
-                    ? `£${Number(stats.total_inventory_value || 0).toLocaleString()}`
+                    ? `£${Number(stats.total_inventory_value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                     : "—"
               }
               icon={DollarSign}
@@ -260,25 +260,44 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon: Icon, color }) {
   const colorMap = {
-    indigo: "bg-indigo-500/10 text-indigo-400",
-    violet: "bg-violet-500/10 text-violet-400",
-    sky: "bg-sky-500/10 text-sky-400",
-    amber: "bg-amber-500/10 text-amber-400",
-    rose: "bg-rose-500/10 text-rose-400",
-    cyan: "bg-cyan-500/10 text-cyan-400",
-    orange: "bg-orange-500/10 text-orange-400",
-    emerald: "bg-emerald-500/10 text-emerald-400",
+    indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    sky: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    rose: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   };
+  const valStr = value != null ? String(value) : "—";
+  const isLong = valStr.length > 9;
+  const isMedium = valStr.length > 6 && valStr.length <= 9;
   return (
-    <Card className="glass-card hover:bg-white/[0.04] hover:border-white/20 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
-      <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">{title}</CardTitle>
-        <div className={`p-2 rounded-lg ${colorMap[color] || colorMap.indigo}`}>
+    <Card className="glass-card hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 cursor-pointer hover:scale-[1.02] h-full flex flex-col justify-between overflow-hidden p-0">
+      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+        <CardTitle
+          className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate"
+          title={title}
+        >
+          {title}
+        </CardTitle>
+        <div className={`p-2 rounded-lg shrink-0 ${colorMap[color] || colorMap.indigo}`}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-slate-100">{value ?? "—"}</div>
+      <CardContent className="p-4 pt-1">
+        <div
+          className={`font-bold text-slate-100 truncate tracking-tight ${
+            isLong
+              ? "text-base sm:text-lg xl:text-xl"
+              : isMedium
+                ? "text-lg sm:text-xl xl:text-2xl"
+                : "text-2xl"
+          }`}
+          title={valStr}
+        >
+          {value ?? "—"}
+        </div>
       </CardContent>
     </Card>
   );

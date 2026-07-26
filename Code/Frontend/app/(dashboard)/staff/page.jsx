@@ -98,8 +98,8 @@ export default function StaffDashboard() {
             <div className="absolute right-3 top-3 p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
               <Package className="h-4 w-4" />
             </div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Products Tracked</p>
-            <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.total_products ?? "—"}</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider truncate pr-8">Products Tracked</p>
+            <p className="text-3xl font-bold text-slate-100 mt-2 truncate">{stats?.total_products ?? "—"}</p>
           </CardContent>
         </Card>
 
@@ -108,8 +108,8 @@ export default function StaffDashboard() {
             <div className="absolute right-3 top-3 p-2 bg-amber-500/10 rounded-lg text-amber-400">
               <BellRing className="h-4 w-4" />
             </div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Open Alerts</p>
-            <p className="text-3xl font-bold text-amber-500 mt-2">{stats?.open_alerts_count ?? "—"}</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider truncate pr-8">Open Alerts</p>
+            <p className="text-3xl font-bold text-amber-500 mt-2 truncate">{stats?.open_alerts_count ?? "—"}</p>
           </CardContent>
         </Card>
       </div>

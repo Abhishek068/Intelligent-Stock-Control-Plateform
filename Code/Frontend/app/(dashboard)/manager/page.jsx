@@ -122,17 +122,20 @@ export default function ManagerDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/reports">
-          <Card className="glass-card hover:border-emerald-500/30 transition-colors h-full">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <Card className="glass-card hover:border-emerald-500/30 transition-colors h-full flex flex-col justify-between overflow-hidden p-0">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+              <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" title="Inventory Value">
                 Inventory Value
               </CardTitle>
-              <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <div className="p-2 bg-emerald-500/10 rounded-lg shrink-0">
                 <DollarSign className="h-4 w-4 text-emerald-500" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-100">
+            <CardContent className="p-4 pt-1">
+              <div
+                className="text-lg sm:text-xl xl:text-2xl font-bold text-slate-100 truncate tracking-tight"
+                title={`£${stats ? stats.total_inventory_value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}`}
+              >
                 £
                 {stats
                   ? stats.total_inventory_value.toLocaleString(undefined, {
@@ -145,17 +148,17 @@ export default function ManagerDashboard() {
         </Link>
 
         <Link href="/alerts">
-          <Card className="glass-card hover:border-amber-500/30 transition-colors h-full">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <Card className="glass-card hover:border-amber-500/30 transition-colors h-full flex flex-col justify-between overflow-hidden p-0">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+              <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" title="Low Stock">
                 Low Stock
               </CardTitle>
-              <div className="p-2 bg-amber-500/10 rounded-lg">
+              <div className="p-2 bg-amber-500/10 rounded-lg shrink-0">
                 <AlertCircle className="h-4 w-4 text-amber-500" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-100">
+            <CardContent className="p-4 pt-1">
+              <div className="text-2xl font-bold text-slate-100 truncate tracking-tight">
                 {stats?.low_stock_count ?? "—"}
               </div>
             </CardContent>
@@ -163,17 +166,17 @@ export default function ManagerDashboard() {
         </Link>
 
         <Link href="/reorder-recommendations">
-          <Card className="glass-card hover:border-blue-500/30 transition-colors h-full">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <Card className="glass-card hover:border-blue-500/30 transition-colors h-full flex flex-col justify-between overflow-hidden p-0">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+              <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" title="Reorder Queue">
                 Reorder Queue
               </CardTitle>
-              <div className="p-2 bg-blue-500/10 rounded-lg">
+              <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
                 <ShoppingCart className="h-4 w-4 text-blue-500" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-100">
+            <CardContent className="p-4 pt-1">
+              <div className="text-2xl font-bold text-slate-100 truncate tracking-tight">
                 {stats?.reorder_count ?? "—"}
               </div>
             </CardContent>
@@ -181,17 +184,17 @@ export default function ManagerDashboard() {
         </Link>
 
         <Link href="/alerts">
-          <Card className="glass-card hover:border-rose-500/30 transition-colors h-full">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <Card className="glass-card hover:border-rose-500/30 transition-colors h-full flex flex-col justify-between overflow-hidden p-0">
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+              <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate" title="Open Alerts">
                 Open Alerts
               </CardTitle>
-              <div className="p-2 bg-rose-500/10 rounded-lg">
+              <div className="p-2 bg-rose-500/10 rounded-lg shrink-0">
                 <Package className="h-4 w-4 text-rose-500" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-100">
+            <CardContent className="p-4 pt-1">
+              <div className="text-2xl font-bold text-slate-100 truncate tracking-tight">
                 {stats?.open_alerts_count ?? "—"}
               </div>
             </CardContent>
