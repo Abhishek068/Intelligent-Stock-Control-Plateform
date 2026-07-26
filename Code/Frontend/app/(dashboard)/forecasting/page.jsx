@@ -32,7 +32,6 @@ export default function ForecastingPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  // Summary state
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -104,7 +103,7 @@ export default function ForecastingPage() {
       if (res.success && res.data) {
         setChartPayload({ chart: res.data.chart, latest_forecast: res.data.forecast });
         toast.success("Forecast generated");
-        loadSummary(); // Refresh summary data as well
+        loadSummary();
       }
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Forecast generation failed");
@@ -125,7 +124,6 @@ export default function ForecastingPage() {
         </Badge>
       </div>
 
-      {/* Tabs Controller */}
       <div className="flex border-b border-slate-800 gap-4">
         <button
           onClick={() => setActiveTab("overview")}
@@ -151,7 +149,6 @@ export default function ForecastingPage() {
 
       {activeTab === "overview" ? (
         <div className="space-y-6">
-          {/* Dashboard Summary Cards */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card className="glass-card bg-slate-900/50 border-slate-800">
               <CardContent className="p-6">
@@ -219,7 +216,6 @@ export default function ForecastingPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Chart 1: Monthly Demand Forecast */}
             <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-200">
@@ -249,7 +245,6 @@ export default function ForecastingPage() {
               </CardContent>
             </Card>
 
-            {/* Chart 2: Predicted vs Actual Sales */}
             <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-200">
@@ -279,7 +274,6 @@ export default function ForecastingPage() {
               </CardContent>
             </Card>
 
-            {/* Chart 3: Weekly Demand Trend */}
             <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-200">
@@ -309,7 +303,6 @@ export default function ForecastingPage() {
               </CardContent>
             </Card>
 
-            {/* Chart 4: Top 10 Products with Highest Forecasted Demand */}
             <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-200">

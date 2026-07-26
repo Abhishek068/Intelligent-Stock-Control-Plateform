@@ -69,7 +69,6 @@ export const useAuthStore = create()(
         });
 
         if (typeof window !== "undefined") {
-          // Re-persist to the correct storage when remember-me changes
           const data = {
             state: {
               user,
@@ -102,9 +101,7 @@ export const useAuthStore = create()(
         if (refresh) {
           try {
             await authApi.logout(refresh);
-          } catch {
-            /* ignore */
-          }
+          } catch {}
         }
         set({
           user: null,
@@ -138,10 +135,8 @@ export const useAuthStore = create()(
           return {
             getItem: () => null,
             setItem: () => {},
-            removeItem: () => {},
           };
         }
-        // Prefer localStorage if present, else sessionStorage
         const local = localStorage.getItem("auth-store");
         if (local) return localStorage;
         return sessionStorage;

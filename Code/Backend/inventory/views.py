@@ -136,7 +136,6 @@ class ProductViewSet(OrganizationScopedViewSet):
 
     @action(detail=False, methods=["get"])
     def lookup(self, request):
-        """Lookup by SKU or barcode."""
         code = (request.query_params.get("code") or request.query_params.get("q") or "").strip()
         if not code:
             return Response(
@@ -599,7 +598,6 @@ class DashboardViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"])
     def trends(self, request):
-        """Movement series + top low-stock SKUs for dashboard charts."""
         from datetime import timedelta
 
         from django.db.models import Count

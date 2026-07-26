@@ -69,7 +69,6 @@ export default function ScannerPage() {
             setBarcodeInput(decodedText);
             toast.success("Code scanned successfully!");
             
-            // Auto trigger lookup
             productsApi.lookup(decodedText).then((res) => {
               const product = res?.data || res;
               if (product?.id) {
@@ -108,7 +107,6 @@ export default function ScannerPage() {
               toast.error("Product not found");
             });
 
-            // Stop scanner
             if (scanner.isScanning) {
               scanner.stop().then(() => {
                 setShowCamera(false);
@@ -119,9 +117,7 @@ export default function ScannerPage() {
               setHtml5QrCode(null);
             }
           },
-          (errorMessage) => {
-            // parse errors silently
-          }
+          (errorMessage) => {}
         ).catch((err) => {
           toast.error("Failed to start camera: " + err);
           setShowCamera(false);

@@ -134,7 +134,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
 }
 
-# Email
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
@@ -148,4 +147,3 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 BREVO_API_KEY = env("BREVO_API_KEY", default="")
 FIREBASE_CREDENTIALS_PATH = env("FIREBASE_CREDENTIALS_PATH", default="")
-# No Celery settings

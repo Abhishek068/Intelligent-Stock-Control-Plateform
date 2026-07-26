@@ -3,10 +3,6 @@
 import { Shield } from "lucide-react";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
-/**
- * Renders children only when the user has the given module permission.
- * Super Admin always passes.
- */
 export function ModuleGate({ module, action = "view", children, fallbackMessage }) {
   const { isSuperAdmin, hasPermission } = useRoleAccess();
   const allowed = isSuperAdmin || hasPermission(module, action);

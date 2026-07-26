@@ -95,8 +95,6 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-        # 1. Get latest forecast per product (database agnostic)
-
         all_forecasts = DemandForecast.objects.filter(
 
             product__organization=org
@@ -118,8 +116,6 @@ class ForecastViewSet(viewsets.ViewSet):
                 latest_forecasts.append(f)
 
 
-
-        # Top 10 products by predicted demand
 
         top_10 = sorted(latest_forecasts, key=lambda x: x.predicted_demand, reverse=True)[:10]
 
@@ -143,8 +139,6 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-        # 2. Predicted vs Actual Sales (weekly / monthly timelines)
-
         import collections
 
         from django.utils import timezone
@@ -159,8 +153,6 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-        # Actual sales in last 90 days
-
         txns = StockOutTransaction.objects.filter(
 
             product__organization=org,
@@ -172,8 +164,6 @@ class ForecastViewSet(viewsets.ViewSet):
         )
 
 
-
-        # Group actual by week and month
 
         actual_weekly = collections.defaultdict(float)
 
@@ -193,8 +183,6 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-        # Group predictions by week and month (distributing predicted_demand over the horizon)
-
         predicted_weekly = collections.defaultdict(float)
 
         predicted_monthly = collections.defaultdict(float)
@@ -211,8 +199,6 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-            # distribute daily rates
-
             curr = f.forecast_period_start
 
             while curr <= f.forecast_period_end:
@@ -228,8 +214,6 @@ class ForecastViewSet(viewsets.ViewSet):
                 curr += timedelta(days=1)
 
 
-
-        # Weekly demand trend merging
 
         all_weeks = sorted(list(set(actual_weekly.keys()) | set(predicted_weekly.keys())))
 
@@ -248,8 +232,6 @@ class ForecastViewSet(viewsets.ViewSet):
             })
 
 
-
-        # Monthly demand trend merging
 
         all_months = sorted(list(set(actual_monthly.keys()) | set(predicted_monthly.keys())))
 

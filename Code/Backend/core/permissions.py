@@ -24,13 +24,6 @@ class IsSuperAdmin(permissions.BasePermission):
 
 
 class HasModulePermission(permissions.BasePermission):
-    """
-    Check module/action permission.
-    Set on the view:
-      module_permission = "products"
-      action_permission = "view"  # or map via action_permission_map
-    """
-
     message = "You do not have permission to perform this action."
 
     def has_permission(self, request, view):
@@ -73,16 +66,11 @@ class HasModulePermission(permissions.BasePermission):
         return mapping.get(method.upper(), "view")
 
 
-# Backward-compatible aliases — Super Admin replaces former admin role
 class IsAdminRole(IsSuperAdmin):
-    """Deprecated alias: Super Admin only."""
-
     pass
 
 
 class IsManagerOrAdmin(permissions.BasePermission):
-    """Super Admin or user with manage/view elevated module access."""
-
     message = "Manager or Super Admin role required."
 
     def has_permission(self, request, view):
@@ -91,7 +79,6 @@ class IsManagerOrAdmin(permissions.BasePermission):
         user = request.user
         if user.is_superuser:
             return True
-        # Treat as elevated if user has any manager-like role name or manage on reports
         if user.roles.filter(name__iexact="Manager").exists():
             return True
         return user.has_module_permission("reports", "view")

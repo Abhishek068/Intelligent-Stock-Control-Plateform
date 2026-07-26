@@ -32,9 +32,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         qs = Notification.objects.all()
         if org:
             qs = qs.filter(organization=org)
-        # User sees own notifications + org-wide (user is null)
         qs = qs.filter(Q(user=user) | Q(user__isnull=True))
-        # Hide expired unless explicitly requested
         if self.request.query_params.get("include_expired") != "1":
             qs = qs.filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
         return qs.order_by("-created_at")

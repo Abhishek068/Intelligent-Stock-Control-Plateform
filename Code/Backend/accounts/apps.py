@@ -10,11 +10,9 @@ def seed_default_users(sender, **kwargs):
         org = ensure_default_organization()
         staff_role = Role.objects.filter(organization=org, name="Staff").first()
 
-        # 1. Remove Manager Account (user requested deletion)
         manager_email = "manager@stocksense.com"
         User.objects.filter(email=manager_email).delete()
 
-        # 2. Seed Staff Account
         staff_email = "staff@stocksense.com"
         if not User.objects.filter(email=staff_email).exists():
             staff_user = User.objects.create(

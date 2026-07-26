@@ -105,9 +105,7 @@ export default function AdminDashboard() {
         if (data.type === "activity") {
           loadDashboard();
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     };
 
     return () => {

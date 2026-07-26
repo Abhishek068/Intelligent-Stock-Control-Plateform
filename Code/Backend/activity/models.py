@@ -5,7 +5,6 @@ from core.models import Organization
 
 
 class ActivityEvent(models.Model):
-    """Operational activity timeline (separate from immutable audit log)."""
 
     class EventType(models.TextChoices):
         USER_LOGIN = "user_login", "User Login"

@@ -1,4 +1,3 @@
-# emails app admin stubs
 from django.contrib import admin
 
 from emails.models import (

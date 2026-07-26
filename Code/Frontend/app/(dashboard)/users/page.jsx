@@ -360,7 +360,6 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      {/* Invite */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="bg-slate-900 border-white/10 text-slate-100">
           <DialogHeader>
@@ -433,7 +432,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="bg-slate-900 border-white/10 text-slate-100">
           <DialogHeader>
@@ -505,7 +503,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Roles */}
       <Dialog open={rolesOpen} onOpenChange={setRolesOpen}>
         <DialogContent className="bg-slate-900 border-white/10 text-slate-100">
           <DialogHeader>
@@ -538,7 +535,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Overrides */}
       <Dialog open={overridesOpen} onOpenChange={setOverridesOpen}>
         <DialogContent className="bg-slate-900 border-white/10 text-slate-100 max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>

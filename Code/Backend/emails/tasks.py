@@ -16,7 +16,6 @@ def retry_failed_emails():
 
 
 def run_scheduled_reports():
-    """Run due scheduled reports based on frequency and last_run_at."""
     from datetime import timedelta
 
     now = timezone.now()
@@ -42,7 +41,6 @@ def run_scheduled_reports():
 
 
 def build_report_body(report: ScheduledReport) -> str:
-    """Generate textual report content by report_type for the organization."""
     org = report.organization
     lines = [f"Report: {report.name}", f"Type: {report.get_report_type_display()}", ""]
 

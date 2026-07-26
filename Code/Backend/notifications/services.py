@@ -76,7 +76,6 @@ class NotificationService:
 
     @staticmethod
     def _send_push(user, title, message):
-        """Firebase push stub — logs when credentials are absent."""
         tokens = DeviceToken.objects.filter(user=user, is_active=True)
         from django.conf import settings as dj_settings
 
@@ -89,5 +88,4 @@ class NotificationService:
                 title,
             )
             return
-        # Extension point for firebase-admin when configured
         logger.info("Firebase push not fully configured; skipping send.")

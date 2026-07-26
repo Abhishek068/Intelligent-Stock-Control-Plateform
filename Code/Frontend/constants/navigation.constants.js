@@ -22,7 +22,6 @@ import {
   Activity,
 } from "lucide-react";
 
-/** Permission-aware nav (module codes). Empty modules = visible to authenticated users. */
 export const NAV_GROUPS = [
   {
     label: "Overview",

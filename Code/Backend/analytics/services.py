@@ -99,27 +99,22 @@ class ForecastingService:
                     import math
                     from statsmodels.tsa.arima.model import ARIMA
 
-                    # 1. Fit Holt-Winters Exponential Smoothing
                     model_hw = ExponentialSmoothing(
                         train, trend="add", seasonal=None, initialization_method="estimated"
                     )
                     fitted_hw = model_hw.fit(optimized=True)
                     pred_hw = fitted_hw.forecast(len(test)) if len(test) > 0 else pd.Series(dtype=float)
 
-                    # 2. Fit ARIMA(1, 1, 0)
                     model_arima = ARIMA(train, order=(1, 1, 0))
                     fitted_arima = model_arima.fit()
                     pred_arima = fitted_arima.forecast(len(test)) if len(test) > 0 else pd.Series(dtype=float)
 
-                    # 3. Fit Naive Baseline
                     pred_naive = pd.Series([train.iloc[-1]] * len(test), index=test.index) if len(test) > 0 else pd.Series(dtype=float)
 
-                    # Calculate MAE for model selection on test split
                     mae_hw = float(np.mean(np.abs(test.values - pred_hw.values))) if len(test) > 0 else 999999.0
                     mae_arima = float(np.mean(np.abs(test.values - pred_arima.values))) if len(test) > 0 else 999999.0
                     mae_naive = float(np.mean(np.abs(test.values - pred_naive.values))) if len(test) > 0 else 999999.0
 
-                    # Choose the model with the minimum MAE error
                     best_model = min(
                         (mae_hw, "exponential_smoothing", fitted_hw),
                         (mae_arima, "arima", fitted_arima),
@@ -339,11 +334,10 @@ class ReorderService:
 
 
 
-        # Advanced Upgrade: Economic Order Quantity (EOQ) calculation
         annual_demand = avg_daily * 365
-        setup_cost = 50.0  # Estimated ordering/setup cost per purchase order
+        setup_cost = 50.0
         unit_price = float(product.unit_price) if product.unit_price else 10.0
-        holding_cost = max(0.5, unit_price * 0.15)  # 15% annual holding cost, minimum $0.50
+        holding_cost = max(0.5, unit_price * 0.15)
 
         if annual_demand > 0:
             import math
@@ -524,12 +518,10 @@ class AlertService:
                 stockout_date = timezone.now().date() + timedelta(days=int(days_until_stockout))
                 threshold_date = timezone.now().date() + timedelta(days=lead_time)
 
-                # Advanced Upgrade: Multi-Factor Risk Calculations
                 series = ForecastingService._daily_demand_series(product)
                 demand_std = float(series.std()) if len(series) > 1 else 0.0
                 volatility = "high" if (avg_daily > 0 and demand_std / avg_daily > 0.5) else "normal"
 
-                # Probability calculation scaled by lead time urgency
                 if days_until_stockout <= 0:
                     stockout_probability = 100.0
                 else:
@@ -538,7 +530,6 @@ class AlertService:
                     if volatility == "high":
                         stockout_probability = min(99.0, stockout_probability + 15.0)
 
-                # Estimated Financial Impact (catered lead time deficit value)
                 unit_price = float(product.unit_price) if product.unit_price else 10.0
                 financial_impact = round(unit_price * avg_daily * lead_time, 2)
 

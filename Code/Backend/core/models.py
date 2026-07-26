@@ -27,21 +27,16 @@ class OrganizationSettings(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="settings",
     )
-    # General
     company_name = models.CharField(max_length=255, blank=True)
     company_address = models.TextField(blank=True)
     currency_code = models.CharField(max_length=3, default="GBP")
-    # Inventory defaults
     default_minimum_level = models.PositiveIntegerField(default=10)
     default_reorder_level = models.PositiveIntegerField(default=20)
-    # Notifications
     enable_predictive_alerts = models.BooleanField(default=True)
     enable_email_notifications = models.BooleanField(default=False)
     enable_push_notifications = models.BooleanField(default=False)
-    # Forecast
     forecast_model = models.CharField(max_length=50, default="exponential_smoothing")
     forecast_horizon_days = models.PositiveIntegerField(default=30)
-    # Authentication / Security
     session_timeout_minutes = models.PositiveIntegerField(default=60)
     jwt_access_minutes = models.PositiveIntegerField(default=60)
     jwt_refresh_days = models.PositiveIntegerField(default=7)
@@ -53,7 +48,6 @@ class OrganizationSettings(TimeStampedModel):
     password_require_lowercase = models.BooleanField(default=True)
     password_require_number = models.BooleanField(default=True)
     password_require_special = models.BooleanField(default=False)
-    # Extensible JSON for future sections
     extra_config = models.JSONField(default=dict, blank=True)
 
     def __str__(self):

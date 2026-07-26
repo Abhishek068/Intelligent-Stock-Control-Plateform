@@ -7,7 +7,6 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 
 def _seed_view(request):
-    """Temporary view to seed mock data. Will be removed after seeding."""
     import io, traceback
     from django.core.management import call_command
     out = io.StringIO()
@@ -95,7 +94,7 @@ router.register(r"scheduled-reports", ScheduledReportViewSet, basename="schedule
 router.register(r"activity", ActivityEventViewSet, basename="activity")
 
 urlpatterns = [
-    path("api/v1/seed/", _seed_view, name="seed-mock-data"),  # TEMPORARY – remove after seeding
+    path("api/v1/seed/", _seed_view, name="seed-mock-data"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

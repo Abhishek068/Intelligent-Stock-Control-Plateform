@@ -545,7 +545,6 @@ function StockTransferPageContent() {
         </CardContent>
       </Card>
 
-      {/* Scan Verification Dialog */}
       <Dialog open={scanOpen} onOpenChange={setScanOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

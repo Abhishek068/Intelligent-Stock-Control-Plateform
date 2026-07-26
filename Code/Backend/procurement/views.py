@@ -148,7 +148,6 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def from_reorder(self, request):
-        """Create a draft PO from reorder recommendation product IDs."""
         from analytics.models import ReorderRecommendation
         from inventory.models import Product
 

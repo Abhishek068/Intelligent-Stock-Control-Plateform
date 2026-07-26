@@ -96,11 +96,6 @@ class PurchaseOrderService:
         line_receipts=None,
         request=None,
     ):
-        """
-        Receive stock against a sent/partial PO.
-        line_receipts: optional list of {line_id, quantity}.
-        If omitted, receives remaining qty for all lines.
-        """
         if purchase_order.status not in (
             PurchaseOrder.Status.SENT,
             PurchaseOrder.Status.PARTIAL,

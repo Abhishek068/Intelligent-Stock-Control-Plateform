@@ -189,7 +189,6 @@ def process_queue_item(item: EmailQueue) -> bool:
             organization=item.organization, is_active=True
         ).first()
 
-    # Prefer org Brevo key; fall back to BREVO_API_KEY from settings
     api_key = (config.api_key if config else "") or getattr(settings, "BREVO_API_KEY", "")
     if api_key:
         from emails.models import EmailProviderConfig as EPC

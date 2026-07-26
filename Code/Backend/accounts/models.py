@@ -101,7 +101,6 @@ class User(AbstractUser):
         ).exists()
 
     def permission_map(self) -> dict:
-        """Return {module: [actions]} effective permissions."""
         if self.is_superuser:
             from accounts.permissions_catalog import ACTION_CODES, MODULE_CODES
 

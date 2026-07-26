@@ -19,7 +19,7 @@ from core.models import Organization, OrganizationSettings
 from emails.services import ensure_default_templates, queue_email
 
 
-FRONTEND_BASE_URL = None  # set from settings at runtime
+FRONTEND_BASE_URL = None
 
 
 def get_frontend_url():

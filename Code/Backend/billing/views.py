@@ -54,7 +54,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         )
 
     def list(self, request, *args, **kwargs):
-        # Mark overdue unpaid invoices before listing
         for inv in self.get_queryset().filter(status=Invoice.Status.UNPAID):
             inv.refresh_overdue_status()
         return super().list(request, *args, **kwargs)
@@ -160,8 +159,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             normal = styles["Normal"]
             
             story = []
-            
-            # Use direct hex strings to avoid calling undefined hexval() methods
             header_data = [
                 [
                     Paragraph("<b><font size=20 color='#0d9488'>StockSense</font></b><br/><font size=9 color='#334155'>Inventory Intelligence Systems</font>", normal),

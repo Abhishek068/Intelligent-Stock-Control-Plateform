@@ -64,7 +64,6 @@ export default function ReportsPage() {
     try {
       const res = await analyticsApi.getReport(type);
       if (res.success && res.data) {
-        // movements API returns { totals, series }; flatten totals for the table
         if (type === REPORT_TYPES.movements && !Array.isArray(res.data)) {
           setReportData(res.data.totals || []);
           setMovementSeries(res.data.series || []);

@@ -258,7 +258,6 @@ class StockService:
     def ship_transfer(cls, *, transfer, user, request=None):
         if transfer.status != StockTransfer.Status.DRAFT:
             raise ValueError("Only draft transfers can be marked in transit.")
-        # Validate stock still available before shipping
         source_balance = cls._get_or_create_balance(transfer.product, transfer.source_location)
         if source_balance.available_quantity < transfer.quantity:
             raise InsufficientStockError(
@@ -358,7 +357,6 @@ class StockService:
         )
         return transfer
 
-    # Backward-compatible alias used by older callers
     @classmethod
     def transfer_stock(cls, *, transfer, user, request=None):
         return cls.complete_transfer(transfer=transfer, user=user, request=request)
@@ -398,22 +396,15 @@ class StockTakeService:
         if stock_take.status != StockTake.Status.SCHEDULED:
             raise ValueError("Only scheduled stock-takes can be started.")
 
-        # Snapshot balances at location; include products with zero stock at this location
-        # if they have any org balance elsewhere is optional — include products with
-        # balance rows OR all active products for completeness.
         balances = {
             b.product_id: b.quantity_on_hand
             for b in InventoryBalance.objects.filter(location=stock_take.location)
         }
         products = Product.objects.filter(
             organization=stock_take.organization, is_active=True
-        )
-        # Prefer products that already have inventory at this location; if none, use all active
         product_ids = list(balances.keys())
         if product_ids:
             products = products.filter(id__in=product_ids)
-        # Always include any product with a balance at location even if inactive? No — active only.
-
         StockTakeLine.objects.filter(stock_take=stock_take).delete()
         lines = [
             StockTakeLine(
@@ -424,7 +415,6 @@ class StockTakeService:
             for p in products
         ]
         if not lines:
-            # Fallback: create empty take with all active products at 0
             lines = [
                 StockTakeLine(stock_take=stock_take, product=p, system_qty=0)
                 for p in Product.objects.filter(
@@ -443,9 +433,6 @@ class StockTakeService:
     @classmethod
     @transaction.atomic
     def record_counts(cls, *, stock_take, counts):
-        """
-        counts: list of {line_id, counted_qty, notes?}
-        """
         from stock.models import StockTake, StockTakeLine
 
         if stock_take.status != StockTake.Status.IN_PROGRESS:

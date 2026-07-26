@@ -1,5 +1,3 @@
-"""Module × action permission catalog for StockSense IAM."""
-
 MODULES = [
     ("dashboard", "Dashboard"),
     ("users", "Users"),
@@ -37,7 +35,6 @@ ACTIONS = [
 MODULE_CODES = [m[0] for m in MODULES]
 ACTION_CODES = [a[0] for a in ACTIONS]
 
-# Default permission matrices for system roles
 MANAGER_DEFAULTS = {
     "dashboard": ["view"],
     "users": ["view"],

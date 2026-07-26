@@ -5,7 +5,6 @@
 
 :root {
   --radius: 0.625rem;
-  /* Light mode fallbacks (though app is forced dark) */
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
@@ -109,7 +108,6 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400;
   }
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

@@ -185,7 +185,6 @@ class ForgotPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"].lower().strip()
 
-        # Always return success to avoid email enumeration
         try:
             user = User.objects.get(email=email)
             token = create_reset_token(user)
