@@ -402,6 +402,7 @@ class StockTakeService:
         }
         products = Product.objects.filter(
             organization=stock_take.organization, is_active=True
+        )
         product_ids = list(balances.keys())
         if product_ids:
             products = products.filter(id__in=product_ids)
