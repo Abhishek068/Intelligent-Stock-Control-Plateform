@@ -39,6 +39,10 @@ class Supplier(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
 
     delivery_reliability = models.DecimalField(max_digits=5, decimal_places=2, default=90.0)
+    delivery_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    order_accuracy = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    performance_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    performance_breakdown = models.JSONField(default=dict, blank=True)
 
 
 

@@ -77,8 +77,11 @@ export default function SettingsPage() {
         enable_predictive_alerts: settings.enable_predictive_alerts,
         enable_email_notifications: settings.enable_email_notifications,
         enable_push_notifications: settings.enable_push_notifications,
+        expiry_alert_user_ids: settings.expiry_alert_user_ids,
+        expiry_alert_emails: settings.expiry_alert_emails,
         forecast_model: settings.forecast_model,
         forecast_horizon_days: settings.forecast_horizon_days,
+        valuation_method: settings.valuation_method,
         company_name: settings.company_name,
         company_address: settings.company_address,
         currency_code: settings.currency_code,
@@ -152,6 +155,22 @@ export default function SettingsPage() {
                   value={settings.company_name || ""}
                   onChange={(e) => updateField("company_name", e.target.value)}
                 />
+              </div>
+              <div>
+                <Label>Inventory valuation method</Label>
+                <Select
+                  value={settings.valuation_method || "fifo"}
+                  onValueChange={(v) => updateField("valuation_method", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fifo">FIFO</SelectItem>
+                    <SelectItem value="lifo">LIFO</SelectItem>
+                    <SelectItem value="weighted_average">Weighted average</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Currency</Label>
@@ -308,6 +327,20 @@ export default function SettingsPage() {
                   checked={!!settings.enable_push_notifications}
                   onCheckedChange={(v) => updateField("enable_push_notifications", v)}
                 />
+              </div>
+              <div className="space-y-2 border-t border-white/10 pt-4">
+                <Label>Expiry-alert email recipients</Label>
+                <Input
+                  placeholder="buyer@example.com, manager@example.com"
+                  value={(settings.expiry_alert_emails || []).join(", ")}
+                  onChange={(e) =>
+                    updateField(
+                      "expiry_alert_emails",
+                      e.target.value.split(",").map((email) => email.trim()).filter(Boolean)
+                    )
+                  }
+                />
+                <p className="text-xs text-slate-400">These recipients receive batch-expiry alerts by email.</p>
               </div>
             </div>
           </SettingsCard>

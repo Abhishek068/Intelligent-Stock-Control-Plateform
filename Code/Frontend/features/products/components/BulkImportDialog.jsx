@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Upload, X, AlertCircle, FileText } from "lucide-react";
 import {
@@ -18,6 +18,43 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
   const [errors, setErrors] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState("");
+  const [jobId, setJobId] = useState(null);
+
+  const isSupportedFile = (candidate) =>
+    /\.(csv|xlsx|xls)$/i.test(candidate?.name || "");
+
+  useEffect(() => {
+    let timer;
+    const poll = async (jobId) => {
+      try {
+        const response = await productsApi.getBulkImportStatus(jobId);
+        const job = response.data;
+        setProgress(job.progress || 0);
+        setStatus(job.status || "");
+        if (job.status === "completed") {
+          toast.success(`Successfully imported ${job.imported_count} products!`);
+          onSuccess();
+          onOpenChange(false);
+          setFile(null);
+          setImporting(false);
+          return;
+        }
+        if (job.status === "failed") {
+          setErrors(job.errors || ["Failed to import products."]);
+          setImporting(false);
+          return;
+        }
+        timer = window.setTimeout(() => poll(jobId), 1500);
+      } catch (error) {
+        setErrors([error.message || "Unable to check import status."]);
+        setImporting(false);
+      }
+    };
+    if (jobId) poll(jobId);
+    return () => window.clearTimeout(timer);
+  }, [jobId, onOpenChange, onSuccess]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -35,11 +72,11 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.name.endsWith(".csv")) {
+      if (isSupportedFile(droppedFile)) {
         setFile(droppedFile);
         setErrors([]);
       } else {
-        toast.error("Please upload a valid .csv file");
+        toast.error("Please upload a valid CSV or Excel file");
       }
     }
   };
@@ -47,11 +84,11 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      if (selectedFile.name.endsWith(".csv")) {
+      if (isSupportedFile(selectedFile)) {
         setFile(selectedFile);
         setErrors([]);
       } else {
-        toast.error("Please select a valid .csv file");
+        toast.error("Please select a valid CSV or Excel file");
       }
     }
   };
@@ -59,6 +96,9 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
   const clearFile = () => {
     setFile(null);
     setErrors([]);
+    setProgress(0);
+    setStatus("");
+    setJobId(null);
   };
 
   const handleUpload = async () => {
@@ -68,16 +108,15 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
     try {
       const res = await productsApi.bulkImport(file);
       if (res.success) {
-        toast.success(`Successfully imported ${res.count} products!`);
-        onSuccess();
-        onOpenChange(false);
-        setFile(null);
+        setProgress(res.data?.progress || 0);
+        setStatus(res.data?.status || "pending");
+        setJobId(res.data?.id || null);
       } else {
         setErrors(res.errors || [res.error || "Failed to import products."]);
       }
     } catch (err) {
-      if (err.errors) {
-        setErrors(err.errors);
+      if (err.details?.errors) {
+        setErrors(err.details.errors);
       } else {
         setErrors([err.message || "Failed to process the import."]);
       }
@@ -107,13 +146,13 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
               <>
                 <Upload className="h-10 w-10 text-slate-400 mb-3" />
                 <p className="text-sm font-semibold text-slate-200 mb-1">
-                  Drag and drop your CSV file here
+                  Drag and drop your CSV or Excel file here
                 </p>
                 <p className="text-xs text-slate-400 mb-4">or click to browse from files</p>
                 <input
                   type="file"
-                  id="csv-upload"
-                  accept=".csv"
+                  id="product-import-upload"
+                  accept=".csv,.xlsx,.xls"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -121,7 +160,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
                   variant="secondary"
                   size="sm"
                   type="button"
-                  onClick={() => document.getElementById("csv-upload").click()}
+                  onClick={() => document.getElementById("product-import-upload").click()}
                 >
                   Choose File
                 </Button>
@@ -149,7 +188,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
           </div>
 
           <div className="text-xs text-slate-500 bg-slate-950/40 border border-white/5 rounded-lg p-3 space-y-1">
-            <p className="font-semibold text-slate-400">CSV Template headers required:</p>
+            <p className="font-semibold text-slate-400">CSV / Excel headers required:</p>
             <p className="font-mono text-indigo-400 text-[10px] break-all">sku, name, category, supplier, unit_price, minimum_level, reorder_level, barcode, description</p>
             <p className="mt-2 text-slate-400">* Organization scoping is auto-configured; suppliers must be created beforehand.</p>
           </div>
@@ -167,6 +206,17 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
               </ul>
             </div>
           )}
+          {importing && (
+            <div className="space-y-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 text-sm text-indigo-200">
+              <div className="flex justify-between">
+                <span>{status.startsWith("job:") ? "Starting import…" : status || "Uploading…"}</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded bg-slate-800">
+                <div className="h-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -178,7 +228,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
             onClick={handleUpload}
             disabled={!file || importing}
           >
-            {importing ? "Importing..." : "Upload and Import"}
+            {importing ? "Processing..." : "Upload and Validate"}
           </Button>
         </DialogFooter>
       </DialogContent>

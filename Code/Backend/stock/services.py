@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
+from decimal import Decimal
 
 from audit.services import log_activity
 from inventory.models import InventoryBalance
@@ -61,6 +62,62 @@ def _notify_stock_in(product, quantity, user):
 
 
 class StockService:
+    @staticmethod
+    def inventory_value(product, location):
+        return sum(
+            (
+                Decimal(batch.unit_cost or 0) * batch.quantity_remaining
+                for batch in StockInTransaction.objects.filter(
+                    product=product, location=location, quantity_remaining__gt=0
+                )
+            ),
+            Decimal("0"),
+        )
+
+    @staticmethod
+    def _valuation_method(product):
+        try:
+            return product.organization.settings.valuation_method
+        except Exception:
+            return "fifo"
+
+    @classmethod
+    def _consume_cost_layers(cls, product, location, quantity):
+        method = cls._valuation_method(product)
+        ordering = ["received_at", "id"] if method != "lifo" else ["-received_at", "-id"]
+        batches = list(
+            StockInTransaction.objects.select_for_update()
+            .filter(product=product, location=location, quantity_remaining__gt=0)
+            .order_by(*ordering)
+        )
+        remaining = quantity
+        allocations = []
+        if method == "weighted_average":
+            available = sum(batch.quantity_remaining for batch in batches)
+            total_cost = sum(
+                (Decimal(batch.unit_cost or 0) * batch.quantity_remaining for batch in batches),
+                Decimal("0"),
+            )
+            average_cost = total_cost / available if available else Decimal(product.unit_price or 0)
+        else:
+            average_cost = None
+
+        for batch in batches:
+            if remaining <= 0:
+                break
+            taken = min(remaining, batch.quantity_remaining)
+            batch.quantity_remaining -= taken
+            batch.save(update_fields=["quantity_remaining", "updated_at"])
+            allocations.append((taken, average_cost if average_cost is not None else Decimal(batch.unit_cost or 0)))
+            remaining -= taken
+
+        fallback_cost = average_cost
+        if fallback_cost is None:
+            fallback_cost = Decimal(batches[-1].unit_cost or 0) if batches else Decimal(product.unit_price or 0)
+        if remaining:
+            allocations.append((remaining, fallback_cost))
+        return sum((Decimal(taken) * cost for taken, cost in allocations), Decimal("0")), allocations
+
     @staticmethod
     def _get_or_create_balance(product, location):
         balance, _ = InventoryBalance.objects.select_for_update().get_or_create(
@@ -127,26 +184,7 @@ class StockService:
         balance.quantity_on_hand -= quantity
         balance.save(update_fields=["quantity_on_hand", "updated_at"])
 
-        qty_to_deduct = quantity
-        total_cogs = 0.0
-
-        batches = StockInTransaction.objects.select_for_update().filter(
-            product=product,
-            location=location,
-            quantity_remaining__gt=0
-        ).order_by("received_at", "id")
-
-        for batch in batches:
-            if qty_to_deduct <= 0:
-                break
-            take = min(qty_to_deduct, batch.quantity_remaining)
-            batch.quantity_remaining -= take
-            batch.save(update_fields=["quantity_remaining", "updated_at"])
-            total_cogs += float(batch.unit_cost or 0) * take
-            qty_to_deduct -= take
-
-        if qty_to_deduct > 0:
-            total_cogs += float(product.unit_price or 0) * qty_to_deduct
+        total_cogs, _ = cls._consume_cost_layers(product, location, quantity)
 
         txn = StockOutTransaction.objects.create(
             product=product,
@@ -180,6 +218,12 @@ class StockService:
             "Product",
             product.id,
         )
+        try:
+            from analytics.services import AnomalyDetectionService
+
+            AnomalyDetectionService.evaluate(txn)
+        except Exception:
+            pass
         _evaluate_alerts(product)
         return txn, balance
 
@@ -192,8 +236,34 @@ class StockService:
 
         balance = cls._get_or_create_balance(product, location)
         before_qty = balance.quantity_on_hand
+        delta = adjusted_qty - before_qty
         balance.quantity_on_hand = adjusted_qty
         balance.save(update_fields=["quantity_on_hand", "updated_at"])
+
+        if delta < 0:
+            cls._consume_cost_layers(product, location, abs(delta))
+        elif delta > 0:
+            existing = StockInTransaction.objects.filter(
+                product=product, location=location, quantity_remaining__gt=0
+            )
+            total_quantity = sum(item.quantity_remaining for item in existing)
+            total_cost = sum(
+                (Decimal(item.unit_cost or 0) * item.quantity_remaining for item in existing),
+                Decimal("0"),
+            )
+            unit_cost = total_cost / total_quantity if total_quantity else Decimal(product.unit_price or 0)
+            StockInTransaction.objects.create(
+                product=product,
+                supplier=product.supplier,
+                location=location,
+                quantity=delta,
+                quantity_remaining=delta,
+                unit_cost=unit_cost,
+                reference="stock-adjustment",
+                notes=f"Adjustment increase: {reason}",
+                received_at=kwargs.get("adjusted_at") or timezone.now(),
+                created_by=user,
+            )
 
         adj = StockAdjustment.objects.create(
             product=product,
@@ -225,6 +295,12 @@ class StockService:
             "Product",
             product.id,
         )
+        try:
+            from analytics.services import AnomalyDetectionService
+
+            AnomalyDetectionService.evaluate(adj)
+        except Exception:
+            pass
         _evaluate_alerts(product)
         return adj, balance
 
@@ -302,6 +378,22 @@ class StockService:
         dest_balance.quantity_on_hand += transfer.quantity
         source_balance.save(update_fields=["quantity_on_hand", "updated_at"])
         dest_balance.save(update_fields=["quantity_on_hand", "updated_at"])
+
+        transfer_cost, _ = cls._consume_cost_layers(
+            transfer.product, transfer.source_location, transfer.quantity
+        )
+        StockInTransaction.objects.create(
+            product=transfer.product,
+            supplier=transfer.product.supplier,
+            location=transfer.destination_location,
+            quantity=transfer.quantity,
+            quantity_remaining=transfer.quantity,
+            unit_cost=transfer_cost / transfer.quantity if transfer.quantity else Decimal("0"),
+            reference=f"transfer-{transfer.id}",
+            notes=f"Transfer from {transfer.source_location.name}",
+            received_at=timezone.now(),
+            created_by=user,
+        )
 
         transfer.status = StockTransfer.Status.COMPLETED
         transfer.transferred_at = timezone.now()

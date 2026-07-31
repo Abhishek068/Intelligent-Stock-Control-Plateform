@@ -18,7 +18,7 @@ from core.models import OrganizationSettings
 
 from accounts.serializers import OrganizationSettingsSerializer
 
-from inventory.models import Category, InventoryBalance, Location, Product
+from inventory.models import Category, InventoryBalance, Location, Product, ProductImportJob
 
 from inventory.serializers import (
     CategorySerializer,
@@ -27,6 +27,7 @@ from inventory.serializers import (
     ProductDetailSerializer,
     ProductSerializer,
     ProductChangeHistorySerializer,
+    ProductImportJobSerializer,
 )
 
 
@@ -169,103 +170,44 @@ class ProductViewSet(OrganizationScopedViewSet):
 
     @action(detail=False, methods=["post"])
     def bulk_import(self, request):
-        import csv
-        import io
-        from decimal import Decimal
-        from django.db import transaction
-        from inventory.models import Category, Product
-        from suppliers.models import Supplier
-
         file = request.FILES.get("file")
         if not file:
             return Response({"success": False, "error": "No file uploaded"}, status=400)
-
-        org = request.user.organization
-
-        try:
-            decoded_file = file.read().decode("utf-8")
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
-        except Exception as e:
+        if not file.name.lower().endswith((".csv", ".xlsx", ".xls")):
             return Response(
-                {"success": False, "error": f"Invalid CSV file format: {str(e)}"},
-                status=400,
+                {"success": False, "error": "Upload a CSV or Excel file."}, status=400
             )
 
-        errors = []
-        success_count = 0
+        job = ProductImportJob.objects.create(
+            organization=request.user.organization,
+            created_by=request.user,
+            file=file,
+        )
+        from inventory.tasks import process_product_import_job
 
-        with transaction.atomic():
-            for idx, row in enumerate(reader, start=2):
-                sku = (row.get("sku") or "").strip()
-                name = (row.get("name") or "").strip()
-                category_name = (row.get("category") or "").strip()
-                supplier_name = (row.get("supplier") or "").strip()
-                unit_price_str = (row.get("unit_price") or "0").strip()
-                minimum_level_str = (row.get("minimum_level") or "10").strip()
-                reorder_level_str = (row.get("reorder_level") or "20").strip()
-                barcode = (row.get("barcode") or "").strip()
-                description = (row.get("description") or "").strip()
+        process_product_import_job.delay(str(job.id))
+        return Response(
+            {
+                "success": True,
+                "data": ProductImportJobSerializer(job).data,
+            },
+            status=202,
+        )
 
-                if not sku or not name:
-                    errors.append(f"Row {idx}: SKU and Name are required.")
-                    continue
-
-                if Product.objects.filter(organization=org, sku=sku).exists():
-                    errors.append(f"Row {idx}: Product with SKU {sku} already exists.")
-                    continue
-
-                category = None
-                if category_name:
-                    category, _ = Category.objects.get_or_create(
-                        organization=org, name=category_name
-                    )
-                else:
-                    errors.append(f"Row {idx}: Category name is required.")
-                    continue
-
-                supplier = None
-                if supplier_name:
-                    supplier = Supplier.objects.filter(
-                        organization=org, name__iexact=supplier_name
-                    ).first()
-                    if not supplier:
-                        errors.append(
-                            f"Row {idx}: Supplier '{supplier_name}' not found. Please create it first."
-                        )
-                        continue
-                else:
-                    errors.append(f"Row {idx}: Supplier name is required.")
-                    continue
-
-                try:
-                    unit_price = Decimal(unit_price_str)
-                    minimum_level = int(minimum_level_str)
-                    reorder_level = int(reorder_level_str)
-                except Exception:
-                    errors.append(f"Row {idx}: Invalid price or stock thresholds.")
-                    continue
-
-                Product.objects.create(
-                    organization=org,
-                    category=category,
-                    supplier=supplier,
-                    sku=sku,
-                    name=name,
-                    description=description,
-                    unit_price=unit_price,
-                    minimum_level=minimum_level,
-                    reorder_level=reorder_level,
-                    barcode=barcode,
-                    _changed_by=request.user,
-                )
-                success_count += 1
-
-            if errors:
-                transaction.set_rollback(True)
-                return Response({"success": False, "errors": errors}, status=400)
-
-        return Response({"success": True, "count": success_count})
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"bulk-import/(?P<job_id>[^/.]+)",
+    )
+    def bulk_import_status(self, request, job_id=None):
+        job = ProductImportJob.objects.filter(
+            id=job_id, organization=request.user.organization
+        ).first()
+        if not job:
+            return Response(
+                {"success": False, "error": "Import job not found."}, status=404
+            )
+        return Response({"success": True, "data": ProductImportJobSerializer(job).data})
 
     @action(detail=True, methods=["get"])
     def history(self, request, pk=None):
@@ -514,10 +456,14 @@ class DashboardViewSet(viewsets.ViewSet):
 
 
 
+        from stock.services import StockService
+
         total_value = sum(
-
-            (b.quantity_on_hand * b.product.unit_price for b in balances.select_related("product"))
-
+            (
+                StockService.inventory_value(b.product, b.location)
+                for b in balances.select_related("product", "location")
+            ),
+            0,
         )
 
         stock_by_product = {}

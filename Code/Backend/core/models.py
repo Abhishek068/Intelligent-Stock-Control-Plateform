@@ -22,6 +22,11 @@ class Organization(TimeStampedModel):
 
 
 class OrganizationSettings(TimeStampedModel):
+    class ValuationMethod(models.TextChoices):
+        FIFO = "fifo", "FIFO"
+        LIFO = "lifo", "LIFO"
+        WEIGHTED_AVERAGE = "weighted_average", "Weighted average"
+
     organization = models.OneToOneField(
         Organization,
         on_delete=models.CASCADE,
@@ -35,8 +40,15 @@ class OrganizationSettings(TimeStampedModel):
     enable_predictive_alerts = models.BooleanField(default=True)
     enable_email_notifications = models.BooleanField(default=False)
     enable_push_notifications = models.BooleanField(default=False)
+    expiry_alert_user_ids = models.JSONField(default=list, blank=True)
+    expiry_alert_emails = models.JSONField(default=list, blank=True)
     forecast_model = models.CharField(max_length=50, default="exponential_smoothing")
     forecast_horizon_days = models.PositiveIntegerField(default=30)
+    valuation_method = models.CharField(
+        max_length=20,
+        choices=ValuationMethod.choices,
+        default=ValuationMethod.FIFO,
+    )
     session_timeout_minutes = models.PositiveIntegerField(default=60)
     jwt_access_minutes = models.PositiveIntegerField(default=60)
     jwt_refresh_days = models.PositiveIntegerField(default=7)

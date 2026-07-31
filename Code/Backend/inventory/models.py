@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 
 
@@ -93,6 +94,11 @@ class Location(TimeStampedModel):
 
 
 class Product(TimeStampedModel):
+    class ABCClass(models.TextChoices):
+        A = "A", "A"
+        B = "B", "B"
+        C = "C", "C"
+
 
     organization = models.ForeignKey(
 
@@ -133,6 +139,9 @@ class Product(TimeStampedModel):
     qr_code = models.CharField(max_length=255, blank=True)
 
     is_active = models.BooleanField(default=True)
+    abc_classification = models.CharField(
+        max_length=1, choices=ABCClass.choices, blank=True
+    )
 
 
 
@@ -252,4 +261,36 @@ class ProductChangeHistory(TimeStampedModel):
 
     def __str__(self):
         return f"History {self.product.sku} at {self.created_at}"
+
+
+class ProductImportJob(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        VALIDATING = "validating", "Validating"
+        IMPORTING = "importing", "Importing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="product_import_jobs"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="product_import_jobs",
+    )
+    file = models.FileField(upload_to="product_imports/%Y/%m/%d/")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    progress = models.PositiveSmallIntegerField(default=0)
+    total_rows = models.PositiveIntegerField(default=0)
+    imported_count = models.PositiveIntegerField(default=0)
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Product import {self.id} ({self.status})"
 

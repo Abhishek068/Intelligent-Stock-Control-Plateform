@@ -4,7 +4,14 @@ from rest_framework import serializers
 
 
 
-from inventory.models import Category, InventoryBalance, Location, Product, ProductChangeHistory
+from inventory.models import (
+    Category,
+    InventoryBalance,
+    Location,
+    Product,
+    ProductChangeHistory,
+    ProductImportJob,
+)
 
 
 
@@ -115,6 +122,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "qr_code",
 
             "is_active",
+
+            "abc_classification",
 
             "stock",
 
@@ -256,4 +265,20 @@ class ProductChangeHistorySerializer(serializers.ModelSerializer):
         if obj.changed_by:
             return obj.changed_by.get_full_name() or obj.changed_by.email
         return "System"
+
+
+class ProductImportJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImportJob
+        fields = [
+            "id",
+            "status",
+            "progress",
+            "total_rows",
+            "imported_count",
+            "errors",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
 

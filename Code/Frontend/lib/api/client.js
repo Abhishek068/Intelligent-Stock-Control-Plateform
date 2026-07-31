@@ -91,22 +91,25 @@ export const apiClient = {
   get(path) {
     return request(path, { method: "GET" });
   },
-  post(path, body) {
+  post(path, body, options = {}) {
     return request(path, {
+      ...options,
       method: "POST",
-      body: body !== undefined ? JSON.stringify(body) : undefined
+      body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined
     });
   },
-  put(path, body) {
+  put(path, body, options = {}) {
     return request(path, {
+      ...options,
       method: "PUT",
-      body: body !== undefined ? JSON.stringify(body) : undefined
+      body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined
     });
   },
-  patch(path, body) {
+  patch(path, body, options = {}) {
     return request(path, {
+      ...options,
       method: "PATCH",
-      body: body !== undefined ? JSON.stringify(body) : undefined
+      body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined
     });
   },
   delete(path) {

@@ -29,13 +29,14 @@ class StockInSerializer(serializers.ModelSerializer):
             "location_name",
             "quantity",
             "unit_cost",
+            "quantity_remaining",
             "reference",
             "notes",
             "received_at",
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "created_by", "created_at"]
+        read_only_fields = ["id", "quantity_remaining", "created_by", "created_at"]
 
     def validate(self, attrs):
         product = attrs["product"]
@@ -72,15 +73,18 @@ class StockOutSerializer(serializers.ModelSerializer):
             "location",
             "location_name",
             "quantity",
+            "cogs",
             "available_stock",
             "issued_to",
             "reference",
             "notes",
             "issued_at",
+            "anomaly_score",
+            "is_anomaly",
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "created_by", "created_at"]
+        read_only_fields = ["id", "cogs", "anomaly_score", "is_anomaly", "created_by", "created_at"]
 
     def get_available_stock(self, obj):
         balance = InventoryBalance.objects.filter(
@@ -134,10 +138,12 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
             "adjusted_qty",
             "reason",
             "adjusted_at",
+            "anomaly_score",
+            "is_anomaly",
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "previous_qty", "created_by", "created_at"]
+        read_only_fields = ["id", "previous_qty", "anomaly_score", "is_anomaly", "created_by", "created_at"]
 
     def validate_reason(self, value):
         if not (value or "").strip():

@@ -1,13 +1,16 @@
 from django.utils import timezone
+from celery import shared_task
 
 from emails.models import EmailQueue, ScheduledReport
 from emails.services import process_pending_emails, queue_email
 
 
+@shared_task
 def process_email_queue():
     return process_pending_emails(limit=100)
 
 
+@shared_task
 def retry_failed_emails():
     EmailQueue.objects.filter(status=EmailQueue.Status.FAILED, attempts__lt=3).update(
         status=EmailQueue.Status.RETRY
@@ -15,6 +18,7 @@ def retry_failed_emails():
     return process_pending_emails(limit=50)
 
 
+@shared_task
 def run_scheduled_reports():
     from datetime import timedelta
 

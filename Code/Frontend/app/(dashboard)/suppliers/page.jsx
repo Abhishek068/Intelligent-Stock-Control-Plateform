@@ -155,6 +155,7 @@ export default function SuppliersPage() {
                 <TableHead>Supplier</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Lead Time</TableHead>
+                <TableHead className="text-center">Performance</TableHead>
                 <TableHead className="text-center">Products</TableHead>
                 <TableHead>Status</TableHead>
                 {canManage && <TableHead className="w-12" />}
@@ -163,13 +164,13 @@ export default function SuppliersPage() {
             <TableBody>
               {loading ?
               <TableRow>
-                  <TableCell colSpan={canManage ? 6 : 5} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400">
                     Loading...
                   </TableCell>
                 </TableRow> :
               filtered.length === 0 ?
               <TableRow>
-                  <TableCell colSpan={canManage ? 6 : 5} className="text-center text-slate-400">
+                  <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400">
                     No suppliers found
                   </TableCell>
                 </TableRow> :
@@ -193,6 +194,12 @@ export default function SuppliersPage() {
                       </div>
                     </TableCell>
                     <TableCell>{sup.lead_time_days}d</TableCell>
+                    <TableCell className="text-center">
+                      <div className="text-sm font-medium">{Number(sup.performance_score || 0).toFixed(0)}%</div>
+                      <div className="text-xs text-slate-400">
+                        Delivery {Number(sup.delivery_rate || 0).toFixed(0)}% · Accuracy {Number(sup.order_accuracy || 0).toFixed(0)}%
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center">{sup.product_count ?? 0}</TableCell>
                     <TableCell>
                       <Badge className={sup.status === "active" ? "bg-green-500" : "bg-slate-400"}>

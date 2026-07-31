@@ -43,11 +43,10 @@ export const productsApi = {
   bulkImport(file) {
     const formData = new FormData();
     formData.append("file", file);
-    return apiClient.post("/products/bulk-import/", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return apiClient.post("/products/bulk-import/", formData);
+  },
+  getBulkImportStatus(jobId) {
+    return apiClient.get(`/products/bulk-import/${jobId}/`);
   },
   history(id) {
     return apiClient.get(`/products/${id}/history/`);

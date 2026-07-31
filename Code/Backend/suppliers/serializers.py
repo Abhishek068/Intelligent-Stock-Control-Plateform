@@ -40,6 +40,14 @@ class SupplierSerializer(serializers.ModelSerializer):
 
             "delivery_reliability",
 
+            "delivery_rate",
+
+            "order_accuracy",
+
+            "performance_score",
+
+            "performance_breakdown",
+
             "product_count",
 
             "created_at",
@@ -48,7 +56,16 @@ class SupplierSerializer(serializers.ModelSerializer):
 
         ]
 
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "delivery_reliability",
+            "delivery_rate",
+            "order_accuracy",
+            "performance_score",
+            "performance_breakdown",
+            "created_at",
+            "updated_at",
+        ]
 
 
 

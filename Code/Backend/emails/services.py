@@ -120,9 +120,14 @@ def queue_email(
         status=EmailQueue.Status.QUEUED,
     )
     try:
-        process_queue_item(item)
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", True):
+            process_queue_item(item)
+        else:
+            from emails.tasks import process_email_queue
+
+            process_email_queue.delay()
     except Exception:
-        logger.exception("Failed to process queue item synchronously")
+        logger.exception("Failed to queue email processing")
     return item
 
 

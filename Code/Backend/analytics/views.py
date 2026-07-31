@@ -398,6 +398,7 @@ class ReportViewSet(viewsets.ViewSet):
         if report_type == "inventory":
 
             from inventory.models import InventoryBalance
+            from stock.services import StockService
 
 
 
@@ -405,7 +406,7 @@ class ReportViewSet(viewsets.ViewSet):
 
                 product__organization=org
 
-            ).select_related("product", "product__category")
+            ).select_related("product", "product__category", "location")
 
             data = [
 
@@ -417,7 +418,7 @@ class ReportViewSet(viewsets.ViewSet):
 
                     "stock": b.quantity_on_hand,
 
-                    "value": float(b.quantity_on_hand * b.product.unit_price),
+                    "value": float(StockService.inventory_value(b.product, b.location)),
 
                     "category": b.product.category.name,
 

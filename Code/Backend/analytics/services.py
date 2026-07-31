@@ -24,10 +24,78 @@ from notifications.models import Notification
 
 from notifications.services import NotificationService
 
-from stock.models import StockOutTransaction
+from stock.models import StockAdjustment, StockOutTransaction
 
 
 
+
+
+class AnomalyDetectionService:
+    MINIMUM_HISTORY = 10
+
+    @staticmethod
+    def _features(quantity, occurred_at, user_id, reason_length=0):
+        return [float(quantity), occurred_at.hour, occurred_at.weekday(), float(user_id or 0), float(reason_length)]
+
+    @classmethod
+    def score(cls, transaction):
+        from sklearn.ensemble import IsolationForest
+
+        is_adjustment = isinstance(transaction, StockAdjustment)
+        organization = transaction.product.organization
+        adjustments = StockAdjustment.objects.filter(product__organization=organization).select_related("created_by")
+        stock_outs = StockOutTransaction.objects.filter(product__organization=organization).select_related("created_by")
+        history = [
+            cls._features(
+                abs(item.adjusted_qty - item.previous_qty),
+                item.adjusted_at,
+                item.created_by_id,
+                len(item.reason or ""),
+            )
+            for item in adjustments
+        ] + [
+            cls._features(item.quantity, item.issued_at, item.created_by_id)
+            for item in stock_outs
+        ]
+        if len(history) < cls.MINIMUM_HISTORY:
+            return None, False
+
+        current = cls._features(
+            abs(transaction.adjusted_qty - transaction.previous_qty)
+            if is_adjustment
+            else transaction.quantity,
+            transaction.adjusted_at if is_adjustment else transaction.issued_at,
+            transaction.created_by_id,
+            len(transaction.reason or "") if is_adjustment else 0,
+        )
+        model = IsolationForest(contamination="auto", random_state=42)
+        model.fit(history)
+        score = float(model.score_samples([current])[0])
+        is_anomaly = bool(model.predict([current])[0] == -1)
+        return score, is_anomaly
+
+    @classmethod
+    def evaluate(cls, transaction):
+        score, is_anomaly = cls.score(transaction)
+        if score is None:
+            return None, False
+        transaction.anomaly_score = Decimal(str(round(score, 4)))
+        transaction.is_anomaly = is_anomaly
+        transaction.save(update_fields=["anomaly_score", "is_anomaly", "updated_at"])
+        if is_anomaly:
+            NotificationService.notify(
+                organization=transaction.product.organization,
+                user=transaction.created_by,
+                title="Suspicious stock transaction detected",
+                message=f"Review {transaction.product.name}; anomaly score {score:.4f}.",
+                notification_type=Notification.NotificationType.ANOMALY,
+                severity=Notification.Severity.WARNING,
+                priority=Notification.Priority.HIGH,
+                related_entity_type=transaction.__class__.__name__,
+                related_entity_id=transaction.id,
+                explanation_json={"anomaly_score": round(score, 4)},
+            )
+        return score, is_anomaly
 
 
 class ForecastingService:
@@ -110,15 +178,20 @@ class ForecastingService:
                     pred_arima = fitted_arima.forecast(len(test)) if len(test) > 0 else pd.Series(dtype=float)
 
                     pred_naive = pd.Series([train.iloc[-1]] * len(test), index=test.index) if len(test) > 0 else pd.Series(dtype=float)
+                    sma_window = min(7, len(train))
+                    sma_value = float(train.iloc[-sma_window:].mean())
+                    pred_sma = pd.Series([sma_value] * len(test), index=test.index) if len(test) > 0 else pd.Series(dtype=float)
 
                     mae_hw = float(np.mean(np.abs(test.values - pred_hw.values))) if len(test) > 0 else 999999.0
                     mae_arima = float(np.mean(np.abs(test.values - pred_arima.values))) if len(test) > 0 else 999999.0
                     mae_naive = float(np.mean(np.abs(test.values - pred_naive.values))) if len(test) > 0 else 999999.0
+                    mae_sma = float(np.mean(np.abs(test.values - pred_sma.values))) if len(test) > 0 else 999999.0
 
                     best_model = min(
                         (mae_hw, "exponential_smoothing", fitted_hw),
                         (mae_arima, "arima", fitted_arima),
                         (mae_naive, "naive_baseline", None),
+                        (mae_sma, "simple_moving_average", None),
                         key=lambda x: x[0]
                     )
 
@@ -136,6 +209,12 @@ class ForecastingService:
                         if len(test) > 0:
                             rmse = float(np.sqrt(np.mean((test.values - pred_arima.values) ** 2)))
                             mape = float(np.mean(np.abs((test.values - pred_arima.values) / np.maximum(test.values, 1.0))) * 100)
+                    elif model_name == "simple_moving_average":
+                        forecast_res = pd.Series([sma_value] * horizon_days)
+                        predicted_total = Decimal(str(max(0, forecast_res.sum())))
+                        if len(test) > 0:
+                            rmse = float(np.sqrt(np.mean((test.values - pred_sma.values) ** 2)))
+                            mape = float(np.mean(np.abs((test.values - pred_sma.values) / np.maximum(test.values, 1.0))) * 100)
                     else:
                         predicted_total = Decimal(str(max(0, pred_naive.sum() * (horizon_days / max(len(test), 1)))))
                         if len(test) > 0:

@@ -177,6 +177,9 @@ class PurchaseOrderService:
                     supplier.save(update_fields=["lead_time_days", "updated_at"])
             except Exception:
                 pass
+            from suppliers.services import SupplierPerformanceService
+
+            SupplierPerformanceService.recalculate(purchase_order.supplier)
         elif any_received:
             purchase_order.status = PurchaseOrder.Status.PARTIAL
             purchase_order.save(update_fields=["status", "updated_at"])

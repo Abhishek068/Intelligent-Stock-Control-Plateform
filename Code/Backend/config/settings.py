@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "django_celery_beat",
     "core",
     "accounts",
     "inventory",
@@ -98,6 +99,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -147,3 +150,35 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 BREVO_API_KEY = env("BREVO_API_KEY", default="")
 FIREBASE_CREDENTIALS_PATH = env("FIREBASE_CREDENTIALS_PATH", default="")
+
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BEAT_SCHEDULE = {
+    "process-email-queue": {
+        "task": "emails.tasks.process_email_queue",
+        "schedule": 60.0,
+    },
+    "retry-failed-emails": {
+        "task": "emails.tasks.retry_failed_emails",
+        "schedule": 900.0,
+    },
+    "run-scheduled-reports": {
+        "task": "emails.tasks.run_scheduled_reports",
+        "schedule": 300.0,
+    },
+    "cleanup-expired-tokens": {
+        "task": "accounts.tasks.cleanup_expired_tokens",
+        "schedule": 86400.0,
+    },
+    "evaluate-batch-expiry": {
+        "task": "stock.tasks.evaluate_batch_expiry",
+        "schedule": 86400.0,
+    },
+    "classify-products-abc": {
+        "task": "analytics.tasks.classify_products_abc",
+        "schedule": 86400.0,
+    },
+}

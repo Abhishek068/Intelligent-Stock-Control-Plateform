@@ -103,6 +103,8 @@ class StockOutTransaction(TimeStampedModel):
 
     issued_at = models.DateTimeField()
     cogs = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    anomaly_score = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    is_anomaly = models.BooleanField(default=False)
 
     created_by = models.ForeignKey(
 
@@ -151,6 +153,8 @@ class StockAdjustment(TimeStampedModel):
     reason = models.TextField()
 
     adjusted_at = models.DateTimeField()
+    anomaly_score = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    is_anomaly = models.BooleanField(default=False)
 
     created_by = models.ForeignKey(
 
@@ -325,4 +329,45 @@ class StockTakeLine(TimeStampedModel):
     def has_variance(self):
         v = self.variance
         return v is not None and v != 0
+
+
+class Batch(TimeStampedModel):
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="batches")
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="batches")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="batches")
+    batch_number = models.CharField(max_length=50)
+    expiry_date = models.DateField(null=True, blank=True)
+    quantity_on_hand = models.PositiveIntegerField(default=0)
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["expiry_date", "created_at"]
+        unique_together = [("product", "location", "batch_number")]
+
+
+class SupplierReturn(TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SHIPPED = "shipped", "Shipped"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="returns")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="supplier_returns")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    reason = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="supplier_returns"
+    )
+    shipped_at = models.DateTimeField(null=True, blank=True)
+
+
+class SupplierReturnLine(TimeStampedModel):
+    supplier_return = models.ForeignKey(
+        SupplierReturn, on_delete=models.CASCADE, related_name="lines"
+    )
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
