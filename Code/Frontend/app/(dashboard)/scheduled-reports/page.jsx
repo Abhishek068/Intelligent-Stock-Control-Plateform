@@ -156,8 +156,8 @@ export default function ScheduledReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          <Button variant="outline" size="sm" onClick={() => { load(); toast.success("Scheduled reports refreshed successfully"); }} disabled={loading} className="cursor-pointer">
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} /> Refresh
           </Button>
           <Button size="sm" onClick={() => setOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New schedule

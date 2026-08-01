@@ -120,6 +120,9 @@ export const adminDashboardApi = {
   get() {
     return apiClient.get("/admin-dashboard/");
   },
+  getOverview() {
+    return apiClient.get("/admin-dashboard/");
+  },
 };
 
 export const searchApi = {

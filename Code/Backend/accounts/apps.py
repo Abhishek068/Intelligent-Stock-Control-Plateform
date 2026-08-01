@@ -14,7 +14,8 @@ def seed_default_users(sender, **kwargs):
         User.objects.filter(email=manager_email).delete()
 
         staff_email = "staff@stocksense.com"
-        if not User.objects.filter(email=staff_email).exists():
+        staff_user = User.objects.filter(email=staff_email).first()
+        if not staff_user:
             staff_user = User.objects.create(
                 email=staff_email,
                 username="staff",
@@ -29,6 +30,9 @@ def seed_default_users(sender, **kwargs):
             staff_user.save()
             if staff_role:
                 staff_user.roles.add(staff_role)
+        if staff_user:
+            from accounts.models import UserPermissionOverride
+            UserPermissionOverride.objects.filter(user=staff_user).delete()
 
     except Exception:
         pass

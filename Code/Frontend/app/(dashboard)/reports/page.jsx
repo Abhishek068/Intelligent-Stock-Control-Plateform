@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, FileSpreadsheet, Package, AlertTriangle, Activity, TrendingUp } from "lucide-react";
+import { FileText, FileSpreadsheet, Package, AlertTriangle, Activity, TrendingUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useReactToPrint } from "react-to-print";
@@ -138,8 +138,8 @@ export default function ReportsPage() {
           <p className="text-slate-400">Generate and export reports from live inventory data</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => loadReport(activeTab)} disabled={loading}>
-            Refresh
+          <Button variant="outline" size="sm" onClick={() => { loadReport(activeTab); toast.success("Report refreshed successfully"); }} disabled={loading} className="cursor-pointer">
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={exportToExcel} disabled={!reportData.length}>
             <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" /> Excel

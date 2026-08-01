@@ -32,8 +32,8 @@ function SelectContent({ className, children, position = "popper", ...props }) {
       <SelectPrimitive.Content
         position={position}
         className={cn(
-          "bg-popover text-popover-foreground relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
-          position === "popper" && "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
+          "bg-slate-900/95 backdrop-blur-xl text-slate-100 relative z-50 max-h-96 min-w-[10rem] overflow-x-hidden overflow-y-auto rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-1.5 animate-in fade-in-0 zoom-in-95 duration-150",
+          position === "popper" && "data-[side=bottom]:translate-y-1.5 data-[side=top]:-translate-y-1.5",
           className
         )}
         {...props}>
@@ -50,14 +50,14 @@ function SelectItem({ className, children, ...props }) {
   return (
     <SelectPrimitive.Item
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "cursor-pointer relative flex w-full items-center gap-2.5 rounded-xl py-2.5 pr-10 pl-3.5 text-sm font-medium outline-none select-none transition-all duration-200 text-slate-200 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-indigo-500 hover:text-white hover:translate-x-1.5 hover:shadow-md hover:shadow-indigo-500/20 data-[highlighted]:bg-gradient-to-r data-[highlighted]:from-indigo-600 data-[highlighted]:to-indigo-500 data-[highlighted]:text-white data-[highlighted]:translate-x-1.5 data-[highlighted]:shadow-md data-[highlighted]:shadow-indigo-500/20 focus:bg-gradient-to-r focus:from-indigo-600 focus:to-indigo-500 focus:text-white focus:translate-x-1.5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 my-0.5",
         className
       )}
       {...props}>
       
-      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+      <span className="absolute right-2.5 flex size-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className="size-3.5 stroke-[3]" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -66,10 +66,10 @@ function SelectItem({ className, children, ...props }) {
 }
 
 function SelectLabel({ className, ...props }) {
-  return <SelectPrimitive.Label className={cn("text-muted-foreground px-2 py-1.5 text-xs", className)} {...props} />;
+  return <SelectPrimitive.Label className={cn("text-slate-400 font-semibold px-3 py-2 text-xs uppercase tracking-wider", className)} {...props} />;
 }
 function SelectSeparator({ className, ...props }) {
-  return <SelectPrimitive.Separator className={cn("bg-border pointer-events-none -mx-1 my-1 h-px", className)} {...props} />;
+  return <SelectPrimitive.Separator className={cn("bg-white/10 -mx-1 my-1 h-px", className)} {...props} />;
 }
 
 export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator };

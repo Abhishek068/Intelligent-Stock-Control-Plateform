@@ -33,8 +33,10 @@ export default function EmailsPage() {
   });
   const [editTpl, setEditTpl] = useState(null);
   const [viewEmail, setViewEmail] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
+    setLoading(true);
     try {
       const [t, q, l, c] = await Promise.all([
         emailsApi.templates(),
@@ -56,6 +58,8 @@ export default function EmailsPage() {
       }
     } catch (e) {
       toast.error(e.message || "Failed to load email data");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,8 +128,8 @@ export default function EmailsPage() {
           <h1 className="text-3xl font-bold text-slate-100">Email Infrastructure</h1>
           <p className="text-slate-400 mt-1">Brevo provider, templates, queue and logs</p>
         </div>
-        <Button variant="outline" onClick={load}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+        <Button variant="outline" onClick={() => { load(); toast.success("Email logs & queue refreshed successfully"); }} disabled={loading} className="cursor-pointer">
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} /> Refresh
         </Button>
       </div>
 

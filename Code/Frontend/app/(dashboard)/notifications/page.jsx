@@ -68,8 +68,8 @@ export default function NotificationsPage() {
           <p className="text-slate-400 mt-1">In-app history — IAM, reports, stock alerts and system events</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          <Button variant="outline" size="sm" onClick={() => { load(); toast.success("Notifications refreshed successfully"); }} disabled={loading} className="cursor-pointer">
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} /> Refresh
           </Button>
           <Button size="sm" onClick={markAll}>
             <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
@@ -118,9 +118,8 @@ export default function NotificationsPage() {
           {items.map((n) => (
             <div
               key={n.id}
-              className={`rounded-lg border p-3 ${
-                n.is_read ? "border-white/5 opacity-70" : "border-indigo-500/30 bg-indigo-500/5"
-              }`}
+              className={`rounded-lg border p-3 ${n.is_read ? "border-white/5 opacity-70" : "border-indigo-500/30 bg-indigo-500/5"
+                }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

@@ -63,19 +63,8 @@ STAFF_DEFAULTS = {
     "dashboard": ["view"],
     "products": ["view"],
     "categories": ["view"],
-    "suppliers": ["view"],
     "stock_in": ["view", "create"],
     "stock_out": ["view", "create"],
-    "adjustments": ["view"],
-    "transfers": ["view"],
-    "stock_take": ["view", "edit"],
-    "purchase_orders": ["view"],
-    "customers": ["view"],
-    "invoices": ["view"],
-    "forecasting": ["view"],
-    "alerts": ["view"],
-    "reports": ["view"],
-    "notifications": ["view"],
 }
 
 

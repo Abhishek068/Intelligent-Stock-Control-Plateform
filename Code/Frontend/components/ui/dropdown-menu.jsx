@@ -17,8 +17,7 @@ function DropdownMenuContent({ className, sideOffset = 4, ...props }) {
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
         className={cn(
-          "bg-popover text-popover-foreground z-50 min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-md",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "bg-slate-900/95 backdrop-blur-xl text-slate-100 z-50 min-w-[10rem] overflow-hidden rounded-2xl border border-white/10 p-1.5 shadow-2xl shadow-black/50 animate-in fade-in-0 zoom-in-95 duration-150",
           className
         )}
         {...props} />
@@ -33,7 +32,7 @@ function DropdownMenuItem({ className, inset, variant = "default", ...props }) {
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "cursor-pointer relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium outline-none select-none transition-all duration-200 text-slate-200 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-indigo-500 hover:text-white hover:translate-x-1.5 hover:shadow-md hover:shadow-indigo-500/20 data-[highlighted]:bg-gradient-to-r data-[highlighted]:from-indigo-600 data-[highlighted]:to-indigo-500 data-[highlighted]:text-white data-[highlighted]:translate-x-1.5 data-[highlighted]:shadow-md data-[highlighted]:shadow-indigo-500/20 focus:bg-gradient-to-r focus:from-indigo-600 focus:to-indigo-500 focus:text-white focus:translate-x-1.5 data-[variant=destructive]:text-rose-400 data-[variant=destructive]:hover:from-rose-600 data-[variant=destructive]:hover:to-rose-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 my-0.5",
         className
       )}
       {...props} />);
@@ -44,13 +43,16 @@ function DropdownMenuItem({ className, inset, variant = "default", ...props }) {
 function DropdownMenuCheckboxItem({ className, children, checked, ...props }) {
   return (
     <DropdownMenuPrimitive.CheckboxItem
-      className={cn("focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
+      className={cn(
+        "cursor-pointer relative flex items-center gap-2.5 rounded-xl py-2 pr-4 pl-9 text-sm font-medium outline-none select-none transition-all duration-200 text-slate-200 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-indigo-500 hover:text-white hover:translate-x-1.5 hover:shadow-md hover:shadow-indigo-500/20 data-[highlighted]:bg-gradient-to-r data-[highlighted]:from-indigo-600 data-[highlighted]:to-indigo-500 data-[highlighted]:text-white data-[highlighted]:translate-x-1.5 data-[highlighted]:shadow-md data-[highlighted]:shadow-indigo-500/20 focus:bg-gradient-to-r focus:from-indigo-600 focus:to-indigo-500 focus:text-white focus:translate-x-1.5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 my-0.5",
+        className
+      )}
       checked={checked}
       {...props}>
       
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className="pointer-events-none absolute left-2.5 flex size-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className="size-3.5 stroke-[3]" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -61,10 +63,13 @@ function DropdownMenuCheckboxItem({ className, children, checked, ...props }) {
 function DropdownMenuRadioItem({ className, children, ...props }) {
   return (
     <DropdownMenuPrimitive.RadioItem
-      className={cn("focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
+      className={cn(
+        "cursor-pointer relative flex items-center gap-2.5 rounded-xl py-2 pr-4 pl-9 text-sm font-medium outline-none select-none transition-all duration-200 text-slate-200 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-indigo-500 hover:text-white hover:translate-x-1.5 hover:shadow-md hover:shadow-indigo-500/20 data-[highlighted]:bg-gradient-to-r data-[highlighted]:from-indigo-600 data-[highlighted]:to-indigo-500 data-[highlighted]:text-white data-[highlighted]:translate-x-1.5 data-[highlighted]:shadow-md data-[highlighted]:shadow-indigo-500/20 focus:bg-gradient-to-r focus:from-indigo-600 focus:to-indigo-500 focus:text-white focus:translate-x-1.5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 my-0.5",
+        className
+      )}
       {...props}>
       
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className="pointer-events-none absolute left-2.5 flex size-5 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
         <DropdownMenuPrimitive.ItemIndicator>
           <CircleIcon className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>

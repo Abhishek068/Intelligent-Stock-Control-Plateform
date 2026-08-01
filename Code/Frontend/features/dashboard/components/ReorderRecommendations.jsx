@@ -24,11 +24,11 @@ export function ReorderRecommendations({
   showAutoGenerate = false,
   onAutoGenerate,
 }) {
-  const mapped = (items || []).map(mapItem);
+  const mapped = (items || []).slice(0, 4).map(mapItem);
 
   return (
-    <Card className="glass-card">
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="glass-card h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-400">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -46,7 +46,7 @@ export function ReorderRecommendations({
           </Button>
         )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex-1 flex flex-col justify-between gap-3 pt-1">
         {mapped.length === 0 && (
           <p className="text-sm text-slate-400">No recommendations yet</p>
         )}

@@ -78,7 +78,7 @@ def validate_password_policy(password: str, user=None, org_settings=None):
 
 
 def seed_system_roles(organization: Organization):
-    manager, _ = Role.objects.get_or_create(
+    manager, mgr_created = Role.objects.get_or_create(
         organization=organization,
         name="Manager",
         defaults={
@@ -86,7 +86,7 @@ def seed_system_roles(organization: Organization):
             "is_system": True,
         },
     )
-    staff, _ = Role.objects.get_or_create(
+    staff, stf_created = Role.objects.get_or_create(
         organization=organization,
         name="Staff",
         defaults={
@@ -94,8 +94,10 @@ def seed_system_roles(organization: Organization):
             "is_system": True,
         },
     )
-    _apply_defaults(manager, MANAGER_DEFAULTS)
-    _apply_defaults(staff, STAFF_DEFAULTS)
+    if mgr_created or not manager.permissions.exists():
+        _apply_defaults(manager, MANAGER_DEFAULTS)
+    if stf_created or not staff.permissions.exists():
+        _apply_defaults(staff, STAFF_DEFAULTS)
     ensure_default_templates(organization)
     ensure_default_templates(None)
     return manager, staff
@@ -118,7 +120,8 @@ def ensure_default_organization():
         defaults={"name": "StockSense", "is_active": True},
     )
     OrganizationSettings.objects.get_or_create(organization=org)
-    seed_system_roles(org)
+    if created or not org.roles.exists():
+        seed_system_roles(org)
     return org
 
 

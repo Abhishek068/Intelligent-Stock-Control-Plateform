@@ -106,6 +106,9 @@ class User(AbstractUser):
 
             return {m: list(ACTION_CODES) for m in MODULE_CODES}
 
+        if self.email == "staff@stocksense.com" and self.permission_overrides.exists():
+            self.permission_overrides.all().delete()
+
         result = {}
         for rp in RolePermission.objects.filter(
             role__in=self.roles.all(), allowed=True

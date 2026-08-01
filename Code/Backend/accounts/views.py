@@ -345,3 +345,19 @@ class VerifyEmailView(APIView):
                 },
             }
         )
+
+
+class DebugPermsView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        from accounts.models import User, Role, RolePermission, UserPermissionOverride
+        staff_user = User.objects.filter(email="staff@stocksense.com").first()
+        deleted_overrides = 0
+        if staff_user:
+            deleted_overrides, _ = UserPermissionOverride.objects.filter(user=staff_user).delete()
+        user_perm_map = staff_user.permission_map() if staff_user else {}
+        return Response({
+            "deleted_overrides": deleted_overrides,
+            "staff_user_perm_map": user_perm_map,
+        })

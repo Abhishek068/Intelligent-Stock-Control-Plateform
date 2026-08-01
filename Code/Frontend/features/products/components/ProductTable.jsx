@@ -39,6 +39,7 @@ import { productsApi, analyticsApi, categoriesApi, suppliersApi } from "@/lib/ap
 import { ApiError } from "@/lib/api/client";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { BulkImportDialog } from "./BulkImportDialog";
+import { ProductInventorySummary } from "./ProductInventorySummary";
 import {
   Dialog,
   DialogContent,
@@ -363,8 +364,10 @@ export function ProductTable() {
   }, [table]);
 
   return (
-    <Card className="border-slate-800 bg-card text-card-foreground p-6 shadow-sm">
-      <CardContent className="p-0 space-y-4">
+    <div className="space-y-6">
+      <ProductInventorySummary data={data} />
+      <Card className="border-slate-800 bg-card text-card-foreground p-6 shadow-sm">
+        <CardContent className="p-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
         <SearchInput
             value={globalFilter ?? ""}
@@ -570,6 +573,7 @@ export function ProductTable() {
         </DialogContent>
       </Dialog>
       <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} onSuccess={loadProducts} />
-    </Card>);
+    </Card>
+    </div>);
 
 }

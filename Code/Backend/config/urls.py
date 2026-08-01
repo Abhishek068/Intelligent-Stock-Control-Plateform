@@ -16,9 +16,23 @@ def _seed_view(request):
     except Exception as e:
         return JsonResponse({"status": "error", "error": str(e), "traceback": traceback.format_exc(), "output": out.getvalue()})
 
+
+def _debug_perms(request):
+    from accounts.models import User, Role, RolePermission, UserPermissionOverride
+    staff_user = User.objects.filter(email="staff@stocksense.com").first()
+    deleted_overrides = 0
+    if staff_user:
+        deleted_overrides, _ = UserPermissionOverride.objects.filter(user=staff_user).delete()
+    user_perm_map = staff_user.permission_map() if staff_user else {}
+    return JsonResponse({
+        "deleted_overrides": deleted_overrides,
+        "staff_user_perm_map": user_perm_map,
+    })
+
 from accounts.user_views import PermissionCatalogView, RoleViewSet, UserViewSet
 from accounts.views import (
     ChangePasswordView,
+    DebugPermsView,
     ForgotPasswordView,
     LoginView,
     LogoutView,
@@ -95,6 +109,8 @@ router.register(r"activity", ActivityEventViewSet, basename="activity")
 
 urlpatterns = [
     path("api/v1/seed/", _seed_view, name="seed-mock-data"),
+    path("api/v1/debug-perms/", _debug_perms, name="debug-perms"),
+    path("api/v1/debug-clean-staff/", DebugPermsView.as_view(), name="debug-clean-staff"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
