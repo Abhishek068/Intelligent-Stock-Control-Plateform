@@ -16,12 +16,11 @@ import {
   CheckCircle2,
   Layers,
   Box,
-  DollarSign,
+  Wallet,
   AlertTriangle,
   Users,
   Clock,
   TrendingUp,
-  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -102,7 +101,7 @@ function getStatIcon(label = "") {
     l.includes("cost") ||
     l.includes("revenue")
   )
-    return DollarSign;
+    return Wallet;
   if (
     l.includes("alert") ||
     l.includes("low") ||
@@ -125,7 +124,7 @@ function getStatIcon(label = "") {
     l.includes("growth")
   )
     return TrendingUp;
-  return Sparkles;
+  return Layers;
 }
 
 export function StatsGrid({ stats, columns = 4 }) {

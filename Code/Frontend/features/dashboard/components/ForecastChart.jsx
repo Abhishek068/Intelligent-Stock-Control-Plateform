@@ -134,7 +134,7 @@ export function ForecastChart({
         </div>
       </CardHeader>
 
-      {/* Main Responsive Chart Area */}
+      
       <CardContent className="flex-1 min-h-[300px] w-full p-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -196,7 +196,7 @@ export function ForecastChart({
         </ResponsiveContainer>
       </CardContent>
 
-      {/* Footer Telemetry Bar filling any empty space below chart */}
+      
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/10">
         <div className="rounded-xl bg-slate-800/50 p-3 border border-white/5 flex flex-col justify-between">
           <span className="text-xs text-slate-400 flex items-center gap-1.5">

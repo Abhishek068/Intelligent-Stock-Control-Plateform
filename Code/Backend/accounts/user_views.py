@@ -310,11 +310,21 @@ class RoleViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description"]
 
     def get_queryset(self):
+        from accounts.services import ensure_default_organization, seed_system_roles
+
         user = self.request.user
-        qs = Role.objects.all()
+        org = user.organization or ensure_default_organization()
+        seed_system_roles(org)
+        Role.objects.filter(is_system=True, organization__isnull=True).update(
+            organization=org
+        )
         if user.is_superuser and not user.organization_id:
-            return qs
-        return qs.filter(organization=user.organization)
+            return Role.objects.all().order_by("id")
+        return (
+            Role.objects.filter(Q(organization=org) | Q(is_system=True))
+            .distinct()
+            .order_by("id")
+        )
 
     def perform_create(self, serializer):
         from accounts.services import ensure_default_organization

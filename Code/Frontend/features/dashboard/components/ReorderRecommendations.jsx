@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sparkles, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 function mapItem(item) {
   const explanation = item.explanation || item.explanation_json || {};
@@ -42,7 +42,7 @@ export function ReorderRecommendations({
             className="text-emerald-400 hover:text-emerald-300"
             onClick={onAutoGenerate}
           >
-            <Sparkles className="mr-1 h-3 w-3" /> Auto-generate
+            Auto-generate
           </Button>
         )}
       </CardHeader>

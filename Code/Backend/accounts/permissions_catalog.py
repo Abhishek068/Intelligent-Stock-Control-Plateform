@@ -37,8 +37,6 @@ ACTION_CODES = [a[0] for a in ACTIONS]
 
 MANAGER_DEFAULTS = {
     "dashboard": ["view"],
-    "users": ["view"],
-    "roles": ["view"],
     "products": ["view", "create", "edit", "delete", "export"],
     "categories": ["view", "create", "edit", "delete"],
     "suppliers": ["view", "create", "edit", "delete"],
@@ -50,12 +48,11 @@ MANAGER_DEFAULTS = {
     "purchase_orders": ["view", "create", "edit", "delete", "approve"],
     "customers": ["view", "create", "edit", "delete"],
     "invoices": ["view", "create", "edit", "delete", "approve", "export"],
-    "forecasting": ["view", "manage", "export"],
-    "alerts": ["view", "manage"],
-    "reports": ["view", "export", "manage"],
+    "forecasting": ["view", "create", "edit", "manage", "export"],
+    "alerts": ["view", "create", "edit", "manage"],
     "audit": ["view", "export"],
     "settings": ["view"],
-    "notifications": ["view", "manage"],
+    "notifications": ["view", "create", "edit", "manage"],
     "emails": ["view"],
 }
 
@@ -65,6 +62,9 @@ STAFF_DEFAULTS = {
     "categories": ["view"],
     "stock_in": ["view", "create"],
     "stock_out": ["view", "create"],
+    "forecasting": ["view", "create"],
+    "alerts": ["view", "create"],
+    "notifications": ["view", "create", "edit"],
 }
 
 

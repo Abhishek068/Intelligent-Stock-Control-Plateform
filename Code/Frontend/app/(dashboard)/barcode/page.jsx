@@ -23,7 +23,6 @@ import {
   Layers,
   Zap,
   Download,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -444,8 +443,7 @@ export default function ScannerPage() {
               Barcode / QR Scanner
             </h1>
             <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              <Sparkles className="mr-1.5 h-3 w-3 text-indigo-400" /> Advanced AI
-              Optical Engine
+              Advanced AI Optical Engine
             </Badge>
           </div>
           <p className="text-slate-400 mt-1">

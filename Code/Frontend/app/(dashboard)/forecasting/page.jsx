@@ -127,23 +127,21 @@ export default function ForecastingPage() {
       <div className="flex border-b border-slate-800 gap-4">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`pb-2 text-sm font-semibold transition-colors ${
-            activeTab === "overview"
+          className={`pb-2 text-sm font-semibold transition-colors ${activeTab === "overview"
               ? "text-indigo-400 border-b-2 border-indigo-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
-          📈 Organization Summary
+          Organization Summary
         </button>
         <button
           onClick={() => setActiveTab("product")}
-          className={`pb-2 text-sm font-semibold transition-colors ${
-            activeTab === "product"
+          className={`pb-2 text-sm font-semibold transition-colors ${activeTab === "product"
               ? "text-indigo-400 border-b-2 border-indigo-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
-          📦 Individual Product Forecast
+          Individual Product Forecast
         </button>
       </div>
 

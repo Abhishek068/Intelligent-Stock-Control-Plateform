@@ -93,6 +93,14 @@ class User(AbstractUser):
         if override is not None:
             return override.allowed
 
+        if RolePermission.objects.filter(
+            role__in=self.roles.all(),
+            module=module,
+            action="manage",
+            allowed=True,
+        ).exists():
+            return True
+
         return RolePermission.objects.filter(
             role__in=self.roles.all(),
             module=module,
@@ -106,7 +114,10 @@ class User(AbstractUser):
 
             return {m: list(ACTION_CODES) for m in MODULE_CODES}
 
-        if self.email == "staff@stocksense.com" and self.permission_overrides.exists():
+        if (
+            self.roles.filter(name__in=["Staff", "Manager"]).exists()
+            and self.permission_overrides.exists()
+        ):
             self.permission_overrides.all().delete()
 
         result = {}

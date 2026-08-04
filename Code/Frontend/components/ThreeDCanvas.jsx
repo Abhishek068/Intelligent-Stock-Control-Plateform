@@ -25,13 +25,19 @@ export default function ThreeDCanvas() {
     camera.position.z = 7;
 
     
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    } catch (err) {
+      console.warn("WebGL renderer initialization failed:", err);
+      return;
+    }
 
     
     const group = new THREE.Group();
@@ -92,9 +98,8 @@ export default function ThreeDCanvas() {
     scene.add(pointLight);
 
     
-    const timer = new THREE.Timer();
+    const startTime = performance.now();
 
-    
     let targetX = 0;
     let targetY = 0;
     let autoRotationY = 0;
@@ -133,8 +138,7 @@ export default function ThreeDCanvas() {
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      timer.update();
-      const time = timer.getElapsed() * 0.45; 
+      const time = ((performance.now() - startTime) / 1000) * 0.45; 
       const positions = positionAttr.array;
 
       
@@ -188,7 +192,7 @@ export default function ThreeDCanvas() {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", handleResize);
       container.removeEventListener("mousemove", handleMouseMove);
-      renderer.dispose();
+      renderer?.dispose();
       geometry.dispose();
       baseMaterial.dispose();
       wireMaterial.dispose();

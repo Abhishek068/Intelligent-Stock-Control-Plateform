@@ -2,17 +2,15 @@
 
 
 import os
-
 import sys
 
 
-
-
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
 
 def main():
-
-                                   
-
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
     try:
