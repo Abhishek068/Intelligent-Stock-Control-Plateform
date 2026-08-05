@@ -1,28 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  MoreHorizontal,
-  Building,
-  User,
-  Mail,
-  Phone,
-  Clock,
-  MapPin,
-  CheckCircle2,
-  ShieldCheck,
-  TrendingUp,
-  Award,
-  Truck,
-} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +13,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -47,6 +29,8 @@ import { suppliersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
+const COLORS = ["#0D9488", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444", "#6366F1"];
+
 const emptyForm = {
   name: "",
   contact_name: "",
@@ -54,26 +38,8 @@ const emptyForm = {
   phone: "",
   address: "",
   lead_time_days: 3,
-  status: "active",
+  status: "active"
 };
-
-function SupplierKpiCard({ title, value, subtitle, icon: Icon, color, glowColor }) {
-  return (
-    <Card className="relative overflow-hidden bg-slate-900/60 border-slate-800/80 backdrop-blur-xl transition-all duration-300 hover:border-slate-700 hover:shadow-xl group">
-      <div className={`absolute top-0 right-0 h-20 w-20 bg-gradient-to-bl ${glowColor} rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity`} />
-      <CardContent className="p-5 flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-slate-400">{title}</p>
-          <h3 className="text-2xl font-black tracking-tight text-white">{value}</h3>
-          {subtitle && <p className="text-[11px] text-slate-400 flex items-center gap-1">{subtitle}</p>}
-        </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${color}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function SuppliersPage() {
   const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
@@ -102,25 +68,9 @@ export default function SuppliersPage() {
     loadSuppliers();
   }, [loadSuppliers]);
 
-  const filtered = suppliers.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.contact_name && s.contact_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.email && s.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filtered = suppliers.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Summary Metrics
-  const activeCount = useMemo(() => suppliers.filter((s) => s.status === "active").length, [suppliers]);
-  const avgLeadTime = useMemo(() => {
-    if (!suppliers.length) return 0;
-    const total = suppliers.reduce((sum, s) => sum + (s.lead_time_days || 0), 0);
-    return Math.round(total / suppliers.length);
-  }, [suppliers]);
-  const avgPerformance = useMemo(() => {
-    if (!suppliers.length) return 0;
-    const total = suppliers.reduce((sum, s) => sum + (Number(s.performance_score) || 0), 0);
-    return Math.round(total / suppliers.length);
-  }, [suppliers]);
 
   const openCreate = () => {
     setEditing(null);
@@ -137,7 +87,7 @@ export default function SuppliersPage() {
       phone: sup.phone || "",
       address: sup.address || "",
       lead_time_days: sup.lead_time_days ?? 3,
-      status: sup.status || "active",
+      status: sup.status || "active"
     });
     setDialogOpen(true);
   };
@@ -151,10 +101,10 @@ export default function SuppliersPage() {
     try {
       if (editing) {
         await suppliersApi.update(editing.id, form);
-        toast.success("Supplier updated successfully");
+        toast.success("Supplier updated");
       } else {
         await suppliersApi.create(form);
-        toast.success("New supplier created");
+        toast.success("Supplier created");
       }
       setDialogOpen(false);
       loadSuppliers();
@@ -169,7 +119,7 @@ export default function SuppliersPage() {
     if (!confirm(`Delete supplier "${sup.name}"?`)) return;
     try {
       await suppliersApi.delete(sup.id);
-      toast.success("Supplier removed");
+      toast.success("Supplier deleted");
       loadSuppliers();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Delete failed");
@@ -177,181 +127,153 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+        <div className="absolute -top-10 -left-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <Truck className="h-8 w-8 text-blue-400" /> Supplier Management
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Track vendor contacts, lead times, order fulfillment accuracy, and performance ratings.
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <Truck className="h-6 w-6" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Supplier Management
+            </h1>
+          </div>
+          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+            Manage your supply chain partners, track lead times, and monitor supplier performance metrics.
           </p>
         </div>
+
         {canManage && (
-          <Button
+          <Button 
             onClick={openCreate}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20"
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 px-4 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-indigo-500/50"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Supplier
           </Button>
         )}
       </div>
 
-      {/* KPI Cards Bar */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SupplierKpiCard
-          title="Total Vendors"
-          value={suppliers.length.toLocaleString()}
-          subtitle="Registered suppliers"
-          icon={Building}
-          color="bg-blue-500/10 text-blue-400 border-blue-500/20"
-          glowColor="from-blue-500/20 to-transparent"
-        />
+      {/* Main Card */}
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-        <SupplierKpiCard
-          title="Active Partners"
-          value={activeCount.toLocaleString()}
-          subtitle={`${Math.round((activeCount / (suppliers.length || 1)) * 100)}% active rate`}
-          icon={ShieldCheck}
-          color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-          glowColor="from-emerald-500/20 to-transparent"
-        />
-
-        <SupplierKpiCard
-          title="Avg Lead Time"
-          value={`${avgLeadTime} Days`}
-          subtitle="Fulfillment turnaround"
-          icon={Clock}
-          color="bg-purple-500/10 text-purple-400 border-purple-500/20"
-          glowColor="from-purple-500/20 to-transparent"
-        />
-
-        <SupplierKpiCard
-          title="Avg Vendor Rating"
-          value={`${avgPerformance}%`}
-          subtitle="Delivery & order accuracy"
-          icon={Award}
-          color="bg-amber-500/10 text-amber-400 border-amber-500/20"
-          glowColor="from-amber-500/20 to-transparent"
-        />
-      </div>
-
-      {/* Main Table Card */}
-      <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
-        <CardContent className="p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <CardContent className="p-0">
+          {/* Toolbar */}
+          <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between relative z-10">
+            <div className="relative w-full max-w-md group">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
               <Input
-                placeholder="Search suppliers by name or email..."
+                placeholder="Search suppliers by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-950/60 border-slate-800 text-white"
+                className="pl-9 bg-slate-950/50 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all rounded-xl h-10"
               />
             </div>
-            <div className="text-xs text-slate-400 font-medium">
-              Showing {filtered.length} of {suppliers.length} vendors
+            <div className="text-sm text-slate-400 font-medium px-4 py-2 bg-slate-950/50 border border-white/5 rounded-lg shadow-inner">
+              Total Suppliers: <span className="text-slate-200">{suppliers.length}</span>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative z-10">
             <Table>
-              <TableHeader>
-                <TableRow className="border-slate-800 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Supplier Name</TableHead>
-                  <TableHead className="text-slate-400">Contact Person</TableHead>
-                  <TableHead className="text-slate-400">Lead Time</TableHead>
-                  <TableHead className="text-slate-400 text-center">Fulfillment Rating</TableHead>
-                  <TableHead className="text-slate-400 text-center">SKUs Supplied</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400 text-right pr-6 font-semibold">Actions</TableHead>
+              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">Supplier</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Contact</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Lead Time</TableHead>
+                  <TableHead className="py-4 text-center font-semibold text-slate-300">Performance</TableHead>
+                  <TableHead className="py-4 text-center font-semibold text-slate-300">Products</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
+                  {canManage && <TableHead className="w-16" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-8">
-                      Loading suppliers...
+                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-12">
+                      <div className="animate-pulse">Loading suppliers...</div>
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-8">
-                      No suppliers found.
+                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-12">
+                      No suppliers found matching "{searchQuery}"
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((sup) => (
-                    <TableRow key={sup.id} className="border-slate-800/60 hover:bg-slate-800/30 transition-colors">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 bg-blue-500/10 border border-blue-500/20">
-                            <AvatarFallback className="text-blue-400 font-bold text-xs">
-                              {sup.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-semibold text-white">{sup.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium text-slate-200">{sup.contact_name || "—"}</p>
-                          <p className="text-xs text-slate-400">{sup.email || "—"}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10 font-mono text-xs">
-                          {sup.lead_time_days} days
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm font-bold text-emerald-400">
-                          {Number(sup.performance_score || 0).toFixed(0)}%
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          Delivery {Number(sup.delivery_rate || 0).toFixed(0)}% · Accuracy {Number(sup.order_accuracy || 0).toFixed(0)}%
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center font-mono font-semibold text-slate-200">
-                        {sup.product_count ?? 0}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            sup.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : "bg-slate-800 text-slate-400 border-slate-700"
-                          }
-                        >
-                          {sup.status}
-                        </Badge>
-                      </TableCell>
-                      {canManage && (
-                        <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEdit(sup)}
-                              className="h-8 px-2.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/20"
-                            >
-                              <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(sup)}
-                              className="h-8 px-2.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20"
-                            >
-                              <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                            </Button>
+                  filtered.map((sup, idx) => {
+                    const color = COLORS[idx % COLORS.length];
+                    return (
+                      <TableRow key={sup.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                        <TableCell className="pl-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <Avatar className="h-11 w-11 ring-1 ring-white/10 shadow-lg" style={{ backgroundColor: `${color}15` }}>
+                                <AvatarFallback style={{ color }} className="font-bold bg-transparent text-sm">
+                                  {sup.name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="absolute inset-0 rounded-full blur-[10px] opacity-30 -z-10" style={{ backgroundColor: color }} />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-slate-200 text-[15px]">{sup.name}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">ID: {sup.id}</div>
+                            </div>
                           </div>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
+                        <TableCell>
+                          <div>
+                            <p className="text-sm font-medium text-slate-300">{sup.contact_name || "—"}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{sup.email || "—"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-900/50 border border-white/5 text-slate-300 text-sm font-medium shadow-inner">
+                            {sup.lead_time_days}d
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="text-sm font-semibold text-slate-200">{Number(sup.performance_score || 0).toFixed(0)}%</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            Del {Number(sup.delivery_rate || 0).toFixed(0)}% · Acc {Number(sup.order_accuracy || 0).toFixed(0)}%
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner">
+                            {sup.product_count ?? 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={sup.status === "active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"}>
+                            {sup.status.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        {canManage && (
+                          <TableCell className="pr-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 hover:text-slate-200">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
+                                <DropdownMenuItem onClick={() => openEdit(sup)} className="hover:bg-white/5 cursor-pointer text-slate-300">
+                                  <Pencil className="mr-2 h-4 w-4 text-indigo-400" /> Edit Supplier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(sup)} className="hover:bg-rose-500/10 cursor-pointer text-rose-400 focus:text-rose-400 focus:bg-rose-500/10">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Supplier
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -359,133 +281,89 @@ export default function SuppliersPage() {
         </CardContent>
       </Card>
 
-      {/* Advanced Glassmorphism Add/Edit Supplier Dialog */}
+      {/* Modal - Crisp text rendering without backdrop-blur */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-slate-900/95 border-slate-800 text-white backdrop-blur-2xl shadow-2xl">
+        <DialogContent className="sm:max-w-[525px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Building className="h-5 w-5 text-blue-400" />
-              {editing ? "Edit Supplier Details" : "Add New Supplier"}
+            <DialogTitle className="text-xl font-bold text-white">
+              {editing ? "Edit Supplier" : "Add Supplier"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Configure vendor contact information, expected lead times, and status.
-            </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Field: Name */}
-            <div>
-              <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <Building className="h-3.5 w-3.5 text-blue-400" /> Supplier Name *
-              </Label>
-              <Input
-                placeholder="e.g. Apex Industrial Components Ltd."
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
+          <div className="grid gap-5 py-4 md:grid-cols-2">
+            <div className="md:col-span-2 space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Name <span className="text-rose-400">*</span></Label>
+              <Input 
+                value={form.name} 
+                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
               />
             </div>
-
-            {/* Field: Contact & Email */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                  <User className="h-3.5 w-3.5 text-blue-400" /> Contact Person
-                </Label>
-                <Input
-                  placeholder="e.g. John Doe"
-                  value={form.contact_name}
-                  onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-                  className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                  <Mail className="h-3.5 w-3.5 text-blue-400" /> Email Address
-                </Label>
-                <Input
-                  type="email"
-                  placeholder="vendor@company.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Contact Name</Label>
+              <Input
+                value={form.contact_name}
+                onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+              />
             </div>
-
-            {/* Field: Phone & Lead Time */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                  <Phone className="h-3.5 w-3.5 text-blue-400" /> Phone Number
-                </Label>
-                <Input
-                  placeholder="+44 20 7946 0912"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                  <Clock className="h-3.5 w-3.5 text-blue-400" /> Lead Time (Days)
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.lead_time_days}
-                  onChange={(e) => setForm({ ...form, lead_time_days: parseInt(e.target.value) || 0 })}
-                  className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Email</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+              />
             </div>
-
-            {/* Field: Status */}
-            <div>
-              <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" /> Status
-              </Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Phone</Label>
+              <Input 
+                value={form.phone} 
+                onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Lead Time (days)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.lead_time_days}
+                onChange={(e) => setForm({ ...form, lead_time_days: parseInt(e.target.value) || 0 })}
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-sm font-semibold text-slate-200">Address</Label>
+              <Input 
+                value={form.address} 
+                onChange={(e) => setForm({ ...form, address: e.target.value })} 
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-sm font-semibold text-slate-200">Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="bg-slate-950/70 border-slate-800 text-white">
+                <SelectTrigger className="bg-slate-950 border-white/10 focus:border-indigo-500/50 text-slate-100 font-medium rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                  <SelectItem value="active">Active (Approved Supplier)</SelectItem>
-                  <SelectItem value="inactive">Inactive (Suspended)</SelectItem>
+                <SelectContent className="bg-slate-900 border-white/10 shadow-xl rounded-xl text-slate-200">
+                  <SelectItem value="active" className="focus:bg-indigo-500/20 focus:text-indigo-300">Active</SelectItem>
+                  <SelectItem value="inactive" className="focus:bg-indigo-500/20 focus:text-indigo-300">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Field: Address */}
-            <div>
-              <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <MapPin className="h-3.5 w-3.5 text-blue-400" /> Postal Address
-              </Label>
-              <Input
-                placeholder="100 Logistics Way, London, UK"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
-              />
-            </div>
           </div>
-
-          <DialogFooter className="mt-2 gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300"
-            >
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
               Cancel
             </Button>
-            <Button
-              onClick={handleSave}
+            <Button 
+              onClick={handleSave} 
               disabled={saving}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50"
             >
-              {saving ? "Saving..." : editing ? "Update Supplier" : "Create Supplier"}
+              {saving ? "Saving..." : editing ? "Save Changes" : "Add Supplier"}
             </Button>
           </DialogFooter>
         </DialogContent>

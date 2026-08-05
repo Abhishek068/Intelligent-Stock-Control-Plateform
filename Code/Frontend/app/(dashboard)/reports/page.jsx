@@ -1,24 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  FileText,
-  FileSpreadsheet,
-  Package,
-  AlertTriangle,
-  Activity,
-  TrendingUp,
-  RefreshCw,
-  Search,
-  DollarSign,
-  Layers,
-  ArrowUpRight,
-  ArrowDownRight,
-  Filter,
-  BarChart3,
-  CheckCircle2,
-  PieChart as PieIcon,
-} from "lucide-react";
+import { FileText, FileSpreadsheet, Package, AlertTriangle, Activity, TrendingUp, RefreshCw, BarChart3, Database } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useReactToPrint } from "react-to-print";
@@ -27,10 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area } from "recharts";
 import { analyticsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 
@@ -39,62 +20,38 @@ const REPORT_TYPES = {
   movements: "movements",
   low_stock: "low_stock",
   forecast: "forecast",
+  purchases: "purchases",
+  sales: "sales"
 };
 
-function PrintableReportContent({ data, title }) {
-  if (!data?.length) return <div className="p-8 text-black font-sans"><h2 className="text-2xl font-bold mb-4">{title}</h2><p>No data available</p></div>;
+function ReportContent({ data, title }) {
+  if (!data?.length) return <div className="p-6"><h2 className="text-2xl font-bold mb-4">{title}</h2><p>No data</p></div>;
   return (
-    <div className="p-8 text-black font-sans">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-          <p className="text-xs text-slate-500">Generated from Live Inventory Data — {new Date().toLocaleDateString()}</p>
-        </div>
-        <span className="text-xs font-semibold px-3 py-1 bg-slate-100 rounded text-slate-700">Official Report</span>
-      </div>
-
-      <table className="w-full border-collapse text-xs">
+    <div className="p-6 bg-white">
+      <h2 className="text-2xl font-bold mb-4 text-black">{title}</h2>
+      <table className="w-full border-collapse text-sm text-black">
         <thead>
-          <tr className="bg-slate-100 text-slate-700">
-            {Object.keys(data[0]).map((key) => (
-              <th key={key} className="border border-slate-300 p-2 text-left capitalize font-semibold">
+          <tr className="bg-gray-100">
+            {Object.keys(data[0]).map((key) =>
+              <th key={key} className="border border-gray-300 p-2 text-left capitalize">
                 {key.replace(/_/g, " ")}
               </th>
-            ))}
+            )}
           </tr>
         </thead>
         <tbody>
-          {data.map((row, idx) => (
-            <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-              {Object.values(row).map((val, i) => (
-                <td key={i} className="border border-slate-200 p-2 text-slate-800">
+          {data.map((row, idx) =>
+            <tr key={idx}>
+              {Object.values(row).map((val, i) =>
+                <td key={i} className="border border-gray-300 p-2">
                   {typeof val === "number" ? val.toLocaleString() : String(val ?? "—")}
                 </td>
-              ))}
+              )}
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
-  );
-}
-
-// KPI Summary Card
-function ReportKpiCard({ title, value, subtitle, icon: Icon, trend, color, glowColor }) {
-  return (
-    <Card className="relative overflow-hidden bg-slate-900/60 border-slate-800/80 backdrop-blur-xl transition-all duration-300 hover:border-slate-700 hover:shadow-xl group">
-      <div className={`absolute top-0 right-0 h-20 w-20 bg-gradient-to-bl ${glowColor} rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity`} />
-      <CardContent className="p-5 flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-slate-400">{title}</p>
-          <h3 className="text-2xl font-black tracking-tight text-white">{value}</h3>
-          {subtitle && <p className="text-[11px] text-slate-400 flex items-center gap-1">{subtitle}</p>}
-        </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${color}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -103,14 +60,17 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
   const [movementSeries, setMovementSeries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const printRef = useRef(null);
 
-  const loadReport = useCallback(async (type) => {
+  const loadReport = useCallback(async (type, showToast = false) => {
     setLoading(true);
     try {
-      const res = await analyticsApi.getReport(type);
+      const params = {};
+      if ((type === "purchases" || type === "sales") && dateFrom) params.from = dateFrom;
+      if ((type === "purchases" || type === "sales") && dateTo) params.to = dateTo;
+      const res = await analyticsApi.getReport(type, params);
       if (res.success && res.data) {
         if (type === REPORT_TYPES.movements && !Array.isArray(res.data)) {
           setReportData(res.data.totals || []);
@@ -123,51 +83,19 @@ export default function ReportsPage() {
         setReportData([]);
         setMovementSeries([]);
       }
+      if (showToast) toast.success("Report refreshed successfully");
     } catch (error) {
       setReportData([]);
       setMovementSeries([]);
-      toast.error(error instanceof ApiError ? error.message : "Failed to load report data");
+      toast.error(error instanceof ApiError ? error.message : "Failed to load report");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     loadReport(activeTab);
-    setSearchQuery("");
-    setCategoryFilter("all");
   }, [activeTab, loadReport]);
-
-  // Unique categories list
-  const categoriesList = useMemo(() => {
-    if (!Array.isArray(reportData)) return [];
-    const set = new Set();
-    reportData.forEach((item) => {
-      if (item.category) set.add(item.category);
-    });
-    return Array.from(set);
-  }, [reportData]);
-
-  // Filtered dataset
-  const filteredData = useMemo(() => {
-    if (!Array.isArray(reportData)) return [];
-    return reportData.filter((item) => {
-      const matchSearch =
-        !searchQuery.trim() ||
-        (item.product && item.product.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.sku && item.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchCategory = categoryFilter === "all" || item.category === categoryFilter;
-
-      return matchSearch && matchCategory;
-    });
-  }, [reportData, searchQuery, categoryFilter]);
-
-  // Summary Metrics
-  const totalInventoryValue = useMemo(() => {
-    return reportData.reduce((sum, row) => sum + (Number(row.value) || 0), 0);
-  }, [reportData]);
 
   const valuationByCategory = useMemo(() => {
     if (activeTab !== REPORT_TYPES.inventory) return [];
@@ -178,335 +106,299 @@ export default function ReportsPage() {
       map[cat].value += Number(row.value) || 0;
       map[cat].count += 1;
     });
-    return Object.values(map).sort((a, b) => b.value - a.value);
+    return Object.values(map);
   }, [reportData, activeTab]);
 
+  const totalInventoryValue = useMemo(
+    () => reportData.reduce((sum, row) => sum + (Number(row.value) || 0), 0),
+    [reportData]
+  );
+
   const exportToExcel = () => {
-    if (!filteredData.length) {
+    if (!reportData.length) {
       toast.error("No data to export");
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(filteredData);
+    const ws = XLSX.utils.json_to_sheet(reportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, `${activeTab}-inventory-report.xlsx`);
-    toast.success("Excel report generated successfully");
+    XLSX.writeFile(wb, `${activeTab}-report.xlsx`);
+    toast.success("Excel downloaded");
   };
 
   const exportToPDF = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: `${activeTab}-inventory-report`,
-    onAfterPrint: () => toast.success("PDF document generated"),
+    documentTitle: `${activeTab}-report`,
+    onAfterPrint: () => toast.success("PDF generated")
   });
 
   const tabTitles = {
     inventory: "Inventory Valuation Report",
-    movements: "Stock Movements & Activity Summary",
-    low_stock: "Low Stock & Reorder Warning Report",
-    forecast: "Predictive Demand Forecast Report",
+    movements: "Stock Movements Summary",
+    low_stock: "Low Stock Report",
+    forecast: "Demand Forecast Report",
+    purchases: "Purchases Report",
+    sales: "Sales / Stock-Out Report"
   };
 
   return (
-    <div className="space-y-6">
-      {/* Hidden PDF Printable Component */}
-      <div style={{ display: "none" }}>
-        <div ref={printRef}>
-          <PrintableReportContent data={filteredData} title={tabTitles[activeTab]} />
-        </div>
-      </div>
-
-      {/* Header Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+        <div className="absolute -top-10 -left-10 w-64 h-64 bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <BarChart3 className="h-8 w-8 text-blue-400" /> Reports & Analytics
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Real-time inventory valuation, stock movements, low stock warnings, and demand forecasts.
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Reports & Analytics
+            </h1>
+          </div>
+          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+            Generate and export reports from live inventory data.
           </p>
         </div>
 
-        {/* Action Export Buttons */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              loadReport(activeTab);
-              toast.success("Data refreshed");
-            }}
-            disabled={loading}
-            className="border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs"
+        <div className="flex flex-wrap items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => loadReport(activeTab, true)} 
+            disabled={loading} 
+            className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 hover:text-white backdrop-blur-xl rounded-xl h-10 transition-all"
           >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin text-blue-400" : ""}`} /> Refresh
+            <RefreshCw className={`mr-2 h-4 w-4 text-cyan-400 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToExcel}
-            disabled={!filteredData.length}
-            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs font-semibold"
+          <Button 
+            onClick={exportToExcel} 
+            disabled={!reportData.length}
+            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl h-10 px-5 shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all"
           >
-            <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-emerald-400" /> Export Excel
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
           </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToPDF}
-            disabled={!filteredData.length}
-            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-xs font-semibold"
+          <Button 
+            onClick={exportToPDF} 
+            disabled={!reportData.length}
+            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl h-10 px-5 shadow-[0_0_15px_rgba(244,63,94,0.1)] transition-all"
           >
-            <FileText className="mr-1.5 h-3.5 w-3.5 text-rose-400" /> Export PDF
+            <FileText className="mr-2 h-4 w-4" /> PDF
           </Button>
         </div>
       </div>
 
-      {/* Top KPI Metrics Bar */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ReportKpiCard
-          title="Total Valuation"
-          value={`£${totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle="Net inventory asset value"
-          icon={TrendingUp}
-          color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-          glowColor="from-emerald-500/20 to-transparent"
-        />
-
-        <ReportKpiCard
-          title="Total SKUs Tracked"
-          value={reportData.length.toLocaleString()}
-          subtitle="Active stock records"
-          icon={Package}
-          color="bg-blue-500/10 text-blue-400 border-blue-500/20"
-          glowColor="from-blue-500/20 to-transparent"
-        />
-
-        <ReportKpiCard
-          title="Low Stock Items"
-          value={activeTab === REPORT_TYPES.low_stock ? reportData.length : "Alerts Active"}
-          subtitle="Requires purchase order"
-          icon={AlertTriangle}
-          color="bg-amber-500/10 text-amber-400 border-amber-500/20"
-          glowColor="from-amber-500/20 to-transparent"
-        />
-
-        <ReportKpiCard
-          title="Forecasted Horizon"
-          value="30-60 Days"
-          subtitle="Predictive demand model"
-          icon={TrendingUp}
-          color="bg-purple-500/10 text-purple-400 border-purple-500/20"
-          glowColor="from-purple-500/20 to-transparent"
-        />
+      <div style={{ display: "none" }}>
+        <div ref={printRef}>
+          <ReportContent data={reportData} title={tabTitles[activeTab]} />
+        </div>
       </div>
 
-      {/* Main Tabs Component */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
-          <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
-            <TabsTrigger value="inventory" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs gap-1.5">
-              <Package className="h-3.5 w-3.5" /> Inventory Valuation
-            </TabsTrigger>
-            <TabsTrigger value="movements" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs gap-1.5">
-              <Activity className="h-3.5 w-3.5" /> Stock Movements
-            </TabsTrigger>
-            <TabsTrigger value="low_stock" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5" /> Low Stock
-            </TabsTrigger>
-            <TabsTrigger value="forecast" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" /> Demand Forecast
-            </TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
+          <TabsTrigger 
+            value="inventory" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+          >
+            <Package className="mr-2 h-4 w-4" /> Inventory
+          </TabsTrigger>
+          <TabsTrigger 
+            value="movements" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+          >
+            <Activity className="mr-2 h-4 w-4" /> Movements
+          </TabsTrigger>
+          <TabsTrigger 
+            value="low_stock" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-rose-500/20 data-[state=active]:text-rose-400 data-[state=active]:border-rose-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(244,63,94,0.1)]"
+          >
+            <AlertTriangle className="mr-2 h-4 w-4" /> Low Stock
+          </TabsTrigger>
+          <TabsTrigger 
+            value="forecast" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 data-[state=active]:border-purple-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+          >
+            <TrendingUp className="mr-2 h-4 w-4" /> Forecast
+          </TabsTrigger>
+          <TabsTrigger 
+            value="purchases" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+          >
+            <Database className="mr-2 h-4 w-4" /> Purchases
+          </TabsTrigger>
+          <TabsTrigger 
+            value="sales" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400 data-[state=active]:border-indigo-500/30 border border-transparent text-slate-400 hover:text-slate-200 transition-all shadow-none data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+          >
+            <Activity className="mr-2 h-4 w-4" /> Sales
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Search & Category Filter */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-48">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <Input
-                placeholder="Search products/SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 pl-8 text-xs bg-slate-900 border-slate-800 text-white focus:border-blue-500"
-              />
-            </div>
+        <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-            {categoriesList.length > 0 && (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-8 text-xs bg-slate-900 border-slate-800 text-white w-36">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categoriesList.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
-
-        {/* Tab Content Container */}
-        <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-800">
+          <CardHeader className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 space-y-0">
             <div>
-              <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                {tabTitles[activeTab]}
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                {loading
-                  ? "Fetching latest records..."
-                  : `Showing ${filteredData.length} of ${reportData.length} records`}
+              <CardTitle className="text-xl font-bold text-slate-100">{tabTitles[activeTab]}</CardTitle>
+              <CardDescription className="text-slate-400 mt-1">
+                {loading ? "Loading report data..." : `Generated ${reportData.length} records`}
               </CardDescription>
             </div>
-            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
-              Live Data
-            </Badge>
+            
+            {(activeTab === "purchases" || activeTab === "sales") && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="rounded-lg border border-white/10 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50"
+                />
+                <span className="text-sm text-slate-500">to</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="rounded-lg border border-white/10 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50"
+                />
+                <Button 
+                  size="sm" 
+                  onClick={() => loadReport(activeTab)}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg px-4 shadow-[0_0_10px_rgba(6,182,212,0.2)] ml-2"
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
           </CardHeader>
-
-          <CardContent className="pt-4">
-            {/* 1. INVENTORY VALUATION TAB */}
-            <TabsContent value="inventory" className="space-y-6 mt-0">
-              {valuationByCategory.length > 0 && (
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-300 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-emerald-400" /> Valuation Breakdown by Category
-                  </h4>
-                  <div className="h-56 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={valuationByCategory} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="category" fontSize={11} stroke="#64748b" tickLine={false} />
-                        <YAxis fontSize={11} stroke="#64748b" tickLine={false} tickFormatter={(v) => `£${v}`} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
-                          formatter={(value) => [`£${Number(value).toFixed(2)}`, "Valuation"]}
-                        />
-                        <Bar dataKey="value" fill="#10b981" radius={[6, 6, 0, 0]} name="Value (£)" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
+          
+          <CardContent className="p-0 relative z-10">
+            <div className="overflow-x-auto">
+              <TabsContent value="inventory" className="m-0 border-none p-0 outline-none">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-800 hover:bg-transparent">
-                      <TableHead className="text-slate-400">Product</TableHead>
-                      <TableHead className="text-slate-400">SKU</TableHead>
-                      <TableHead className="text-slate-400">Category</TableHead>
-                      <TableHead className="text-slate-400 text-right">Current Stock</TableHead>
-                      <TableHead className="text-slate-400 text-right">Value (£)</TableHead>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Product</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">SKU</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Category</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-slate-300">Stock</TableHead>
+                      <TableHead className="py-4 pr-8 text-right font-semibold text-cyan-400">Value (£)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-slate-400 py-8">
-                          <RefreshCw className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-2" />
-                          Loading inventory valuation data...
+                        <TableCell colSpan={5} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading inventory data...
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredData.length === 0 ? (
+                    ) : reportData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-slate-400 py-8">
-                          No matching inventory records found.
-                        </TableCell>
+                        <TableCell colSpan={5} className="text-center text-slate-400 py-12">No inventory data available.</TableCell>
                       </TableRow>
                     ) : (
                       <>
-                        {filteredData.map((item, idx) => (
-                          <TableRow key={idx} className="border-slate-800/60 hover:bg-slate-800/40 transition-colors">
-                            <TableCell className="font-semibold text-white">{item.product}</TableCell>
+                        {reportData.map((item, idx) => (
+                          <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                            <TableCell className="pl-8 py-3 text-slate-200 font-medium">{item.product}</TableCell>
+                            <TableCell className="font-mono text-xs text-slate-400">{item.sku}</TableCell>
                             <TableCell>
-                              <span className="font-mono text-xs text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                                {item.sku}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="border-slate-700 text-slate-300 bg-slate-800/50">
-                                {item.category || "General"}
+                              <Badge className="bg-slate-800 border-white/10 text-slate-300 font-normal">
+                                {item.category}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right font-semibold text-slate-200">
-                              {item.stock}
-                            </TableCell>
-                            <TableCell className="text-right font-mono font-bold text-emerald-400">
+                            <TableCell className="text-right text-slate-300 font-mono">{item.stock}</TableCell>
+                            <TableCell className="text-right pr-8 font-mono text-cyan-400 font-semibold">
                               £{Number(item.value).toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))}
-                        <TableRow className="bg-slate-950/60 font-bold border-t-2 border-slate-700">
-                          <TableCell colSpan={4} className="text-right text-slate-300 text-sm">
-                            Total Inventory Asset Value:
+                        <TableRow className="bg-slate-950/50 border-t border-white/10 hover:bg-slate-950/50">
+                          <TableCell colSpan={4} className="text-right pl-8 py-4 font-bold text-slate-300 uppercase tracking-wider text-xs">
+                            Total Value:
                           </TableCell>
-                          <TableCell className="text-right font-mono text-base text-emerald-400">
-                            £{totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <TableCell className="text-right pr-8 font-mono text-cyan-400 font-extrabold text-lg">
+                            £{totalInventoryValue.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       </>
                     )}
                   </TableBody>
                 </Table>
-              </div>
-            </TabsContent>
 
-            {/* 2. STOCK MOVEMENTS TAB */}
-            <TabsContent value="movements" className="space-y-6 mt-0">
-              {movementSeries.length > 0 && (
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-300 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-400" /> Stock In vs Stock Out Velocity
-                  </h4>
-                  <div className="h-56 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={movementSeries} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" fontSize={11} stroke="#64748b" tickFormatter={(v) => String(v).slice(5)} />
-                        <YAxis fontSize={11} stroke="#64748b" />
-                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
-                        <Legend />
-                        <Bar dataKey="stock_in" fill="#10b981" radius={[4, 4, 0, 0]} name="Stock Received (+)" />
-                        <Bar dataKey="stock_out" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Stock Issued (-)" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {!loading && valuationByCategory.length > 0 && (
+                  <div className="p-8 border-t border-white/5">
+                    <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+                      <BarChart3 className="h-4 w-4 text-cyan-400" /> Value by Category
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={valuationByCategory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="category" fontSize={11} tick={{fill: '#94a3b8'}} axisLine={{stroke: 'rgba(255,255,255,0.1)'}} />
+                          <YAxis fontSize={11} tick={{fill: '#94a3b8'}} axisLine={{stroke: 'rgba(255,255,255,0.1)'}} />
+                          <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px'}} />
+                          <Legend />
+                          <Bar dataKey="value" fill="#06b6d4" name="Value (£)" radius={[4,4,0,0]} />
+                          <Bar dataKey="count" fill="#6366f1" name="Products" radius={[4,4,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </TabsContent>
 
-              <div className="overflow-x-auto">
+              <TabsContent value="movements" className="m-0 border-none p-0 outline-none">
+                {!loading && movementSeries.length > 0 && (
+                  <div className="p-8 border-b border-white/5">
+                    <h3 className="mb-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+                      <Activity className="h-4 w-4 text-cyan-400" /> Movements by Day
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={movementSeries}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="date" fontSize={11} tickFormatter={(v) => String(v).slice(5)} tick={{fill: '#94a3b8'}} axisLine={{stroke: 'rgba(255,255,255,0.1)'}} />
+                          <YAxis fontSize={11} tick={{fill: '#94a3b8'}} axisLine={{stroke: 'rgba(255,255,255,0.1)'}} />
+                          <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px'}} />
+                          <Legend />
+                          <Bar dataKey="stock_in" fill="#06b6d4" name="Stock In" radius={[4,4,0,0]} />
+                          <Bar dataKey="stock_out" fill="#f59e0b" name="Stock Out" radius={[4,4,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-800 hover:bg-transparent">
-                      <TableHead className="text-slate-400">Transaction Type</TableHead>
-                      <TableHead className="text-slate-400 text-right">Total Quantity / Count</TableHead>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Transaction Type</TableHead>
+                      <TableHead className="py-4 pr-8 text-right font-semibold text-slate-300">Total Count</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-slate-400 py-8">
-                          Loading movements...
+                        <TableCell colSpan={2} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading movements data...
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredData.length === 0 ? (
+                    ) : reportData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-slate-400 py-8">
-                          No stock movement history recorded.
-                        </TableCell>
+                        <TableCell colSpan={2} className="text-center text-slate-400 py-12">No movement data available.</TableCell>
                       </TableRow>
                     ) : (
-                      filteredData.map((item, idx) => (
-                        <TableRow key={idx} className="border-slate-800/60 hover:bg-slate-800/30">
-                          <TableCell className="capitalize font-medium text-white">
+                      reportData.map((item, idx) => (
+                        <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                          <TableCell className="pl-8 py-4 capitalize text-slate-200">
                             {String(item.type).replace(/_/g, " ")}
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-blue-400">
+                          <TableCell className="text-right pr-8 font-mono text-cyan-400 font-semibold text-lg">
                             {item.count}
                           </TableCell>
                         </TableRow>
@@ -514,108 +406,87 @@ export default function ReportsPage() {
                     )}
                   </TableBody>
                 </Table>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            {/* 3. LOW STOCK TAB */}
-            <TabsContent value="low_stock" className="space-y-4 mt-0">
-              <div className="overflow-x-auto">
+              <TabsContent value="low_stock" className="m-0 border-none p-0 outline-none">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-800 hover:bg-transparent">
-                      <TableHead className="text-slate-400">Product</TableHead>
-                      <TableHead className="text-slate-400">SKU</TableHead>
-                      <TableHead className="text-slate-400 text-right">Current Stock</TableHead>
-                      <TableHead className="text-slate-400 text-right">Safety Minimum</TableHead>
-                      <TableHead className="text-slate-400 text-right">Reorder Point</TableHead>
-                      <TableHead className="text-slate-400 text-center">Status</TableHead>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Product</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">SKU</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-rose-400">Current Stock</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-slate-300">Minimum</TableHead>
+                      <TableHead className="py-4 pr-8 text-right font-semibold text-slate-300">Reorder Level</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-slate-400 py-8">
-                          Loading low stock alerts...
+                        <TableCell colSpan={5} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading low stock data...
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredData.length === 0 ? (
+                    ) : reportData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-emerald-400 py-8">
-                          <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-80" />
-                          All inventory items are currently healthy above minimum safety levels!
-                        </TableCell>
+                        <TableCell colSpan={5} className="text-center text-slate-400 py-12">No low-stock items.</TableCell>
                       </TableRow>
                     ) : (
-                      filteredData.map((item, idx) => (
-                        <TableRow key={idx} className="border-slate-800/60 hover:bg-slate-800/30">
-                          <TableCell className="font-semibold text-white">{item.product}</TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                              {item.sku}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-rose-400">
-                            {item.stock}
-                          </TableCell>
-                          <TableCell className="text-right text-slate-300">{item.minimum_level}</TableCell>
-                          <TableCell className="text-right text-slate-300">{item.reorder_level}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline" className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-xs">
-                              Critical Low
-                            </Badge>
-                          </TableCell>
+                      reportData.map((item, idx) => (
+                        <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                          <TableCell className="pl-8 py-3 text-slate-200">{item.product}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-400">{item.sku}</TableCell>
+                          <TableCell className="text-right font-mono font-bold text-rose-400 bg-rose-500/5">{item.stock}</TableCell>
+                          <TableCell className="text-right text-slate-300 font-mono">{item.minimum_level}</TableCell>
+                          <TableCell className="text-right pr-8 text-slate-300 font-mono">{item.reorder_level}</TableCell>
                         </TableRow>
                       ))
                     )}
                   </TableBody>
                 </Table>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            {/* 4. FORECAST TAB */}
-            <TabsContent value="forecast" className="space-y-4 mt-0">
-              <div className="overflow-x-auto">
+              <TabsContent value="forecast" className="m-0 border-none p-0 outline-none">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-800 hover:bg-transparent">
-                      <TableHead className="text-slate-400">Product</TableHead>
-                      <TableHead className="text-slate-400">SKU</TableHead>
-                      <TableHead className="text-slate-400">Model Used</TableHead>
-                      <TableHead className="text-slate-400">Forecast Horizon</TableHead>
-                      <TableHead className="text-slate-400 text-right">Projected Demand</TableHead>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Product</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">SKU</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Model Used</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Start Date</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">End Date</TableHead>
+                      <TableHead className="py-4 pr-8 text-right font-semibold text-purple-400">Projected Demand</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-slate-400 py-8">
-                          Generating demand projections...
+                        <TableCell colSpan={6} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading forecast data...
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredData.length === 0 ? (
+                    ) : reportData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-slate-400 py-8">
-                          No forecast data generated.
-                        </TableCell>
+                        <TableCell colSpan={6} className="text-center text-slate-400 py-12">No forecast data generated yet.</TableCell>
                       </TableRow>
                     ) : (
-                      filteredData.map((item, idx) => (
-                        <TableRow key={idx} className="border-slate-800/60 hover:bg-slate-800/30">
-                          <TableCell className="font-semibold text-white">{item.product}</TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                              {item.sku}
-                            </span>
-                          </TableCell>
-                          <TableCell className="capitalize text-xs text-slate-300">
-                            <Badge variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10">
+                      reportData.map((item, idx) => (
+                        <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                          <TableCell className="pl-8 py-3 text-slate-200">{item.product}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-400">{item.sku}</TableCell>
+                          <TableCell className="capitalize text-xs text-slate-400">
+                            <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20 font-normal">
                               {item.model?.replace(/_/g, " ")}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-slate-400">
-                            {item.start_date} → {item.end_date}
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-indigo-400">
+                          <TableCell className="text-xs text-slate-300">{item.start_date}</TableCell>
+                          <TableCell className="text-xs text-slate-300">{item.end_date}</TableCell>
+                          <TableCell className="text-right pr-8 font-mono text-purple-400 font-semibold bg-purple-500/5">
                             {Number(item.predicted_demand).toLocaleString()} units
                           </TableCell>
                         </TableRow>
@@ -623,8 +494,102 @@ export default function ReportsPage() {
                     )}
                   </TableBody>
                 </Table>
-              </div>
-            </TabsContent>
+              </TabsContent>
+
+              <TabsContent value="purchases" className="m-0 border-none p-0 outline-none">
+                <Table>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Date</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Supplier</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Product</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">SKU</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-slate-300">Qty</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-slate-300">Unit Cost</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-cyan-400">Line Value</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Location</TableHead>
+                      <TableHead className="py-4 pr-8 font-semibold text-slate-300">Reference</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading purchases data...
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : reportData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-slate-400 py-12">No purchase records found.</TableCell>
+                      </TableRow>
+                    ) : (
+                      reportData.map((item, idx) => (
+                        <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                          <TableCell className="pl-8 py-3 text-xs text-slate-400">{item.date}</TableCell>
+                          <TableCell className="text-slate-200">{item.supplier}</TableCell>
+                          <TableCell className="text-slate-200">{item.product}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">{item.sku}</TableCell>
+                          <TableCell className="text-right text-slate-300 font-mono">{item.qty}</TableCell>
+                          <TableCell className="text-right font-mono text-slate-400">£{Number(item.unit_cost || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-mono text-cyan-400 font-semibold bg-cyan-500/5">£{Number(item.line_value || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-slate-300 text-sm">{item.location}</TableCell>
+                          <TableCell className="pr-8 text-xs text-slate-500">{item.reference || "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+
+              <TabsContent value="sales" className="m-0 border-none p-0 outline-none">
+                <Table>
+                  <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-4 pl-8 font-semibold text-slate-300">Date</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Product</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">SKU</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-slate-300">Qty</TableHead>
+                      <TableHead className="py-4 text-right font-semibold text-indigo-400">COGS</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Issued to</TableHead>
+                      <TableHead className="py-4 font-semibold text-slate-300">Location</TableHead>
+                      <TableHead className="py-4 pr-8 font-semibold text-slate-300">Reference</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-slate-400 py-12">
+                          <div className="animate-pulse flex items-center justify-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
+                            Loading sales data...
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : reportData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-slate-400 py-12">No sales records found.</TableCell>
+                      </TableRow>
+                    ) : (
+                      reportData.map((item, idx) => (
+                        <TableRow key={idx} className="hover:bg-slate-800/40 transition-colors border-b border-white/5">
+                          <TableCell className="pl-8 py-3 text-xs text-slate-400">{item.date}</TableCell>
+                          <TableCell className="text-slate-200">{item.product}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">{item.sku}</TableCell>
+                          <TableCell className="text-right text-slate-300 font-mono">{item.qty}</TableCell>
+                          <TableCell className="text-right font-mono text-indigo-400 font-semibold bg-indigo-500/5">£{Number(item.cogs || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-slate-300 text-sm">{item.issued_to || "—"}</TableCell>
+                          <TableCell className="text-slate-300 text-sm">{item.location}</TableCell>
+                          <TableCell className="pr-8 text-xs text-slate-500">{item.reference || "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </div>
           </CardContent>
         </Card>
       </Tabs>

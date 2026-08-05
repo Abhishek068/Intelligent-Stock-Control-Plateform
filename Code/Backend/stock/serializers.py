@@ -1,21 +1,106 @@
 from rest_framework import serializers
 
-from inventory.models import InventoryBalance, Location
+from inventory.models import InventoryBalance, Location, Product
 from stock.models import (
+    Batch,
     StockAdjustment,
     StockInTransaction,
     StockOutTransaction,
     StockTake,
     StockTakeLine,
     StockTransfer,
+    SupplierReturn,
+    SupplierReturnLine,
 )
-from stock.services import InsufficientStockError, StockService, StockTakeService
+from stock.services import (
+    InsufficientStockError,
+    StockService,
+    StockTakeService,
+    SupplierReturnService,
+)
+
+
+class BatchSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sku = serializers.CharField(source="product.sku", read_only=True)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
+    location_name = serializers.CharField(source="location.name", read_only=True)
+    days_to_expiry = serializers.SerializerMethodField()
+    expiry_status = serializers.SerializerMethodField()
+    is_fifo_recommended = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Batch
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "product_sku",
+            "supplier",
+            "supplier_name",
+            "location",
+            "location_name",
+            "batch_number",
+            "expiry_date",
+            "days_to_expiry",
+            "expiry_status",
+            "is_fifo_recommended",
+            "quantity_on_hand",
+            "unit_cost",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_days_to_expiry(self, obj):
+        if not obj.expiry_date:
+            return None
+        from django.utils import timezone
+
+        return (obj.expiry_date - timezone.now().date()).days
+
+    def get_expiry_status(self, obj):
+        days = self.get_days_to_expiry(obj)
+        if days is None:
+            return "no_expiry"
+        if days < 0:
+            return "expired"
+        if days <= 7:
+            return "critical"
+        if days <= 15:
+            return "warning"
+        if days <= 30:
+            return "attention"
+        return "healthy"
+
+    def get_is_fifo_recommended(self, obj):
+        if obj.quantity_on_hand <= 0:
+            return False
+        from django.db.models import F
+        from django.utils import timezone
+        today = timezone.now().date()
+        earliest = (
+            Batch.objects.filter(
+                product=obj.product,
+                location=obj.location,
+                quantity_on_hand__gt=0,
+            )
+            .exclude(expiry_date__lt=today)
+            .order_by(F("expiry_date").asc(nulls_last=True), "created_at", "id")
+            .values_list("id", flat=True)
+            .first()
+        )
+        return earliest == obj.id if earliest else False
 
 
 class StockInSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
     location_name = serializers.CharField(source="location.name", read_only=True)
+    batch_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    expiry_date = serializers.DateField(required=False, allow_null=True, write_only=True)
+    batch_id = serializers.IntegerField(source="batch.id", read_only=True, default=None)
+    batch_label = serializers.CharField(source="batch.batch_number", read_only=True, default=None)
 
     class Meta:
         model = StockInTransaction
@@ -33,10 +118,21 @@ class StockInSerializer(serializers.ModelSerializer):
             "reference",
             "notes",
             "received_at",
+            "batch_number",
+            "expiry_date",
+            "batch_id",
+            "batch_label",
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "quantity_remaining", "created_by", "created_at"]
+        read_only_fields = [
+            "id",
+            "quantity_remaining",
+            "created_by",
+            "created_at",
+            "batch_id",
+            "batch_label",
+        ]
 
     def validate(self, attrs):
         product = attrs["product"]
@@ -53,8 +149,14 @@ class StockInSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
+        batch_number = validated_data.pop("batch_number", None)
+        expiry_date = validated_data.pop("expiry_date", None)
         txn, _ = StockService.stock_in(
-            user=request.user, request=request, **validated_data
+            user=request.user,
+            request=request,
+            batch_number=batch_number,
+            expiry_date=expiry_date,
+            **validated_data,
         )
         return txn
 
@@ -63,6 +165,9 @@ class StockOutSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     location_name = serializers.CharField(source="location.name", read_only=True)
     available_stock = serializers.SerializerMethodField()
+    batch_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    batch_label = serializers.CharField(source="batch.batch_number", read_only=True, default=None)
+    batch = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = StockOutTransaction
@@ -79,12 +184,24 @@ class StockOutSerializer(serializers.ModelSerializer):
             "reference",
             "notes",
             "issued_at",
+            "batch_id",
+            "batch",
+            "batch_label",
             "anomaly_score",
             "is_anomaly",
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "cogs", "anomaly_score", "is_anomaly", "created_by", "created_at"]
+        read_only_fields = [
+            "id",
+            "cogs",
+            "anomaly_score",
+            "is_anomaly",
+            "created_by",
+            "created_at",
+            "batch",
+            "batch_label",
+        ]
 
     def get_available_stock(self, obj):
         balance = InventoryBalance.objects.filter(
@@ -101,6 +218,19 @@ class StockOutSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Product not found in your organization.")
         if location.organization_id != org.id:
             raise serializers.ValidationError("Location not found in your organization.")
+        batch_id = attrs.get("batch_id")
+        if batch_id:
+            batch = Batch.objects.filter(
+                id=batch_id, product=product, location=location, product__organization=org
+            ).first()
+            if not batch:
+                raise serializers.ValidationError(
+                    {"batch_id": "Batch not found for this product/location."}
+                )
+            if batch.quantity_on_hand < quantity:
+                raise serializers.ValidationError(
+                    {"batch_id": f"Batch only has {batch.quantity_on_hand} units available."}
+                )
         balance = InventoryBalance.objects.filter(
             product=product, location=location
         ).first()
@@ -113,9 +243,10 @@ class StockOutSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
+        batch_id = validated_data.pop("batch_id", None)
         try:
             txn, _ = StockService.stock_out(
-                user=request.user, request=request, **validated_data
+                user=request.user, request=request, batch_id=batch_id, **validated_data
             )
         except InsufficientStockError as exc:
             raise serializers.ValidationError(str(exc)) from exc
@@ -143,7 +274,14 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "previous_qty", "anomaly_score", "is_anomaly", "created_by", "created_at"]
+        read_only_fields = [
+            "id",
+            "previous_qty",
+            "anomaly_score",
+            "is_anomaly",
+            "created_by",
+            "created_at",
+        ]
 
     def validate_reason(self, value):
         if not (value or "").strip():
@@ -174,7 +312,9 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
 class StockTransferSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True)
-    product_barcode = serializers.CharField(source="product.barcode", read_only=True, default=None)
+    product_barcode = serializers.CharField(
+        source="product.barcode", read_only=True, default=None
+    )
     source_location_name = serializers.CharField(
         source="source_location.name", read_only=True
     )
@@ -350,3 +490,131 @@ class StockTakeCreateSerializer(serializers.Serializer):
 
 class StockTakeCountSerializer(serializers.Serializer):
     counts = serializers.ListField(child=serializers.DictField(), allow_empty=False)
+
+
+class SupplierReturnLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sku = serializers.CharField(source="product.sku", read_only=True)
+    batch_number = serializers.CharField(
+        source="batch.batch_number", read_only=True, default=None
+    )
+
+    class Meta:
+        model = SupplierReturnLine
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "product_sku",
+            "batch",
+            "batch_number",
+            "quantity",
+            "unit_cost",
+        ]
+        read_only_fields = ["id", "product_name", "product_sku", "batch_number"]
+
+
+class SupplierReturnSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    location_name = serializers.CharField(source="location.name", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    lines = SupplierReturnLineSerializer(many=True, read_only=True)
+    line_items = serializers.ListField(
+        child=serializers.DictField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = SupplierReturn
+        fields = [
+            "id",
+            "supplier",
+            "supplier_name",
+            "location",
+            "location_name",
+            "status",
+            "reason",
+            "created_by",
+            "created_by_name",
+            "shipped_at",
+            "completed_at",
+            "lines",
+            "line_items",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "status",
+            "created_by",
+            "shipped_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+            "lines",
+        ]
+
+    def get_created_by_name(self, obj):
+        return obj.created_by.get_full_name() or obj.created_by.email
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        org = request.user.organization
+        supplier = attrs.get("supplier")
+        location = attrs.get("location")
+        if self.instance is None:
+            if not supplier or supplier.organization_id != org.id:
+                raise serializers.ValidationError({"supplier": "Invalid supplier."})
+            if not location or location.organization_id != org.id:
+                raise serializers.ValidationError({"location": "Invalid location."})
+            lines = attrs.get("line_items") or []
+            if not lines:
+                raise serializers.ValidationError(
+                    {"line_items": "At least one line is required."}
+                )
+            resolved = []
+            for item in lines:
+                try:
+                    product = Product.objects.get(id=item.get("product"), organization=org)
+                except Product.DoesNotExist as exc:
+                    raise serializers.ValidationError(
+                        {"line_items": "Invalid product."}
+                    ) from exc
+                batch = None
+                if item.get("batch"):
+                    batch = Batch.objects.filter(
+                        id=item["batch"], product=product, location=location
+                    ).first()
+                    if not batch:
+                        raise serializers.ValidationError(
+                            {"line_items": f"Invalid batch for product {product.name}."}
+                        )
+                qty = int(item.get("quantity") or 0)
+                if qty < 1:
+                    raise serializers.ValidationError(
+                        {"line_items": "Quantity must be positive."}
+                    )
+                resolved.append(
+                    {
+                        "product": product,
+                        "batch": batch,
+                        "quantity": qty,
+                        "unit_cost": item.get("unit_cost"),
+                    }
+                )
+            attrs["resolved_lines"] = resolved
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        validated_data.pop("line_items", None)
+        lines = validated_data.pop("resolved_lines")
+        try:
+            return SupplierReturnService.create_draft(
+                supplier=validated_data["supplier"],
+                location=validated_data["location"],
+                reason=validated_data.get("reason") or "",
+                user=request.user,
+                lines=lines,
+            )
+        except (ValueError, InsufficientStockError) as exc:
+            raise serializers.ValidationError(str(exc)) from exc

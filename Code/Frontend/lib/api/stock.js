@@ -88,4 +88,46 @@ export const stockApi = {
   cancelStockTake(id) {
     return apiClient.post(`/stock-takes/${id}/cancel/`);
   },
+
+  async listBatches(params = {}) {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null))
+    ).toString();
+    const res = await apiClient.get(`/batches/${qs ? `?${qs}` : ""}`);
+    return unwrapList(res);
+  },
+
+  triggerExpiryScan() {
+    return apiClient.post("/batches/trigger_expiry_scan/");
+  },
+
+  getExpirySummary() {
+    return apiClient.get("/batches/expiry_summary/");
+  },
+
+  async listSupplierReturns(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const res = await apiClient.get(`/supplier-returns/${qs ? `?${qs}` : ""}`);
+    return unwrapList(res);
+  },
+
+  getSupplierReturn(id) {
+    return apiClient.get(`/supplier-returns/${id}/`);
+  },
+
+  createSupplierReturn(data) {
+    return apiClient.post("/supplier-returns/", data);
+  },
+
+  shipSupplierReturn(id) {
+    return apiClient.post(`/supplier-returns/${id}/ship/`);
+  },
+
+  completeSupplierReturn(id) {
+    return apiClient.post(`/supplier-returns/${id}/complete/`);
+  },
+
+  cancelSupplierReturn(id) {
+    return apiClient.post(`/supplier-returns/${id}/cancel/`);
+  },
 };

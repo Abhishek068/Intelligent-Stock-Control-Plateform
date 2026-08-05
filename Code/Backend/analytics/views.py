@@ -571,6 +571,84 @@ class ReportViewSet(viewsets.ViewSet):
 
             ]
 
+        elif report_type == "purchases":
+            from datetime import datetime
+
+            qs = StockInTransaction.objects.filter(
+                product__organization=org
+            ).select_related("product", "supplier", "location")
+
+            date_from = request.query_params.get("from")
+            date_to = request.query_params.get("to")
+            supplier_id = request.query_params.get("supplier_id")
+            location_id = request.query_params.get("location_id")
+            if date_from:
+                try:
+                    qs = qs.filter(received_at__date__gte=datetime.strptime(date_from, "%Y-%m-%d").date())
+                except ValueError:
+                    pass
+            if date_to:
+                try:
+                    qs = qs.filter(received_at__date__lte=datetime.strptime(date_to, "%Y-%m-%d").date())
+                except ValueError:
+                    pass
+            if supplier_id:
+                qs = qs.filter(supplier_id=supplier_id)
+            if location_id:
+                qs = qs.filter(location_id=location_id)
+
+            data = [
+                {
+                    "date": txn.received_at.strftime("%Y-%m-%d") if txn.received_at else "",
+                    "supplier": txn.supplier.name if txn.supplier else "",
+                    "product": txn.product.name,
+                    "sku": txn.product.sku,
+                    "qty": txn.quantity,
+                    "unit_cost": float(txn.unit_cost or 0),
+                    "line_value": float(txn.unit_cost or 0) * txn.quantity,
+                    "location": txn.location.name if txn.location else "",
+                    "reference": txn.reference or "",
+                }
+                for txn in qs.order_by("-received_at")[:2000]
+            ]
+
+        elif report_type == "sales":
+            from datetime import datetime
+
+            qs = StockOutTransaction.objects.filter(
+                product__organization=org
+            ).select_related("product", "location")
+
+            date_from = request.query_params.get("from")
+            date_to = request.query_params.get("to")
+            location_id = request.query_params.get("location_id")
+            if date_from:
+                try:
+                    qs = qs.filter(issued_at__date__gte=datetime.strptime(date_from, "%Y-%m-%d").date())
+                except ValueError:
+                    pass
+            if date_to:
+                try:
+                    qs = qs.filter(issued_at__date__lte=datetime.strptime(date_to, "%Y-%m-%d").date())
+                except ValueError:
+                    pass
+            if location_id:
+                qs = qs.filter(location_id=location_id)
+
+            data = [
+                {
+                    "date": txn.issued_at.strftime("%Y-%m-%d") if txn.issued_at else "",
+                    "product": txn.product.name,
+                    "sku": txn.product.sku,
+                    "qty": txn.quantity,
+                    "cogs": float(txn.cogs or 0),
+                    "issued_to": txn.issued_to or "",
+                    "location": txn.location.name if txn.location else "",
+                    "reference": txn.reference or "",
+                }
+                for txn in qs.order_by("-issued_at")[:2000]
+            ]
+
         else:
 
             return Response({"success": False, "error": "Invalid report type"}, status=400)

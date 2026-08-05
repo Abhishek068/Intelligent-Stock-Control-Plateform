@@ -1,27 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  MoreHorizontal,
-  FolderPlus,
-  Layers,
-  Package,
-  Tag,
-  FileText,
-  LayoutGrid,
-  List,
-  Folder,
-  BarChart3,
-  TrendingUp,
-} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +13,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -46,25 +29,7 @@ import { categoriesApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
-const COLORS = ["#0D9488", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444", "#6366F1", "#EC4899", "#10B981"];
-
-function CategoryKpiCard({ title, value, subtitle, icon: Icon, color, glowColor }) {
-  return (
-    <Card className="relative overflow-hidden bg-slate-900/60 border-slate-800/80 backdrop-blur-xl transition-all duration-300 hover:border-slate-700 hover:shadow-xl group">
-      <div className={`absolute top-0 right-0 h-20 w-20 bg-gradient-to-bl ${glowColor} rounded-bl-full pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity`} />
-      <CardContent className="p-5 flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-slate-400">{title}</p>
-          <h3 className="text-2xl font-black tracking-tight text-white">{value}</h3>
-          {subtitle && <p className="text-[11px] text-slate-400 flex items-center gap-1">{subtitle}</p>}
-        </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${color}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+const COLORS = ["#0D9488", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444", "#6366F1"];
 
 export default function CategoriesPage() {
   const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
@@ -73,7 +38,6 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("table"); // 'table' | 'grid'
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", description: "" });
@@ -94,26 +58,9 @@ export default function CategoriesPage() {
     loadCategories();
   }, [loadCategories]);
 
-  const filtered = useMemo(
-    () =>
-      categories.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      ),
-    [categories, searchQuery]
+  const filtered = categories.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Summary Metrics
-  const totalProductsCount = useMemo(
-    () => categories.reduce((sum, c) => sum + (c.product_count || 0), 0),
-    [categories]
-  );
-
-  const topCategory = useMemo(() => {
-    if (!categories.length) return null;
-    return [...categories].sort((a, b) => (b.product_count || 0) - (a.product_count || 0))[0];
-  }, [categories]);
 
   const openCreate = () => {
     setEditing(null);
@@ -136,10 +83,10 @@ export default function CategoriesPage() {
     try {
       if (editing) {
         await categoriesApi.update(editing.id, form);
-        toast.success("Category updated successfully");
+        toast.success("Category updated");
       } else {
         await categoriesApi.create(form);
-        toast.success("New category created");
+        toast.success("Category created");
       }
       setDialogOpen(false);
       loadCategories();
@@ -162,318 +109,182 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+        <div className="absolute -top-10 -left-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <Layers className="h-8 w-8 text-blue-400" /> Category Management
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Organise, structure, and categorize products across your global inventory catalog.
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <FolderOpen className="h-6 w-6" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Category Management
+            </h1>
+          </div>
+          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+            Organize and structure your product inventory with intelligent categorization. 
+            Assign products to categories for streamlined filtering and reporting.
           </p>
         </div>
+
         {canManage && (
-          <Button
+          <Button 
             onClick={openCreate}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20"
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 px-4 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-indigo-500/50"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Category
           </Button>
         )}
       </div>
 
-      {/* KPI Cards Bar */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <CategoryKpiCard
-          title="Total Categories"
-          value={categories.length.toLocaleString()}
-          subtitle="Catalog structures"
-          icon={Folder}
-          color="bg-blue-500/10 text-blue-400 border-blue-500/20"
-          glowColor="from-blue-500/20 to-transparent"
-        />
+      {/* Main Card */}
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-        <CategoryKpiCard
-          title="Categorized Products"
-          value={totalProductsCount.toLocaleString()}
-          subtitle="Assigned SKUs"
-          icon={Package}
-          color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-          glowColor="from-emerald-500/20 to-transparent"
-        />
-
-        <CategoryKpiCard
-          title="Avg SKUs / Category"
-          value={`${Math.round(totalProductsCount / (categories.length || 1))} SKUs`}
-          subtitle="Distribution density"
-          icon={BarChart3}
-          color="bg-purple-500/10 text-purple-400 border-purple-500/20"
-          glowColor="from-purple-500/20 to-transparent"
-        />
-
-        <CategoryKpiCard
-          title="Largest Category"
-          value={topCategory?.name || "N/A"}
-          subtitle={`${topCategory?.product_count ?? 0} active products`}
-          icon={TrendingUp}
-          color="bg-amber-500/10 text-amber-400 border-amber-500/20"
-          glowColor="from-amber-500/20 to-transparent"
-        />
-      </div>
-
-      {/* Main Content Card */}
-      <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
-        <CardContent className="p-5 space-y-4">
-          {/* Controls Bar: Search & View Mode Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <CardContent className="p-0">
+          {/* Toolbar */}
+          <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between relative z-10">
+            <div className="relative w-full max-w-md group">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
               <Input
                 placeholder="Search categories by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-950/60 border-slate-800 text-white"
+                className="pl-9 bg-slate-950/50 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all rounded-xl h-10"
               />
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-xl bg-slate-950 p-1 border border-slate-800">
-                <Button
-                  size="sm"
-                  variant={viewMode === "table" ? "secondary" : "ghost"}
-                  onClick={() => setViewMode("table")}
-                  className="h-7 text-xs px-2.5"
-                >
-                  <List className="mr-1 h-3.5 w-3.5" /> Table
-                </Button>
-                <Button
-                  size="sm"
-                  variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  onClick={() => setViewMode("grid")}
-                  className="h-7 text-xs px-2.5"
-                >
-                  <LayoutGrid className="mr-1 h-3.5 w-3.5" /> Grid
-                </Button>
-              </div>
-
-              <div className="text-xs text-slate-400 font-medium">
-                Showing {filtered.length} of {categories.length}
-              </div>
+            <div className="text-sm text-slate-400 font-medium px-4 py-2 bg-slate-950/50 border border-white/5 rounded-lg shadow-inner">
+              Total Categories: <span className="text-slate-200">{categories.length}</span>
             </div>
           </div>
 
-          {/* VIEW MODE 1: TABLE VIEW */}
-          {viewMode === "table" && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-800 hover:bg-transparent">
-                    <TableHead className="text-slate-400">Category Name</TableHead>
-                    <TableHead className="text-slate-400">Description</TableHead>
-                    <TableHead className="text-slate-400 text-center">Assigned Products</TableHead>
-                    <TableHead className="text-slate-400 text-right pr-6 font-semibold">Actions</TableHead>
+          <div className="overflow-x-auto relative z-10">
+            <Table>
+              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">Category</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Description</TableHead>
+                  <TableHead className="py-4 text-center font-semibold text-slate-300">Products</TableHead>
+                  {canManage && <TableHead className="w-16" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-12">
+                      <div className="animate-pulse">Loading categories...</div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-8">
-                        Loading categories...
-                      </TableCell>
-                    </TableRow>
-                  ) : filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-8">
-                        No categories found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filtered.map((cat, idx) => {
-                      const color = COLORS[idx % COLORS.length];
-                      return (
-                        <TableRow key={cat.id} className="border-slate-800/60 hover:bg-slate-800/30 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-9 w-9 border border-white/10" style={{ backgroundColor: `${color}20` }}>
-                                <AvatarFallback style={{ color }} className="font-bold text-xs">
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-12">
+                      No categories found matching "{searchQuery}"
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((cat, idx) => {
+                    const color = COLORS[idx % COLORS.length];
+                    return (
+                      <TableRow key={cat.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                        <TableCell className="pl-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <Avatar className="h-11 w-11 ring-1 ring-white/10 shadow-lg" style={{ backgroundColor: `${color}15` }}>
+                                <AvatarFallback style={{ color }} className="font-bold bg-transparent text-sm">
                                   {cat.name.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-semibold text-white">{cat.name}</span>
+                              <div className="absolute inset-0 rounded-full blur-[10px] opacity-30 -z-10" style={{ backgroundColor: color }} />
                             </div>
-                          </TableCell>
-                          <TableCell className="max-w-md truncate text-slate-400 text-xs">
-                            {cat.description || "—"}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-500/10 text-blue-300 border-blue-500/20 font-mono text-xs px-2.5 py-0.5"
-                            >
-                              {cat.product_count ?? 0} SKUs
-                            </Badge>
-                          </TableCell>
-                          {canManage && (
-                            <TableCell className="text-right pr-6">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEdit(cat)}
-                                  className="h-8 px-2.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/20"
-                                >
-                                  <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(cat)}
-                                  className="h-8 px-2.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20"
-                                >
-                                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                                </Button>
-                              </div>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {/* VIEW MODE 2: GRID CARDS VIEW */}
-          {viewMode === "grid" && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-2">
-              {loading ? (
-                <div className="col-span-full text-center text-slate-400 py-8">Loading category cards...</div>
-              ) : filtered.length === 0 ? (
-                <div className="col-span-full text-center text-slate-400 py-8">No categories found.</div>
-              ) : (
-                filtered.map((cat, idx) => {
-                  const color = COLORS[idx % COLORS.length];
-                  return (
-                    <Card
-                      key={cat.id}
-                      className="relative overflow-hidden bg-slate-950/60 border-slate-800 hover:border-slate-700 transition-all duration-200 group flex flex-col justify-between"
-                    >
-                      <CardHeader className="pb-3 flex flex-row items-start justify-between space-y-0">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border border-white/10" style={{ backgroundColor: `${color}20` }}>
-                            <AvatarFallback style={{ color }} className="font-bold text-sm">
-                              {cat.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <CardTitle className="text-base font-semibold text-white group-hover:text-blue-300 transition-colors">
-                              {cat.name}
-                            </CardTitle>
-                            <span className="text-[11px] text-slate-400">Category ID: #{cat.id}</span>
+                            <div>
+                              <div className="font-semibold text-slate-200 text-[15px]">{cat.name}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">ID: {cat.id}</div>
+                            </div>
                           </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3 pt-0">
-                        <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px]">
-                          {cat.description || "No description provided for this category."}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
-                          <span className="text-xs text-slate-400">Assigned SKUs:</span>
-                          <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-500/20 font-mono text-xs">
-                            {cat.product_count ?? 0} Products
+                        </TableCell>
+                        <TableCell className="max-w-md">
+                          <p className="truncate text-slate-400 text-sm">
+                            {cat.description || <span className="italic opacity-50">No description provided</span>}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner">
+                            {cat.product_count ?? 0}
                           </Badge>
-                        </div>
-
+                        </TableCell>
                         {canManage && (
-                          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800/60">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEdit(cat)}
-                              className="h-8 text-xs border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
-                            >
-                              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(cat)}
-                              className="h-8 text-xs border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
-                            >
-                              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
-                            </Button>
-                          </div>
+                          <TableCell className="pr-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 hover:text-slate-200">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
+                                <DropdownMenuItem onClick={() => openEdit(cat)} className="hover:bg-white/5 cursor-pointer text-slate-300">
+                                  <Pencil className="mr-2 h-4 w-4 text-indigo-400" /> Edit Category
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(cat)} className="hover:bg-rose-500/10 cursor-pointer text-rose-400 focus:text-rose-400 focus:bg-rose-500/10">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Category
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         )}
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Advanced Glassmorphism Add/Edit Category Dialog */}
+      {/* Modal */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md bg-slate-900/95 border-slate-800 text-white backdrop-blur-2xl shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <FolderPlus className="h-5 w-5 text-blue-400" />
-              {editing ? "Edit Category Details" : "Add New Category"}
+            <DialogTitle className="text-xl font-bold text-white">
+              {editing ? "Edit Category" : "Create New Category"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Create or modify product classification metadata for your inventory.
-            </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div>
-              <Label htmlFor="cat-name" className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <Tag className="h-3.5 w-3.5 text-blue-400" /> Category Name *
-              </Label>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cat-name" className="text-sm font-semibold text-slate-200">Category Name <span className="text-rose-400">*</span></Label>
               <Input
                 id="cat-name"
-                placeholder="e.g. Electrical Components"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
+                placeholder="e.g. Abrasives, Electronics..."
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
               />
             </div>
-
-            <div>
-              <Label htmlFor="cat-desc" className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <FileText className="h-3.5 w-3.5 text-blue-400" /> Description
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="cat-desc" className="text-sm font-semibold text-slate-200">Description</Label>
               <Textarea
                 id="cat-desc"
                 rows={3}
-                placeholder="Brief summary of items in this category..."
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="bg-slate-950/70 border-slate-800 text-white focus:border-blue-500"
+                placeholder="Describe what items belong in this category..."
+                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg resize-none"
               />
             </div>
           </div>
-
-          <DialogFooter className="mt-2 gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300"
-            >
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
               Cancel
             </Button>
-            <Button
-              onClick={handleSave}
+            <Button 
+              onClick={handleSave} 
               disabled={saving}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50"
             >
-              {saving ? "Saving..." : editing ? "Update Category" : "Create Category"}
+              {saving ? "Saving..." : editing ? "Save Changes" : "Create Category"}
             </Button>
           </DialogFooter>
         </DialogContent>

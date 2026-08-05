@@ -53,6 +53,14 @@ class StockInTransaction(TimeStampedModel):
 
     received_at = models.DateTimeField()
 
+    batch = models.ForeignKey(
+        "Batch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_in_transactions",
+    )
+
     created_by = models.ForeignKey(
 
         settings.AUTH_USER_MODEL,
@@ -105,6 +113,14 @@ class StockOutTransaction(TimeStampedModel):
     cogs = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     anomaly_score = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
     is_anomaly = models.BooleanField(default=False)
+
+    batch = models.ForeignKey(
+        "Batch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_out_transactions",
+    )
 
     created_by = models.ForeignKey(
 
@@ -333,16 +349,23 @@ class StockTakeLine(TimeStampedModel):
 
 class Batch(TimeStampedModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="batches")
-    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="batches")
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="batches", null=True, blank=True
+    )
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="batches")
     batch_number = models.CharField(max_length=50)
     expiry_date = models.DateField(null=True, blank=True)
     quantity_on_hand = models.PositiveIntegerField(default=0)
     unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    last_expiry_alert_at = models.DateField(null=True, blank=True)
+    last_expiry_alert_band = models.CharField(max_length=10, blank=True, default="")
 
     class Meta:
         ordering = ["expiry_date", "created_at"]
         unique_together = [("product", "location", "batch_number")]
+
+    def __str__(self):
+        return f"{self.batch_number} ({self.product.sku})"
 
 
 class SupplierReturn(TimeStampedModel):
@@ -360,6 +383,7 @@ class SupplierReturn(TimeStampedModel):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="supplier_returns"
     )
     shipped_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
 
 class SupplierReturnLine(TimeStampedModel):

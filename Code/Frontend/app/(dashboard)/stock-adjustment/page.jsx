@@ -9,9 +9,10 @@ import {
   ArrowRight,
   Info,
   ShieldAlert,
+  Sparkles,
   CheckCircle2,
   History,
-  Wallet,
+  DollarSign,
   Layers,
   TrendingUp,
   TrendingDown,
@@ -535,7 +536,7 @@ function StockAdjustmentPageContent() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-indigo-400" />
+                  <Sparkles className="h-4 w-4 text-indigo-400" />
                   AI Anomaly & Risk Analysis
                 </CardTitle>
                 <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs">
@@ -603,7 +604,7 @@ function StockAdjustmentPageContent() {
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-emerald-400" />
+                <DollarSign className="h-4 w-4 text-emerald-400" />
                 Financial Valuation Impact
               </CardTitle>
               <CardDescription className="text-slate-400 text-xs">

@@ -78,46 +78,26 @@ def validate_password_policy(password: str, user=None, org_settings=None):
 
 
 def seed_system_roles(organization: Organization):
-    managers = list(
-        Role.objects.filter(organization=organization, name="Manager").order_by("id")
+    manager, mgr_created = Role.objects.get_or_create(
+        organization=organization,
+        name="Manager",
+        defaults={
+            "description": "Operations manager with elevated inventory access",
+            "is_system": True,
+        },
     )
-    if not managers:
-        manager = Role.objects.create(
-            organization=organization,
-            name="Manager",
-            description="Operations manager with elevated inventory access",
-            is_system=True,
-        )
+    staff, stf_created = Role.objects.get_or_create(
+        organization=organization,
+        name="Staff",
+        defaults={
+            "description": "Warehouse and operational staff",
+            "is_system": True,
+        },
+    )
+    if mgr_created or not manager.permissions.exists():
         _apply_defaults(manager, MANAGER_DEFAULTS)
-    else:
-        manager = managers[0]
-        if len(managers) > 1:
-            for dup in managers[1:]:
-                for u in dup.users.all():
-                    u.roles.add(manager)
-                dup.delete()
-
-    staffs = list(
-        Role.objects.filter(organization=organization, name="Staff").order_by("id")
-    )
-    if not staffs:
-        staff = Role.objects.create(
-            organization=organization,
-            name="Staff",
-            description="Warehouse and operational staff",
-            is_system=True,
-        )
+    if stf_created or not staff.permissions.exists():
         _apply_defaults(staff, STAFF_DEFAULTS)
-    else:
-        staff = staffs[0]
-        if len(staffs) > 1:
-            for dup in staffs[1:]:
-                for u in dup.users.all():
-                    u.roles.add(staff)
-                dup.delete()
-
-    RolePermission.objects.filter(role=manager, module__in=["reports", "roles"]).delete()
-
     ensure_default_templates(organization)
     ensure_default_templates(None)
     return manager, staff
@@ -139,6 +119,7 @@ def ensure_default_organization():
         slug="stocksense",
         defaults={"name": "StockSense", "is_active": True},
     )
+    OrganizationSettings.objects.get_or_create(organization=org)
     if created or not org.roles.exists():
         seed_system_roles(org)
     return org

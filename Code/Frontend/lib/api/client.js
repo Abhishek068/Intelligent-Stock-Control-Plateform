@@ -1,6 +1,10 @@
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables.");
+}
 
 
 
@@ -25,40 +29,30 @@ async function parseResponse(response) {
   const body = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    let message = "Request failed";
-    if (typeof body === "string") {
-      message = body;
-    } else if (typeof body === "object" && body !== null) {
-      if (body.error) {
-        message = String(body.error);
-      } else if (body.detail) {
-        message = String(body.detail);
-      } else if (Array.isArray(body.non_field_errors)) {
-        message = body.non_field_errors.join(", ");
-      } else {
-        const entries = Object.entries(body);
-        if (entries.length > 0) {
-          const [key, val] = entries[0];
-          const valStr = Array.isArray(val) ? val.join(", ") : String(val);
-          message = key === "non_field_errors" ? valStr : `${key}: ${valStr}`;
-        } else {
-          message = JSON.stringify(body);
-        }
-      }
-    }
-    throw new ApiError(response.status, message, body);
+    const message =
+    typeof body === "object" && body !== null ?
+    body.error ?? JSON.stringify(body) :
+    String(body);
+    throw new ApiError(response.status, message);
   }
 
   return body;
 }
 
 export class ApiError extends Error {
-  constructor(status, details, rawBody) {
-    const message = typeof details === "string" ? details : "Request failed";
+
+
+
+  constructor(status, details) {
+    const message =
+    typeof details === "string" ?
+    details :
+    typeof details === "object" && details !== null && "detail" in details ?
+    String(details.detail) :
+    "Request failed";
     super(message);
     this.status = status;
     this.details = details;
-    this.rawBody = rawBody;
   }
 }
 

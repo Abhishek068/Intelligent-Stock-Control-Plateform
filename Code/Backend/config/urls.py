@@ -65,11 +65,13 @@ from inventory.views import (
 )
 from notifications.views import DeviceTokenViewSet, NotificationViewSet
 from stock.views import (
+    BatchViewSet,
     StockAdjustmentViewSet,
     StockInViewSet,
     StockOutViewSet,
     StockTakeViewSet,
     StockTransferViewSet,
+    SupplierReturnViewSet,
 )
 from billing.views import CustomerViewSet, InvoiceViewSet
 from procurement.views import PurchaseOrderViewSet
@@ -86,6 +88,8 @@ router.register(r"stock-out", StockOutViewSet, basename="stock-out")
 router.register(r"stock-adjustments", StockAdjustmentViewSet, basename="stock-adjustment")
 router.register(r"stock-transfers", StockTransferViewSet, basename="stock-transfer")
 router.register(r"stock-takes", StockTakeViewSet, basename="stock-take")
+router.register(r"batches", BatchViewSet, basename="batch")
+router.register(r"supplier-returns", SupplierReturnViewSet, basename="supplier-return")
 router.register(r"purchase-orders", PurchaseOrderViewSet, basename="purchase-order")
 router.register(r"customers", CustomerViewSet, basename="customer")
 router.register(r"invoices", InvoiceViewSet, basename="invoice")

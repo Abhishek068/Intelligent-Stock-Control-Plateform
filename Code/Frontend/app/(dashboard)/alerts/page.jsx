@@ -5,7 +5,6 @@ import {
   Bell,
   AlertTriangle,
   CheckCircle,
-
   Package,
   Calendar,
   TrendingUp,
@@ -13,6 +12,7 @@ import {
   Filter,
   CheckCheck,
   Eye,
+  Zap,
   X } from
 "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatsGrid } from "@/components/shared/StatsGrid";
 import { ExplainabilitySheet } from "@/components/shared/ExplainabilitySheet";
 
-import { notificationsApi, analyticsApi } from "@/lib/api";
+import { notificationsApi, analyticsApi, stockApi } from "@/lib/api";
 
 const severityColors = {
   critical: "bg-red-500 text-white",
@@ -143,23 +143,54 @@ export default function AlertsPage() {
     predictive: alerts.filter((a) => a.type === "predictive" && !a.read).length
   };
 
+  const handleRunExpiryScan = async () => {
+    try {
+      const res = await stockApi.triggerExpiryScan();
+      toast.success(res?.message || "Expiry scan completed!");
+      const items = await notificationsApi.list().catch(() => []);
+      const fromNotifications = items.map((a) => ({
+        id: String(a.id),
+        type: String(a.notification_type || "").replaceAll("_", "-"),
+        severity: a.severity,
+        title: a.title,
+        message: a.message,
+        product: a.related_entity_id,
+        timestamp: new Date(a.created_at).toLocaleString(),
+        read: a.is_read,
+        explanation: a.explanation_json,
+        source: "notification",
+      }));
+      setAlerts(fromNotifications);
+    } catch {
+      toast.error("Failed to run expiry scan.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Alerts & Notifications"
-        description="Monitor stock warnings, predictions, and system notifications"
+        description="Monitor stock warnings, expiry thresholds (30d/15d/7d), predictions, and system notifications"
         actions={
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              onClick={handleRunExpiryScan}
+              className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-semibold rounded-lg"
+            >
+              <Zap className="mr-1.5 h-3.5 w-3.5 text-amber-400" /> Run Expiry Scan
+            </Button>
             <Badge variant="secondary" className="text-sm">
               <Bell className="mr-1 h-3 w-3" /> {unreadCount} unread
             </Badge>
-            {unreadCount > 0 &&
-          <Button variant="outline" size="sm" onClick={markAllAsRead}>
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={markAllAsRead}>
                 <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
               </Button>
-          }
+            )}
           </div>
-        } />
+        } 
+      />
       
 
       <StatsGrid

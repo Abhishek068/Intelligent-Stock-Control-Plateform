@@ -25,6 +25,8 @@ import {
   History,
   Mail,
   Activity,
+  Layers,
+  Undo2,
   KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -61,6 +63,7 @@ export function Sidebar() {
         { name: "Suppliers", href: "/suppliers", icon: Users, show: can("suppliers") },
         { name: "Warehouse", href: "/warehouse", icon: Warehouse, show: can("settings") },
         { name: "Barcode Scanner", href: "/barcode", icon: ScanBarcode, show: can("products", "edit") || can("stock_take") },
+        { name: "Batches & Lots", href: "/batches", icon: Layers, show: can("stock_in") },
         { name: "Stock-take", href: "/stock-take", icon: Calendar, show: can("stock_take") },
       ],
     },
@@ -71,6 +74,7 @@ export function Sidebar() {
         { name: "Stock Out", href: "/stock-out", icon: ClipboardList, show: can("stock_out") },
         { name: "Adjustments", href: "/stock-adjustment", icon: AlertTriangle, show: can("adjustments") },
         { name: "Transfers", href: "/stock-transfer", icon: Package, show: can("transfers") },
+        { name: "Supplier Returns", href: "/supplier-returns", icon: Undo2, show: can("stock_out") },
         { name: "Invoices", href: "/invoices", icon: Receipt, show: can("invoices") || can("reports") },
         { name: "Customers", href: "/customers", icon: Users, show: can("customers") },
         { name: "Purchase Orders", href: "/purchase-orders", icon: FileText, show: can("purchase_orders") || can("reports") },
@@ -110,19 +114,21 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-slate-950 border-r border-white/5 flex flex-col transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen bg-slate-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col transition-all duration-300 shadow-xl shadow-black/50",
         sidebarCollapsed ? "w-16" : "w-64"
       )}
     >
       <div
         className={cn(
-          "flex h-16 items-center border-b border-white/5 transition-all duration-300",
+          "flex h-16 items-center border-b border-white/5 transition-all duration-300 relative overflow-hidden",
           sidebarCollapsed ? "justify-center px-1" : "justify-between px-4"
         )}
       >
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent pointer-events-none" />
+        
         {sidebarCollapsed ? (
-          <div className="flex items-center gap-1">
-            <img src="/logo.jpg" alt="Logo" className="w-6 h-6 rounded object-cover shrink-0" />
+          <div className="flex items-center gap-1 z-10">
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0 shadow-lg shadow-black/20 border border-white/10" />
             <button
               onClick={toggleSidebar}
               className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors shrink-0"
@@ -132,18 +138,18 @@ export function Sidebar() {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2">
-              <img src="/logo.jpg" alt="Logo" className="w-7 h-7 rounded object-cover" />
+            <div className="flex items-center gap-3 z-10">
+              <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-black/20 border border-white/10" />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-gradient leading-tight">Stock Control System</span>
-                <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase leading-none mt-0.5">
+                <span className="text-[15px] font-bold text-gradient leading-tight tracking-wide">StockSense</span>
+                <span className="text-[10px] font-semibold tracking-widest text-indigo-400 uppercase leading-none mt-0.5">
                   Operations
                 </span>
               </div>
             </div>
             <button
               onClick={toggleSidebar}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors z-10"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -153,19 +159,20 @@ export function Sidebar() {
 
       <div
         className={cn(
-          "flex-1 overflow-y-auto transition-all duration-300 scroll-smooth",
-          sidebarCollapsed ? "px-2 py-4" : "px-3 py-4"
+          "flex-1 overflow-y-auto custom-scrollbar transition-all duration-300 scroll-smooth",
+          sidebarCollapsed ? "px-2 py-6" : "px-4 py-6"
         )}
       >
-        <div className="space-y-6">
+        <div className="space-y-8">
           {navGroups.map((group, idx) => (
-            <div key={idx}>
+            <div key={idx} className="relative">
               {!sidebarCollapsed && (
-                <h4 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <h4 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                   {group.label}
+                  <div className="h-px bg-white/5 flex-1" />
                 </h4>
               )}
-              <nav className="space-y-1">
+              <nav className="space-y-1.5">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                   return (
@@ -174,20 +181,23 @@ export function Sidebar() {
                       href={item.href}
                       title={sidebarCollapsed ? item.name : undefined}
                       className={cn(
-                        "group relative flex items-center rounded-lg py-2 text-sm font-medium transition-all duration-200",
-                        sidebarCollapsed ? "justify-center px-0 mx-auto w-10 h-10" : "gap-3 px-3",
+                        "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 overflow-hidden",
+                        sidebarCollapsed ? "justify-center px-0 mx-auto w-11 h-11" : "gap-3 px-3",
                         isActive
-                          ? "bg-indigo-500/10 text-indigo-400"
-                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                          ? "bg-indigo-500/10 text-indigo-300 shadow-[inset_3px_0_0_0_rgba(99,102,241,1)]"
+                          : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
                       )}
                     >
+                      {isActive && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-50" />
+                      )}
                       <item.icon
                         className={cn(
-                          "h-5 w-5 shrink-0",
-                          isActive ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-300"
+                          "h-[18px] w-[18px] shrink-0 relative z-10 transition-colors",
+                          isActive ? "text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" : "text-slate-400 group-hover:text-slate-300"
                         )}
                       />
-                      {!sidebarCollapsed && <span>{item.name}</span>}
+                      {!sidebarCollapsed && <span className="relative z-10 truncate">{item.name}</span>}
                     </Link>
                   );
                 })}
@@ -197,16 +207,17 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className={cn("border-t border-white/5", sidebarCollapsed ? "p-2" : "p-4")}>
+      <div className={cn("border-t border-white/5 bg-slate-950/50", sidebarCollapsed ? "p-3" : "p-5")}>
         <button
           onClick={handleLogout}
           className={cn(
-            "group flex items-center rounded-lg py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white",
-            sidebarCollapsed ? "justify-center w-10 h-10 mx-auto" : "gap-3 px-3 w-full"
+            "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 w-full",
+            sidebarCollapsed ? "justify-center px-0 h-11" : "gap-3 px-3",
+            "text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:shadow-[inset_3px_0_0_0_rgba(244,63,94,1)]"
           )}
         >
-          <LogOut className="h-5 w-5 shrink-0 group-hover:text-rose-400" />
-          {!sidebarCollapsed && <span>Logout</span>}
+          <LogOut className="h-[18px] w-[18px] shrink-0 transition-colors group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+          {!sidebarCollapsed && <span className="truncate">Sign Out</span>}
         </button>
       </div>
     </aside>

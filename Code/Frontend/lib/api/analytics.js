@@ -58,8 +58,9 @@ export const analyticsApi = {
     return apiClient.post("/reorder-recommendations/generate/");
   },
 
-  getReport(type) {
-    return apiClient.get(`/reports/?type=${type}`);
+  getReport(type, params = {}) {
+    const qs = new URLSearchParams({ type, ...params }).toString();
+    return apiClient.get(`/reports/?${qs}`);
   },
 
   async listPredictiveAlerts(params) {

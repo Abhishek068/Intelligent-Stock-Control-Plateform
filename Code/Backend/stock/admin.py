@@ -1,12 +1,15 @@
 from django.contrib import admin
 
 from stock.models import (
+    Batch,
     StockAdjustment,
     StockInTransaction,
     StockOutTransaction,
     StockTake,
     StockTakeLine,
     StockTransfer,
+    SupplierReturn,
+    SupplierReturnLine,
 )
 
 
@@ -92,3 +95,30 @@ class StockTakeLineAdmin(admin.ModelAdmin):
     list_display = ("stock_take", "product", "system_qty", "counted_qty")
     list_filter = ("stock_take",)
     search_fields = ("product__sku", "product__name", "notes")
+
+
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "batch_number",
+        "product",
+        "location",
+        "quantity_on_hand",
+        "expiry_date",
+        "unit_cost",
+    )
+    list_filter = ("location", "expiry_date")
+    search_fields = ("batch_number", "product__sku", "product__name")
+
+
+class SupplierReturnLineInline(admin.TabularInline):
+    model = SupplierReturnLine
+    extra = 0
+
+
+@admin.register(SupplierReturn)
+class SupplierReturnAdmin(admin.ModelAdmin):
+    list_display = ("supplier", "location", "status", "shipped_at", "created_at")
+    list_filter = ("status", "location")
+    search_fields = ("supplier__name", "reason")
+    inlines = [SupplierReturnLineInline]

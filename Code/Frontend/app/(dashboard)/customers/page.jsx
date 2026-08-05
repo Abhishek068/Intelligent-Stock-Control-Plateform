@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, UsersRound, Search, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,14 +29,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { PageHeader } from "@/components/shared/PageHeader";
-import { FilterBar } from "@/components/shared/FilterBar";
-import { SearchInput } from "@/components/shared/SearchInput";
 import { ModuleGate } from "@/components/shared/ModuleGate";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { customersApi } from "@/lib/api";
@@ -150,155 +146,227 @@ function CustomersPageContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Customers"
-        description="Bill-to customers for invoices"
-        actions={
-          canManage && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="mr-2 h-4 w-4" /> Add Customer
-            </Button>
-          )
-        }
-      />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+        <div className="absolute -top-10 -left-10 w-64 h-64 bg-blue-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+              <UsersRound className="h-6 w-6" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Customers
+            </h1>
+          </div>
+          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+            Manage your bill-to customers and invoice recipients.
+          </p>
+        </div>
+
+        {canManage && (
+          <Button 
+            onClick={openCreate}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl px-5 shadow-lg shadow-blue-500/25 border border-blue-500/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Customer
+          </Button>
+        )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit customer" : "Add customer"}</DialogTitle>
+        <DialogContent className="max-w-xl bg-[#0F172A] border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.15)] rounded-2xl p-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+          
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-white">
+              <UserCheck className="h-6 w-6 text-blue-400" />
+              {editing ? "Edit Customer" : "Add New Customer"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div className="grid gap-2">
-              <Label>Name *</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
+
+          <div className="px-6 py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-300">Name <span className="text-blue-400">*</span></Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Acme Corp"
+                  className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 h-11 rounded-xl font-medium"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-300">Company</Label>
+                <Input
+                  value={form.company}
+                  onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                  placeholder="e.g. Acme Corporation"
+                  className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 h-11 rounded-xl font-medium"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-300">Email</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="contact@acme.com"
+                  className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 h-11 rounded-xl font-medium"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-300">Phone</Label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+1 (555) 000-0000"
+                  className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 h-11 rounded-xl font-medium"
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Phone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Company</Label>
-              <Input
-                value={form.company}
-                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Address</Label>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-300">Address</Label>
               <Textarea
                 value={form.address}
                 onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                rows={2}
+                placeholder="123 Business Rd, Suite 100..."
+                className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 rounded-xl resize-none"
               />
             </div>
-            <div className="grid gap-2">
-              <Label>Notes</Label>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-300">Notes</Label>
               <Textarea
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                placeholder="Any additional details..."
+                className="w-full bg-slate-900 border-white/10 text-white placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 rounded-xl resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+
+          <DialogFooter className="px-6 pb-6 pt-2 flex gap-3 sm:justify-end">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl px-5">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : "Save"}
+            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-6 shadow-lg shadow-blue-500/25">
+              {saving ? "Saving..." : "Save Customer"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Card className="glass-card">
-        <CardContent className="p-4 space-y-4">
-          <FilterBar>
-            <SearchInput
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
+        
+        {/* Search Bar Area */}
+        <div className="px-8 py-5 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="relative w-full max-w-md group">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+            <Input
+              placeholder="Search customers by name, email, or company..."
               value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search customers..."
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-slate-950/80 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all rounded-xl h-10 w-full"
             />
-          </FilterBar>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Status</TableHead>
-                {canManage && <TableHead className="w-12" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-slate-400">
-                    Loading...
-                  </TableCell>
+          </div>
+        </div>
+
+        <CardContent className="p-0">
+          <div className="overflow-x-auto relative z-10">
+            <Table>
+              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">Customer Name</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Email Address</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Company</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
+                  {canManage && <TableHead className="py-4 pr-8 text-right font-semibold text-slate-300">Actions</TableHead>}
                 </TableRow>
-              )}
-              {!loading && filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-slate-400">
-                    No customers yet
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>{c.email || "—"}</TableCell>
-                  <TableCell>{c.company || "—"}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        c.status === "active" ? "bg-green-600" : "bg-slate-500"
-                      }
-                    >
-                      {c.status}
-                    </Badge>
-                  </TableCell>
-                  {canManage && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => openEdit(c)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(c.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-slate-400 py-12">
+                      <div className="animate-pulse flex items-center justify-center gap-2">
+                        <div className="h-4 w-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                        Loading customers...
+                      </div>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-slate-400 py-12">
+                      <div className="flex flex-col items-center justify-center">
+                        <UsersRound className="h-10 w-10 text-slate-600 mb-3" />
+                        <p>No customers found.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((c) => (
+                    <TableRow key={c.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                      <TableCell className="pl-8 py-5">
+                        <div className="font-semibold text-slate-100">{c.name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-300">{c.email || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-300">{c.company || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        {c.status === "active" ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-inner px-2.5 py-1">
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20 shadow-inner px-2.5 py-1">
+                            {c.status || "Inactive"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      {canManage && (
+                        <TableCell className="text-right pr-8">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
+                              <DropdownMenuLabel className="text-slate-400 text-xs uppercase tracking-wider">Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEdit(c)} className="focus:bg-blue-500/20 focus:text-blue-200 cursor-pointer rounded-lg m-1">
+                                <Pencil className="mr-2 h-4 w-4 text-blue-400" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(c.id)}
+                                className="focus:bg-rose-500/20 focus:text-rose-400 cursor-pointer text-rose-400 rounded-lg m-1"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

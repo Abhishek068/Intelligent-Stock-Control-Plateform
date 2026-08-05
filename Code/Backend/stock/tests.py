@@ -66,6 +66,134 @@ class StockValuationTests(TestCase):
         self.assertEqual(self._cost_for_method("weighted_average"), Decimal("22.50"))
 
 
+class BatchExpiryAndFIFOTests(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.organization = Organization.objects.create(name="Test Org FEFO", slug="test-org-fefo")
+        self.settings = OrganizationSettings.objects.create(organization=self.organization)
+        self.user = User.objects.create_user(
+            email="fefo@example.test",
+            username="fefo-user",
+            password="password",
+            organization=self.organization,
+            status=User.Status.ACTIVE,
+        )
+        self.supplier = Supplier.objects.create(organization=self.organization, name="FEFO Supplier")
+        category = Category.objects.create(organization=self.organization, name="Pharma")
+        self.product = Product.objects.create(
+            organization=self.organization,
+            category=category,
+            supplier=self.supplier,
+            sku="DRUG-01",
+            name="Antibiotic 500mg",
+            unit_price=Decimal("15.00"),
+        )
+        self.location = Location.objects.create(organization=self.organization, name="Main Storage")
+        self.today = timezone.now().date()
+
+    def test_fefo_consumption_order(self):
+        from datetime import timedelta
+        from stock.models import Batch
+        from stock.services import StockService
+
+        # Batch 1 expires in 20 days
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=10,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+            batch_number="BATCH-LATER",
+            expiry_date=self.today + timedelta(days=20),
+        )
+        # Batch 2 expires in 3 days (earlier expiry)
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=5,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+            batch_number="BATCH-EARLIER",
+            expiry_date=self.today + timedelta(days=3),
+        )
+
+        txn, _ = StockService.stock_out(
+            product=self.product,
+            location=self.location,
+            quantity=4,
+            user=self.user,
+        )
+
+        self.assertEqual(txn.batch.batch_number, "BATCH-EARLIER")
+        b_earlier = Batch.objects.get(batch_number="BATCH-EARLIER")
+        b_later = Batch.objects.get(batch_number="BATCH-LATER")
+        self.assertEqual(b_earlier.quantity_on_hand, 1)
+        self.assertEqual(b_later.quantity_on_hand, 10)
+
+    def test_expired_batch_issuance_blocked(self):
+        from datetime import timedelta
+        from stock.services import InsufficientStockError, StockService
+
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=5,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+            batch_number="BATCH-EXPIRED",
+            expiry_date=self.today - timedelta(days=2),
+        )
+
+        with self.assertRaises(InsufficientStockError) as ctx:
+            StockService.stock_out(
+                product=self.product,
+                location=self.location,
+                quantity=1,
+                user=self.user,
+            )
+        self.assertIn("expired", str(ctx.exception).lower())
+
+    def test_evaluate_batch_expiry_alerts(self):
+        from datetime import timedelta
+        from notifications.models import Notification
+        from stock.services import StockService
+        from stock.tasks import evaluate_batch_expiry
+
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=5,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+            batch_number="BATCH-30D",
+            expiry_date=self.today + timedelta(days=25),
+        )
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=5,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+            batch_number="BATCH-7D",
+            expiry_date=self.today + timedelta(days=5),
+        )
+
+        result = evaluate_batch_expiry()
+        self.assertGreaterEqual(result["alerts"], 2)
+        expiry_notifs = Notification.objects.filter(
+            organization=self.organization,
+            notification_type=Notification.NotificationType.EXPIRY,
+        )
+        self.assertTrue(expiry_notifs.filter(severity=Notification.Severity.CRITICAL).exists())
+        self.assertTrue(expiry_notifs.filter(severity=Notification.Severity.INFO).exists())
+
+
 
                          
 

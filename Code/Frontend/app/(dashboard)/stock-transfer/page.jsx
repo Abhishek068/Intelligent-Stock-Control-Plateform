@@ -13,6 +13,8 @@ import {
   Layers,
   Truck,
   XCircle,
+  MapPin,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,7 +28,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { productsApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
@@ -46,12 +47,21 @@ const transferSchema = z
     path: ["destinationLocationId"],
   });
 
-const STATUS_BADGE = {
-  draft: "bg-slate-600",
-  in_transit: "bg-amber-600",
-  completed: "bg-green-600",
-  cancelled: "bg-red-600",
-};
+function StatusBadge({ status }) {
+  if (status === "draft") {
+    return <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20 shadow-inner px-2.5 py-1">Draft</Badge>;
+  }
+  if (status === "in_transit") {
+    return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] px-2.5 py-1 animate-pulse">In Transit</Badge>;
+  }
+  if (status === "completed") {
+    return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-inner px-2.5 py-1">Completed</Badge>;
+  }
+  if (status === "cancelled") {
+    return <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-inner px-2.5 py-1">Cancelled</Badge>;
+  }
+  return <Badge variant="outline">{status}</Badge>;
+}
 
 function StockTransferPageContent() {
   const { isSuperAdmin, hasPermission } = useRoleAccess();
@@ -218,185 +228,192 @@ function StockTransferPageContent() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+        <div className="absolute -top-10 -left-10 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Stock Transfer</h1>
-          <p className="text-slate-400">Draft → ship → complete between locations</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-fuchsia-500/20 rounded-xl border border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.2)]">
+              <ArrowLeftRight className="h-6 w-6" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Stock Transfer
+            </h1>
+          </div>
+          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+            Draft → ship → complete between locations securely.
+          </p>
         </div>
-        <Badge variant="outline" className="text-purple-600">
-          <ArrowLeftRight className="mr-1 h-3 w-3" /> Transfer
+
+        <Badge className="bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20 shadow-[0_0_15px_rgba(217,70,239,0.2)] px-4 py-1.5 text-sm">
+          <ArrowLeftRight className="mr-2 h-4 w-4" /> Transfers Active
         </Badge>
       </div>
 
       {step === 1 && canCreate && (
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Step 1: Transfer Details</CardTitle>
-            <CardDescription>Creates a draft; stock moves only when completed</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-fuchsia-500/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col">
+            <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
+              <MapPin className="h-5 w-5 text-fuchsia-400" /> 
+              Step 1: Transfer Details
+            </div>
+            <p className="text-sm text-slate-400 mt-1">
+              Creates a draft; stock moves only when completed and verified.
+            </p>
+          </div>
+
+          <CardContent className="p-8 relative z-10">
             <Form {...form}>
-              <form className="space-y-6">
+              <form className="space-y-8">
                 <div className="grid gap-6 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="sourceLocationId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Source *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select source" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {locations.map((l) => (
-                              <SelectItem key={l.id} value={String(l.id)}>
-                                {l.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="destinationLocationId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destination *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select destination" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {locations.map((l) => (
-                              <SelectItem key={l.id} value={String(l.id)}>
-                                {l.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="productId"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Product *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="justify-between">
-                              {field.value
-                                ? products.find((p) => String(p.id) === field.value)?.name
-                                : "Select product..."}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                              <CommandInput placeholder="Search..." />
-                              <CommandEmpty>No product.</CommandEmpty>
-                              <CommandGroup>
-                                {products.map((p) => (
-                                  <CommandItem
-                                    key={p.id}
-                                    value={String(p.id)}
-                                    onSelect={() => field.onChange(String(p.id))}
-                                  >
-                                    {p.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity *</FormLabel>
+                  <FormField control={form.control} name="sourceLocationId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-300">Source Location <span className="text-rose-400">*</span></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
+                          <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-fuchsia-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                            <SelectValue placeholder="Select source" />
+                          </SelectTrigger>
                         </FormControl>
+                        <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
+                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-fuchsia-500/20 focus:text-fuchsia-200 cursor-pointer">{l.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-rose-400 text-xs" />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="destinationLocationId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-300">Destination Location <span className="text-rose-400">*</span></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-fuchsia-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                            <SelectValue placeholder="Select destination" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
+                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-fuchsia-500/20 focus:text-fuchsia-200 cursor-pointer">{l.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-rose-400 text-xs" />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="productId" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-sm font-semibold text-slate-300">Product <span className="text-rose-400">*</span></FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="justify-between bg-slate-950/50 border-white/10 hover:bg-white/5 text-slate-200 rounded-xl h-11 font-medium">
+                            {field.value ? products.find((p) => String(p.id) === field.value)?.name : "Select product..."}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
+                          <Command className="bg-transparent text-slate-200">
+                            <CommandInput placeholder="Search products..." className="border-b border-white/10 h-11" />
+                            <CommandEmpty className="py-6 text-center text-sm text-slate-400">No product found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-auto">
+                              {products.map((p) => (
+                                <CommandItem 
+                                  key={p.id} 
+                                  value={String(p.id)} 
+                                  onSelect={() => field.onChange(String(p.id))}
+                                  className="aria-selected:bg-fuchsia-500/20 aria-selected:text-fuchsia-200 cursor-pointer text-slate-300 py-3"
+                                >
+                                  {p.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className="text-rose-400 text-xs" />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="quantity" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-300 flex justify-between">
+                        <span>Quantity <span className="text-rose-400">*</span></span>
                         {sourceId && productId && (
-                          <p className="text-xs text-slate-400">
-                            Available at source: <strong>{sourceStock}</strong>
-                          </p>
+                          <span className="text-xs text-slate-400 font-normal">
+                            Source Avail: <strong className="text-fuchsia-400 font-mono">{sourceStock}</strong>
+                          </span>
                         )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          className={`bg-slate-950/80 border-white/10 focus:ring-1 text-slate-100 font-bold rounded-xl h-11 ${isOverTransfer ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/30' : 'focus:border-fuchsia-500/50 focus:ring-fuchsia-500/30'}`}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-rose-400 text-xs" />
+                    </FormItem>
+                  )} />
 
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Optional transfer notes" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="notes" render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel className="text-sm font-semibold text-slate-300">Notes</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Optional transfer notes..." 
+                          {...field} 
+                          className="bg-slate-950/80 border-white/10 focus:border-fuchsia-500/50 focus:ring-1 focus:ring-fuchsia-500/30 text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-500"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )} />
                 </div>
 
                 {sourceId && destId && productId && (
-                  <Alert className="border-blue-200 bg-blue-50">
-                    <Layers className="h-4 w-4 text-blue-600" />
-                    <AlertTitle>Location Stock Overview</AlertTitle>
-                    <AlertDescription>
-                      <div className="mt-1 grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium text-blue-800">{sourceLoc?.name}</p>
-                          <p>
-                            Stock: <strong>{sourceStock}</strong>
-                          </p>
+                  <div className="flex items-start gap-4 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-5 shadow-[0_0_20px_rgba(217,70,239,0.1)] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-fuchsia-500/5 group-hover:bg-fuchsia-500/10 transition-colors" />
+                    <Layers className="h-6 w-6 shrink-0 text-fuchsia-400 relative z-10" />
+                    <div className="relative z-10 w-full">
+                      <h5 className="font-bold text-fuchsia-100 text-base">Location Stock Overview</h5>
+                      <div className="mt-3 grid grid-cols-2 gap-4 text-sm bg-slate-950/50 rounded-lg p-3 border border-white/5">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-300 truncate">{sourceLoc?.name}</span>
+                          <span className="text-slate-400 mt-1">Current Stock: <strong className="text-white font-mono">{sourceStock}</strong></span>
                         </div>
-                        <div>
-                          <p className="font-medium text-blue-800">{destLoc?.name}</p>
-                          <p>
-                            Stock: <strong>{destStock}</strong>
-                          </p>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-300 truncate">{destLoc?.name}</span>
+                          <span className="text-slate-400 mt-1">Current Stock: <strong className="text-white font-mono">{destStock}</strong></span>
                         </div>
                       </div>
-                    </AlertDescription>
-                  </Alert>
+                    </div>
+                  </div>
                 )}
 
                 {isOverTransfer && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Insufficient Stock</AlertTitle>
-                    <AlertDescription>Only {sourceStock} available at source.</AlertDescription>
-                  </Alert>
+                  <div className="flex items-start gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-5 shadow-[0_0_20px_rgba(244,63,94,0.1)] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors" />
+                    <AlertCircle className="h-6 w-6 shrink-0 text-rose-400 relative z-10 animate-pulse" />
+                    <div className="relative z-10">
+                      <h5 className="font-bold text-rose-100 text-base">Insufficient Stock</h5>
+                      <p className="text-sm text-rose-200 mt-1">
+                        Only <strong className="text-white font-mono bg-rose-500/20 px-1.5 py-0.5 rounded">{sourceStock}</strong> available at source location.
+                      </p>
+                    </div>
+                  </div>
                 )}
 
-                <div className="flex justify-end">
-                  <Button type="button" onClick={goToConfirm} disabled={isOverTransfer}>
+                <div className="flex justify-end pt-4 border-t border-white/5">
+                  <Button 
+                    type="button" 
+                    onClick={goToConfirm} 
+                    disabled={isOverTransfer}
+                    className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-fuchsia-500/20 rounded-xl h-11 px-8 border border-fuchsia-500/50 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  >
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -407,37 +424,57 @@ function StockTransferPageContent() {
       )}
 
       {step === 2 && (
-        <Card className="border-purple-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-purple-600" /> Step 2: Confirm Draft
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg bg-slate-900/50 p-4">
-              <div className="grid grid-cols-2 gap-1 text-sm">
-                <span className="font-medium">Source:</span>
-                <span>{sourceLoc?.name}</span>
-                <span className="font-medium">Destination:</span>
-                <span>{destLoc?.name}</span>
-                <span className="font-medium">Product:</span>
-                <span>{selectedProduct?.name}</span>
-                <span className="font-medium">Quantity:</span>
-                <span>{quantity}</span>
+        <Card className="border border-fuchsia-500/30 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col">
+            <div className="flex items-center gap-2 text-fuchsia-300 font-bold text-xl">
+              <CheckCircle className="h-6 w-6 text-fuchsia-400" /> 
+              Step 2: Confirm Draft
+            </div>
+          </div>
+          <CardContent className="p-8">
+            <div className="rounded-xl bg-slate-950/80 p-6 border border-white/5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                <div className="flex flex-col">
+                  <span className="font-medium text-slate-400 mb-1">Source Location</span>
+                  <span className="text-slate-100 font-semibold text-base">{sourceLoc?.name}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-slate-400 mb-1">Destination Location</span>
+                  <span className="text-slate-100 font-semibold text-base">{destLoc?.name}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-slate-400 mb-1">Product</span>
+                  <span className="text-slate-100 font-semibold text-base">{selectedProduct?.name}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-slate-400 mb-1">Transfer Quantity</span>
+                  <span className="text-white font-mono bg-fuchsia-500/20 px-2 py-1 rounded w-fit">{quantity}</span>
+                </div>
               </div>
             </div>
-            <Alert className="mt-4 border-amber-200 bg-amber-50">
-              <AlertTitle>Draft only</AlertTitle>
-              <AlertDescription>
-                Stock is not moved until someone with approve permission ships and completes the
-                transfer.
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 flex justify-between">
-              <Button variant="outline" onClick={() => setStep(1)}>
+            
+            <div className="mt-6 flex items-start gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 relative">
+              <div className="relative z-10">
+                <h5 className="font-bold text-amber-100 text-sm flex items-center gap-2 mb-1"><AlertCircle className="h-4 w-4 text-amber-400" /> Draft only</h5>
+                <p className="text-sm text-amber-200/80">
+                  Stock is not moved until someone with approve permission ships and completes the transfer.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-8 flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep(1)}
+                className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl h-11 px-6 bg-transparent border-white/10"
+              >
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting}
+                className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-semibold rounded-xl h-11 px-8 shadow-lg shadow-fuchsia-500/20"
+              >
                 {isSubmitting ? "Creating..." : "Create Draft"}
               </Button>
             </div>
@@ -446,147 +483,186 @@ function StockTransferPageContent() {
       )}
 
       {step === 3 && createdDraft && (
-        <Card className="border-green-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
-              <CheckCircle className="h-5 w-5" /> Draft Created
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-              Transfer #{createdDraft.id} created for {quantity} × {selectedProduct?.name}. Use the
-              open transfers table below to ship and complete.
+        <Card className="border border-emerald-500/30 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl">
+              <CheckCircle className="h-6 w-6" /> 
+              Draft Created Successfully
+            </div>
+          </div>
+          <CardContent className="p-8">
+            <p className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-5 text-sm text-emerald-200">
+              Transfer <strong className="text-white font-mono mx-1 px-1 bg-emerald-500/20 rounded">#{createdDraft.id}</strong> created for <strong className="text-white">{quantity}</strong> × <strong className="text-white">{selectedProduct?.name}</strong>. Use the open transfers table below to ship and complete.
             </p>
-            <div className="mt-4 flex justify-end">
-              <Button variant="outline" onClick={resetForm}>
-                New Transfer
+            <div className="mt-6 flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={resetForm}
+                className="bg-slate-950/50 border-white/10 text-slate-200 hover:bg-white/10 hover:text-white rounded-xl h-11 px-6"
+              >
+                Start New Transfer
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Open Transfers</CardTitle>
-          <CardDescription>Ship, complete, or cancel draft / in-transit transfers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>From → To</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {openTransfers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400">
-                    No open transfers
-                  </TableCell>
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+        <div className="absolute -top-10 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
+          <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
+            <Package className="h-5 w-5 text-indigo-400" /> 
+            Open Transfers
+          </div>
+          <p className="text-sm text-slate-400 mt-1">
+            Ship, complete, or cancel draft / in-transit transfers
+          </p>
+        </div>
+        
+        <CardContent className="p-0">
+          <div className="overflow-x-auto relative z-10">
+            <Table>
+              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">ID</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Product</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">From → To</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Qty</TableHead>
+                  <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
+                  <TableHead className="py-4 pr-8 text-right font-semibold text-slate-300">Actions</TableHead>
                 </TableRow>
-              )}
-              {openTransfers.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>#{t.id}</TableCell>
-                  <TableCell>{t.product_name}</TableCell>
-                  <TableCell>
-                    {t.source_location_name} → {t.destination_location_name}
-                  </TableCell>
-                  <TableCell>{t.quantity}</TableCell>
-                  <TableCell>
-                    <Badge className={STATUS_BADGE[t.status] || "bg-slate-600"}>
-                      {t.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    {canApprove && t.status === "draft" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={actionId === t.id}
-                        onClick={() => handleActionClick(t, "ship")}
-                      >
-                        <Truck className="mr-1 h-3 w-3" /> Ship
-                      </Button>
-                    )}
-                    {canApprove && ["draft", "in_transit"].includes(t.status) && (
-                      <Button
-                        size="sm"
-                        disabled={actionId === t.id}
-                        onClick={() => handleActionClick(t, "complete")}
-                      >
-                        <CheckCircle className="mr-1 h-3 w-3" /> Complete
-                      </Button>
-                    )}
-                    {canApprove && ["draft", "in_transit"].includes(t.status) && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={actionId === t.id}
-                        onClick={() => runAction(t.id, "cancel")}
-                      >
-                        <XCircle className="mr-1 h-3 w-3" /> Cancel
-                      </Button>
-                    )}
-                    {!canApprove && (
-                      <span className="text-xs text-slate-400">View only</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {openTransfers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-slate-400 py-12">
+                      <div className="flex flex-col items-center justify-center">
+                        <ArrowLeftRight className="h-10 w-10 text-slate-600 mb-3" />
+                        <p>No open transfers</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {openTransfers.map((t) => (
+                  <TableRow key={t.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                    <TableCell className="pl-8 py-5">
+                      <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-sm font-semibold shadow-inner">
+                        #{t.id}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-slate-200">{t.product_name}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-slate-300">{t.source_location_name}</span>
+                      <span className="text-slate-500 mx-2">→</span>
+                      <span className="text-slate-300">{t.destination_location_name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-slate-100 font-bold">{t.quantity}</span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={t.status} />
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        {canApprove && t.status === "draft" && (
+                          <Button
+                            size="sm"
+                            className="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/30"
+                            disabled={actionId === t.id}
+                            onClick={() => handleActionClick(t, "ship")}
+                          >
+                            <Truck className="mr-1.5 h-3.5 w-3.5" /> Ship
+                          </Button>
+                        )}
+                        {canApprove && ["draft", "in_transit"].includes(t.status) && (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/30"
+                            disabled={actionId === t.id}
+                            onClick={() => handleActionClick(t, "complete")}
+                          >
+                            <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Complete
+                          </Button>
+                        )}
+                        {canApprove && ["draft", "in_transit"].includes(t.status) && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/30"
+                            disabled={actionId === t.id}
+                            onClick={() => runAction(t.id, "cancel")}
+                          >
+                            <XCircle className="mr-1.5 h-3.5 w-3.5" /> Cancel
+                          </Button>
+                        )}
+                        {!canApprove && (
+                          <span className="text-xs text-slate-500 italic">View only</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Dialog open={scanOpen} onOpenChange={setScanOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5 text-indigo-500" />
-              Scan Verification Required
+        <DialogContent className="sm:max-w-[425px] bg-[#0F172A] border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.15)] rounded-2xl p-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-fuchsia-500" />
+          
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-white">
+              <Layers className="h-6 w-6 text-indigo-400" />
+              Scan Verification
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-400 text-sm mt-2">
               To confirm this stock transfer, scan or input the barcode/SKU for:
-              <strong className="block mt-1 text-slate-200">
-                {scanTransfer?.product_name} ({scanTransfer?.product_sku})
+              <strong className="block mt-2 text-indigo-300 bg-indigo-500/10 px-3 py-2 rounded-lg border border-indigo-500/20">
+                {scanTransfer?.product_name} <span className="text-slate-400 font-mono text-xs">({scanTransfer?.product_sku})</span>
               </strong>
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleVerifyScan} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="barcode-scan">Scan Barcode / SKU</Label>
+          <form onSubmit={handleVerifyScan} className="px-6 pb-6">
+            <div className="space-y-3">
+              <Label htmlFor="barcode-scan" className="text-sm font-semibold text-slate-300">Scan Barcode / SKU</Label>
               <Input
                 id="barcode-scan"
-                placeholder="Scan or type product barcode/SKU..."
+                placeholder="Scan or type here..."
                 value={scannedCode}
                 onChange={(e) => {
                   setScannedCode(e.target.value);
                   setScanError("");
                 }}
                 autoFocus
-                className="w-full font-mono bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full font-mono bg-slate-900 border-white/10 text-white placeholder:text-slate-600 focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 h-12 rounded-xl"
               />
               {scanError && (
-                <p className="text-xs text-rose-500 flex items-center gap-1 mt-1">
-                  <AlertCircle className="h-3 w-3" />
+                <p className="text-xs text-rose-400 flex items-center gap-1.5 mt-2 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
                   {scanError}
                 </p>
               )}
             </div>
 
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="ghost" onClick={() => setScanOpen(false)}>
+            <DialogFooter className="mt-8 flex gap-3 sm:justify-end">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => setScanOpen(false)}
+                className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl px-5"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button 
+                type="submit" 
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl px-6 shadow-lg shadow-indigo-500/25"
+              >
                 Verify & Confirm
               </Button>
             </DialogFooter>

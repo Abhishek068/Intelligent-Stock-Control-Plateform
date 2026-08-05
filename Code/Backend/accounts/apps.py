@@ -34,21 +34,6 @@ def seed_default_users(sender, **kwargs):
             from accounts.models import UserPermissionOverride
             UserPermissionOverride.objects.filter(user=staff_user).delete()
 
-        from analytics.models import DemandForecast
-        if not DemandForecast.objects.filter(product__organization=org).exists():
-            from analytics.services import AlertService, ForecastingService, ReorderService
-            from inventory.models import Product
-            for prod in Product.objects.filter(organization=org):
-                try:
-                    ForecastingService.forecast_product(prod)
-                except Exception:
-                    pass
-            try:
-                ReorderService.generate_all(org)
-                AlertService.evaluate_organization(org)
-            except Exception:
-                pass
-
     except Exception:
         pass
 
