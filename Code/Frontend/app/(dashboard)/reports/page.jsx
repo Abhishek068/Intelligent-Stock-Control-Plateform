@@ -127,7 +127,7 @@ export default function ReportsPage() {
   };
 
   const exportToPDF = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: `${activeTab}-report`,
     onAfterPrint: () => toast.success("PDF generated")
   });

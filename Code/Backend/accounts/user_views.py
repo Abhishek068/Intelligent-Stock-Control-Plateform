@@ -24,6 +24,7 @@ from core.permissions import HasModulePermission, IsSuperAdmin
 
 class UserViewSet(viewsets.ModelViewSet):
     module_permission = "users"
+    pagination_class = None
     action_permission_map = {
         "list": "view",
         "retrieve": "view",

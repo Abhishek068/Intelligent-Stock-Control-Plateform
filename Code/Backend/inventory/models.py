@@ -165,6 +165,12 @@ class Product(TimeStampedModel):
         return f"{self.sku} — {self.name}"
 
     def save(self, *args, **kwargs):
+        if not self.barcode and self.sku:
+            import hashlib
+           
+            hash_int = int(hashlib.md5(self.sku.encode('utf-8')).hexdigest()[:10], 16)
+            self.barcode = str(hash_int)[:12].zfill(12)
+            
         changed_by = kwargs.pop("changed_by", None) or getattr(self, "_changed_by", None)
         if self.pk:
             try:

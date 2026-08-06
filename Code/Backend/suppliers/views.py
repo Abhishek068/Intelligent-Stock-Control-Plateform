@@ -20,6 +20,8 @@ class SupplierViewSet(OrganizationScopedViewSet):
 
     serializer_class = SupplierSerializer
 
+    pagination_class = None
+
     module_permission = "suppliers"
     permission_classes = [HasModulePermission]
 

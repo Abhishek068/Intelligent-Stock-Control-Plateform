@@ -40,6 +40,8 @@ class CategoryViewSet(OrganizationScopedViewSet):
 
     serializer_class = CategorySerializer
 
+    pagination_class = None
+
     module_permission = "categories"
     permission_classes = [HasModulePermission]
 
@@ -59,6 +61,8 @@ class LocationViewSet(OrganizationScopedViewSet):
 
     serializer_class = LocationSerializer
 
+    pagination_class = None
+
     module_permission = "products"
     permission_classes = [HasModulePermission]
 
@@ -75,6 +79,8 @@ class LocationViewSet(OrganizationScopedViewSet):
 class ProductViewSet(OrganizationScopedViewSet):
 
     queryset = Product.objects.select_related("category", "supplier").all()
+
+    pagination_class = None
 
     module_permission = "products"
     permission_classes = [HasModulePermission]

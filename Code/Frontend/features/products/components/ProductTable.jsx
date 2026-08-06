@@ -77,6 +77,7 @@ export function ProductTable() {
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
   const [printingBarcodes, setPrintingBarcodes] = React.useState(false);
@@ -316,8 +317,20 @@ export function ProductTable() {
     [canManageProducts, router, openEdit, handleDelete]
   );
 
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter(p => {
+      const stock = Number(p.stock) || 0;
+      const min = Number(p.minimum_level) || 10;
+      if (statusFilter === "in_stock") return stock > min && p.status !== "critical";
+      if (statusFilter === "low_stock") return stock > 0 && stock <= min && p.status !== "critical";
+      if (statusFilter === "out_of_stock") return stock === 0 || p.status === "critical";
+      return true;
+    });
+  }, [data, statusFilter]);
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -366,22 +379,38 @@ export function ProductTable() {
   return (
     <div className="space-y-6">
       <ProductInventorySummary data={data} />
-      <Card className="border-slate-800 bg-card text-card-foreground p-6 shadow-sm">
-        <CardContent className="p-0 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <CardContent className="p-0 space-y-0 relative z-10">
+        <div className="p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="w-full max-w-xl flex items-center gap-3">
         <SearchInput
             value={globalFilter ?? ""}
             onChange={(val) => setGlobalFilter(val)}
             placeholder="Search products..." />
+            
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px] bg-slate-950/50 border-white/10 text-slate-200 rounded-xl h-10 flex-shrink-0">
+            <SelectValue placeholder="Stock Status" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-900 border-white/10 shadow-xl rounded-xl text-slate-200">
+            <SelectItem value="all" className="focus:bg-indigo-500/20 focus:text-indigo-300 cursor-pointer">All Products</SelectItem>
+            <SelectItem value="in_stock" className="focus:bg-emerald-500/20 focus:text-emerald-300 cursor-pointer">In Stock</SelectItem>
+            <SelectItem value="low_stock" className="focus:bg-amber-500/20 focus:text-amber-300 cursor-pointer">Low Stock</SelectItem>
+            <SelectItem value="out_of_stock" className="focus:bg-rose-500/20 focus:text-rose-300 cursor-pointer">Out of Stock</SelectItem>
+          </SelectContent>
+        </Select>
+        </div>
           
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 rounded-xl">
                 Columns <ChevronDown className="ml-2 h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
               {table.
                 getAllColumns().
                 filter((column) => column.getCanHide()).
@@ -389,7 +418,8 @@ export function ProductTable() {
                 <DropdownMenuCheckboxItem
                   key={column.id}
                   checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}>
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                  className="hover:bg-white/5 text-slate-300">
                   
                     {column.id === "actions" ? "Actions" : column.id === "riskScore" ? "Risk Score" : column.id}
                   </DropdownMenuCheckboxItem>
@@ -398,14 +428,14 @@ export function ProductTable() {
           </DropdownMenu>
           {canManageProducts && (
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handlePrintBarcodes} disabled={printingBarcodes}>
+              <Button size="sm" variant="outline" onClick={handlePrintBarcodes} disabled={printingBarcodes} className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 rounded-xl">
                 <Printer className="mr-2 h-3.5 w-3.5" />
-                {printingBarcodes ? "Printing..." : "Print Barcodes"}
+                {printingBarcodes ? "Printing..." : "Barcodes"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-                Bulk Import
+              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 rounded-xl">
+                Import
               </Button>
-              <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={openCreate}>
+              <Button size="sm" className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white shadow-lg shadow-teal-500/20 rounded-xl border border-teal-500/50" onClick={openCreate}>
                 + Add Product
               </Button>
             </div>
@@ -413,13 +443,13 @@ export function ProductTable() {
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-800 overflow-hidden">
+      <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-slate-950/40 border-b border-white/5">
             {table.getHeaderGroups().map((headerGroup) =>
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) =>
-                <TableHead key={header.id} className="py-2">
+                <TableHead key={header.id} className="py-4 font-semibold text-slate-300">
                     {header.isPlaceholder ?
                   null :
                   flexRender(header.column.columnDef.header, header.getContext())}
@@ -431,23 +461,22 @@ export function ProductTable() {
           <TableBody>
             {loading ?
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-400">
                   Loading products...
                 </TableCell>
               </TableRow> :
               table.getRowModel().rows?.length ?
               table.getRowModel().rows.map((row) =>
-              <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+              <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
                   {row.getVisibleCells().map((cell) =>
-                <TableCell key={cell.id} className="py-2">
+                <TableCell key={cell.id} className="py-3 text-slate-300">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                 )}
                 </TableRow>
               ) :
-
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-400">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -456,7 +485,7 @@ export function ProductTable() {
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-6 border-t border-white/5">
         <div className="text-sm text-slate-400">
           Showing {table.getRowModel().rows.length} of {data.length} products
         </div>
@@ -465,16 +494,16 @@ export function ProductTable() {
               variant="outline"
               size="sm"
               onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}>
-              
+              disabled={!table.getCanPreviousPage()}
+              className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 rounded-xl">
             Previous
           </Button>
           <Button
               variant="outline"
               size="sm"
               onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}>
-              
+              disabled={!table.getCanNextPage()}
+              className="bg-slate-900/50 border-white/10 hover:bg-white/10 text-slate-200 rounded-xl">
             Next
           </Button>
         </div>
@@ -482,91 +511,87 @@ export function ProductTable() {
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-xl bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{editingRow ? "Edit Product" : "Add Product"}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-white">{editingRow ? "Edit Product" : "Add Product"}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-2 md:grid-cols-2">
-            <div>
-              <Label>SKU *</Label>
-              <Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+          <div className="grid gap-5 py-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">SKU <span className="text-rose-400">*</span></Label>
+              <Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
-            <div>
-              <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Name <span className="text-rose-400">*</span></Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
-            <div>
-              <Label>Category *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Category <span className="text-rose-400">*</span></Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-slate-950 border-white/10 focus:border-indigo-500/50 text-slate-100 font-medium rounded-lg">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-900 border-white/10 shadow-xl rounded-xl text-slate-200">
                   {categories.map((c) =>
-                  <SelectItem key={c.id} value={String(c.id)}>
+                  <SelectItem key={c.id} value={String(c.id)} className="focus:bg-indigo-500/20 focus:text-indigo-300">
                       {c.name}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Supplier *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Supplier <span className="text-rose-400">*</span></Label>
               <Select value={form.supplier} onValueChange={(v) => setForm({ ...form, supplier: v })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-slate-950 border-white/10 focus:border-indigo-500/50 text-slate-100 font-medium rounded-lg">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-900 border-white/10 shadow-xl rounded-xl text-slate-200">
                   {suppliers.map((s) =>
-                  <SelectItem key={s.id} value={String(s.id)}>
+                  <SelectItem key={s.id} value={String(s.id)} className="focus:bg-indigo-500/20 focus:text-indigo-300">
                       {s.name}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Unit Price (£)</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Unit Price (£)</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={form.unit_price}
-                onChange={(e) => setForm({ ...form, unit_price: e.target.value })} />
-              
+                onChange={(e) => setForm({ ...form, unit_price: e.target.value })} className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
-            <div>
-              <Label>Barcode</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Barcode</Label>
               <Input
                 value={form.barcode}
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
-              
+                onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
-            <div>
-              <Label>Minimum Level</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Minimum Level</Label>
               <Input
                 type="number"
                 value={form.minimum_level}
                 onChange={(e) =>
                 setForm({ ...form, minimum_level: parseInt(e.target.value) || 0 })
-                } />
-              
+                } className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
-            <div>
-              <Label>Reorder Level</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-200">Reorder Level</Label>
               <Input
                 type="number"
                 value={form.reorder_level}
                 onChange={(e) =>
                 setForm({ ...form, reorder_level: parseInt(e.target.value) || 0 })
-                } />
-              
+                } className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50">
               {saving ? "Saving..." : editingRow ? "Update" : "Create"}
             </Button>
           </DialogFooter>
