@@ -216,38 +216,36 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
         all_weeks = sorted(list(set(actual_weekly.keys()) | set(predicted_weekly.keys())))
-
         weekly_trend = []
-
         for w in all_weeks:
-
             weekly_trend.append({
-
                 "label": w,
-
-                "actual": round(actual_weekly.get(w, 0), 2),
-
-                "predicted": round(predicted_weekly.get(w, 0), 2)
-
+                "actual": round(actual_weekly[w], 2) if w in actual_weekly else None,
+                "predicted": round(predicted_weekly[w], 2) if w in predicted_weekly else None
             })
 
-
+        # Bridge weekly trend
+        for i in range(len(weekly_trend) - 1, -1, -1):
+            if weekly_trend[i]["actual"] is not None:
+                if weekly_trend[i]["predicted"] is None:
+                    weekly_trend[i]["predicted"] = weekly_trend[i]["actual"]
+                break
 
         all_months = sorted(list(set(actual_monthly.keys()) | set(predicted_monthly.keys())))
-
         monthly_forecast = []
-
         for m in all_months:
-
             monthly_forecast.append({
-
                 "label": m,
-
-                "actual": round(actual_monthly.get(m, 0), 2),
-
-                "predicted": round(predicted_monthly.get(m, 0), 2)
-
+                "actual": round(actual_monthly[m], 2) if m in actual_monthly else None,
+                "predicted": round(predicted_monthly[m], 2) if m in predicted_monthly else None
             })
+
+        # Bridge monthly forecast
+        for i in range(len(monthly_forecast) - 1, -1, -1):
+            if monthly_forecast[i]["actual"] is not None:
+                if monthly_forecast[i]["predicted"] is None:
+                    monthly_forecast[i]["predicted"] = monthly_forecast[i]["actual"]
+                break
 
 
 
@@ -347,10 +345,9 @@ class ReorderRecommendationViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
 
         return ReorderRecommendation.objects.filter(
-
             product__organization=self.request.user.organization,
-
             is_active=True,
+            suggested_quantity__gt=0,
 
         ).select_related("product", "product__supplier")
 

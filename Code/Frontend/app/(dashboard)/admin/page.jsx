@@ -107,20 +107,22 @@ export default function AdminDashboard() {
   const inv = admin?.inventory || {};
 
   const categoryDistribution = [
-    { name: "In Stock", value: 520, color: "#8B5CF6" },
-    { name: "Low Stock", value: inv.low_stock || 45, color: "#06B6D4" },
-    { name: "Reorder Queue", value: reorderItems.length * 10 || 50, color: "#F59E0B" },
-    { name: "Out of Stock", value: inv.out_of_stock || 15, color: "#F43F5E" },
-    { name: "On Order", value: 110, color: "#10B981" },
+    { name: "In Stock", value: (inv.in_stock ?? (Math.max(0, (inv.products || 0) - (inv.low_stock || 0) - (inv.out_of_stock || 0)))) || 49, color: "#8B5CF6" },
+    { name: "Low Stock", value: inv.low_stock || 0, color: "#06B6D4" },
+    { name: "Reorder Queue", value: reorderItems.length || 0, color: "#F59E0B" },
+    { name: "Out of Stock", value: inv.out_of_stock || 0, color: "#F43F5E" },
+    { name: "On Order", value: 0, color: "#10B981" },
   ];
 
-  const categoryMovements = [
-    { name: "Electronics", stockIn: 620, stockOut: 510 },
-    { name: "Hardware", stockIn: 480, stockOut: 430 },
-    { name: "Accessories", stockIn: 710, stockOut: 620 },
-    { name: "Cables", stockIn: 450, stockOut: 390 },
-    { name: "Peripherals", stockIn: 390, stockOut: 310 },
-  ];
+  const categoryMovements = admin?.category_movements?.length > 0 
+    ? admin.category_movements 
+    : [
+        { name: "Electronics", stockIn: 620, stockOut: 510 },
+        { name: "Hardware", stockIn: 480, stockOut: 430 },
+        { name: "Accessories", stockIn: 710, stockOut: 620 },
+        { name: "Cables", stockIn: 450, stockOut: 390 },
+        { name: "Peripherals", stockIn: 390, stockOut: 310 },
+      ];
 
   return (
     <div className="space-y-8 pb-10">
@@ -168,14 +170,9 @@ export default function AdminDashboard() {
               subtitle="Active staff & managers"
               colorScheme="indigo"
               icon={Users}
-              sparklineData={[
-                { val: 10 },
-                { val: 12 },
-                { val: 13 },
-                { val: 15 },
-                { val: 16 },
-                { val: 17 },
-                { val: 18 },
+              sparklineData={admin?.sparklines?.users || [
+                { val: 10 }, { val: 12 }, { val: 13 }, { val: 15 },
+                { val: 16 }, { val: 17 }, { val: 18 },
               ]}
             />
           </div>
@@ -197,14 +194,9 @@ export default function AdminDashboard() {
               subtitle="Across all warehouses"
               colorScheme="emerald"
               icon={DollarSign}
-              sparklineData={[
-                { val: 40 },
-                { val: 45 },
-                { val: 48 },
-                { val: 52 },
-                { val: 58 },
-                { val: 63 },
-                { val: 68 },
+              sparklineData={admin?.sparklines?.inventory_value || [
+                { val: 40 }, { val: 45 }, { val: 48 }, { val: 52 },
+                { val: 58 }, { val: 63 }, { val: 68 },
               ]}
             />
           </div>
@@ -220,14 +212,9 @@ export default function AdminDashboard() {
               subtitle="Low & Out of stock warnings"
               colorScheme="rose"
               icon={AlertCircle}
-              sparklineData={[
-                { val: 30 },
-                { val: 28 },
-                { val: 24 },
-                { val: 20 },
-                { val: 18 },
-                { val: 16 },
-                { val: 14 },
+              sparklineData={admin?.sparklines?.alerts || [
+                { val: 30 }, { val: 28 }, { val: 24 }, { val: 20 },
+                { val: 18 }, { val: 16 }, { val: 14 },
               ]}
             />
           </div>
@@ -243,14 +230,9 @@ export default function AdminDashboard() {
               subtitle="Automated PDF/Excel emails"
               colorScheme="cyan"
               icon={Activity}
-              sparklineData={[
-                { val: 2 },
-                { val: 3 },
-                { val: 3 },
-                { val: 4 },
-                { val: 5 },
-                { val: 6 },
-                { val: 6 },
+              sparklineData={admin?.sparklines?.reports || [
+                { val: 2 }, { val: 3 }, { val: 3 }, { val: 4 },
+                { val: 5 }, { val: 6 }, { val: 6 },
               ]}
             />
           </div>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   flexRender,
@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { productsApi, analyticsApi, categoriesApi, suppliersApi } from "@/lib/api";
+import { productsApi, analyticsApi, categoriesApi, suppliersApi, purchaseOrdersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { BulkImportDialog } from "./BulkImportDialog";
@@ -70,6 +70,7 @@ const emptyProductForm = {
 
 export function ProductTable() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [sorting, setSorting] = React.useState([]);
@@ -77,7 +78,8 @@ export function ProductTable() {
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("all");
+  const initialStatus = searchParams?.get("status") || "all";
+  const [statusFilter, setStatusFilter] = React.useState(initialStatus);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
   const [printingBarcodes, setPrintingBarcodes] = React.useState(false);
@@ -86,6 +88,11 @@ export function ProductTable() {
   const [categories, setCategories] = React.useState([]);
   const [suppliers, setSuppliers] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
+  
+  const [quickOrderProduct, setQuickOrderProduct] = React.useState(null);
+  const [quickOrderQty, setQuickOrderQty] = React.useState(0);
+  const [submittingOrder, setSubmittingOrder] = React.useState(false);
+
   const { canEdit, hasPermission, isSuperAdmin } = useRoleAccess();
   const canManageProducts =
     isSuperAdmin || hasPermission("products", "create") || hasPermission("products", "edit") || canEdit;
@@ -115,6 +122,8 @@ export function ProductTable() {
             minimum_level: p.minimum_level,
             reorder_level: p.reorder_level,
             barcode: p.barcode,
+            lastOrderDate: p.last_order_date,
+            lastOrderPrice: p.last_order_price,
             forecastDemand: rec ? Number(rec.predicted_demand) : "—",
             recommendedReorder: rec ? rec.suggested_quantity : "—",
             leadTime: rec ? rec.lead_time_days : p.reorder_level
@@ -145,6 +154,44 @@ export function ProductTable() {
     setEditingRow(null);
     setForm(emptyProductForm);
     setDialogOpen(true);
+  };
+
+  const openQuickOrder = (row) => {
+    setQuickOrderProduct(row);
+    // Default quantity to recommended reorder, reorder_level, or at least 10
+    const defaultQty = row.recommendedReorder !== "—" ? row.recommendedReorder : (row.reorder_level || 10);
+    setQuickOrderQty(defaultQty);
+  };
+
+  const handleQuickOrderSubmit = async () => {
+    if (!quickOrderQty || quickOrderQty <= 0) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+    if (!quickOrderProduct.supplierId) {
+      toast.error("This product does not have an assigned supplier.");
+      return;
+    }
+    
+    setSubmittingOrder(true);
+    try {
+      await purchaseOrdersApi.create({
+        supplier: quickOrderProduct.supplierId,
+        lines: [
+          {
+            product: parseInt(quickOrderProduct.id),
+            quantity_ordered: parseInt(quickOrderQty),
+            unit_cost: quickOrderProduct.price
+          }
+        ]
+      });
+      toast.success(`Purchase order created for ${quickOrderProduct.name}`);
+      setQuickOrderProduct(null);
+    } catch (err) {
+      toast.error("Failed to create purchase order: " + (err.message || "Unknown error"));
+    } finally {
+      setSubmittingOrder(false);
+    }
   };
 
   const openEdit = (row) => {
@@ -301,6 +348,12 @@ export function ProductTable() {
               {canManageProducts &&
           <>
                   <DropdownMenuItem onClick={() => openEdit(row.original)}>Edit</DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => openQuickOrder(row.original)}
+                    className="text-emerald-500 font-medium focus:text-emerald-400 focus:bg-emerald-500/10"
+                  >
+                    Quick Order
+                  </DropdownMenuItem>
                   <DropdownMenuItem
               className="text-red-600"
               onClick={() => handleDelete(row.original)}>
@@ -378,7 +431,7 @@ export function ProductTable() {
 
   return (
     <div className="space-y-6">
-      <ProductInventorySummary data={data} />
+      <ProductInventorySummary data={data} onStatusClick={setStatusFilter} />
       <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
@@ -598,6 +651,97 @@ export function ProductTable() {
         </DialogContent>
       </Dialog>
       <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} onSuccess={loadProducts} />
+
+      {/* Quick Order Dialog */}
+      <Dialog open={!!quickOrderProduct} onOpenChange={(open) => !open && setQuickOrderProduct(null)}>
+        <DialogContent className="sm:max-w-2xl bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              Order {quickOrderProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-3">
+                <h4 className="text-sm font-semibold text-slate-300 border-b border-white/5 pb-2">Product Info</h4>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">SKU:</span>
+                  <span className="font-mono text-slate-200">{quickOrderProduct?.sku}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Category:</span>
+                  <span className="text-slate-200">{quickOrderProduct?.category}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Supplier:</span>
+                  <span className="font-semibold text-slate-200">{quickOrderProduct?.supplier || "Unknown"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Current Stock:</span>
+                  <span className={`font-semibold ${quickOrderProduct?.stock === 0 ? "text-rose-400" : quickOrderProduct?.stock <= quickOrderProduct?.minimum_level ? "text-amber-400" : "text-emerald-400"}`}>
+                    {quickOrderProduct?.stock}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-3">
+                <h4 className="text-sm font-semibold text-slate-300 border-b border-white/5 pb-2">Order History & Levels</h4>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Last Order Date:</span>
+                  <span className="text-slate-200">
+                    {quickOrderProduct?.lastOrderDate ? new Date(quickOrderProduct.lastOrderDate).toLocaleDateString() : "Never"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Last Order Price:</span>
+                  <span className="text-slate-200">
+                    {quickOrderProduct?.lastOrderPrice ? `£${Number(quickOrderProduct.lastOrderPrice).toFixed(2)}` : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Min / Reorder Level:</span>
+                  <span className="font-mono text-slate-300">
+                    {quickOrderProduct?.minimum_level} / {quickOrderProduct?.reorder_level}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Current Unit Price:</span>
+                  <span className="font-semibold text-emerald-400">£{Number(quickOrderProduct?.price || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 items-end mt-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-200">Order Quantity</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={quickOrderQty}
+                  onChange={(e) => setQuickOrderQty(e.target.value)}
+                  className="bg-slate-950 border-white/10 focus:border-indigo-500/50 text-slate-100 font-medium rounded-lg text-lg h-14"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-200">Total Order Value</Label>
+                <div className="bg-slate-950 border border-emerald-500/30 rounded-lg h-14 flex items-center px-4 justify-between">
+                  <span className="text-slate-400 text-sm">Estimated Cost:</span>
+                  <span className="text-xl font-bold text-emerald-400">
+                    £{((Number(quickOrderQty) || 0) * (Number(quickOrderProduct?.price) || 0)).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-white/5 pt-5 mt-2">
+            <Button variant="ghost" onClick={() => setQuickOrderProduct(null)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleQuickOrderSubmit} disabled={submittingOrder || !quickOrderQty || quickOrderQty <= 0} className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-500/20 rounded-xl border border-emerald-500/50 px-8 text-md h-11">
+              {submittingOrder ? "Ordering..." : "Place Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
     </div>);
 

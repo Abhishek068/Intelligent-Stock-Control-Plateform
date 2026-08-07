@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, MoreHorizontal, Pencil, Trash2, Warehouse, Search, Building2, CheckCircle2, Layers } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, Warehouse, Search, Building2, CheckCircle2, Layers, Package } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { locationsApi } from "@/lib/api";
+import { locationsApi, inventoryBalancesApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
@@ -63,6 +63,26 @@ export default function WarehousesPage() {
     address: "",
     capacity: "",
   });
+  
+  const [viewingWarehouse, setViewingWarehouse] = useState(null);
+  const [warehouseProducts, setWarehouseProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [warehouseProductSearch, setWarehouseProductSearch] = useState("");
+
+  const openProductsModal = async (wh) => {
+    setViewingWarehouse(wh);
+    setLoadingProducts(true);
+    try {
+      const balances = await inventoryBalancesApi.list({ location: wh.id });
+      // Only show products that have > 0 quantity on hand
+      setWarehouseProducts(balances.filter(b => b.quantity_on_hand > 0));
+      setWarehouseProductSearch("");
+    } catch {
+      toast.error("Failed to load products");
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const mapLocation = (l) => ({
     id: String(l.id),
@@ -72,6 +92,7 @@ export default function WarehousesPage() {
     type: l.location_type,
     address: l.address || "",
     is_active: l.is_active,
+    product_count: l.product_count || 0,
   });
 
   const load = useCallback(async () => {
@@ -165,10 +186,21 @@ export default function WarehousesPage() {
     setIsDialogOpen(true);
   };
 
+  const filteredWarehouseProducts = warehouseProducts.filter(p => 
+    p.product_name.toLowerCase().includes(warehouseProductSearch.toLowerCase()) || 
+    p.product_sku.toLowerCase().includes(warehouseProductSearch.toLowerCase())
+  );
+
   const stats = {
     total: warehouses.length,
     active: warehouses.filter((w) => w.is_active).length,
     capacity: warehouses.reduce((s, w) => s + (Number(w.capacity) || 0), 0),
+  };
+
+  const modalStats = {
+    uniqueProducts: warehouseProducts.length,
+    totalAvailable: warehouseProducts.reduce((sum, p) => sum + (Number(p.available) || 0), 0),
+    totalOnHand: warehouseProducts.reduce((sum, p) => sum + (Number(p.quantity_on_hand) || 0), 0),
   };
 
   return (
@@ -289,6 +321,7 @@ export default function WarehousesPage() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="py-4 pl-8 font-semibold text-slate-300">Name</TableHead>
                   <TableHead className="py-4 font-semibold text-slate-300">Type</TableHead>
+                  <TableHead className="py-4 text-center font-semibold text-slate-300">Products</TableHead>
                   <TableHead className="py-4 font-semibold text-slate-300">Capacity</TableHead>
                   <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
                   {canManage && <TableHead className="w-16" />}
@@ -320,6 +353,15 @@ export default function WarehousesPage() {
                       <TableCell>
                         <span className="capitalize text-slate-300 font-medium">{wh.type}</span>
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Badge 
+                          variant="outline" 
+                          className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner cursor-pointer hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:text-indigo-300 transition-colors"
+                          onClick={() => openProductsModal(wh)}
+                        >
+                          {wh.product_count} Products
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner">
                           {wh.capacity ? wh.capacity.toLocaleString() : "—"}
@@ -340,6 +382,9 @@ export default function WarehousesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
                               <DropdownMenuLabel className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openProductsModal(wh)} className="hover:bg-white/5 cursor-pointer text-slate-300">
+                                <Package className="mr-2 h-4 w-4 text-emerald-400" /> View Inventory
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEditDialog(wh)} className="hover:bg-white/5 cursor-pointer text-slate-300">
                                 <Pencil className="mr-2 h-4 w-4 text-indigo-400" /> Edit Location
                               </DropdownMenuItem>
@@ -426,6 +471,135 @@ export default function WarehousesPage() {
               className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50"
             >
               {saving ? "Saving..." : editingWarehouse ? "Save Changes" : "Create Location"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warehouse Products Modal */}
+      <Dialog open={!!viewingWarehouse} onOpenChange={(open) => !open && setViewingWarehouse(null)}>
+        <DialogContent className="sm:max-w-[800px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-indigo-400" /> Inventory in {viewingWarehouse?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-2 min-h-[300px]">
+            {loadingProducts ? (
+              <div className="flex h-full items-center justify-center text-slate-400 py-20">
+                <div className="animate-pulse flex flex-col items-center gap-4">
+                  <div className="h-8 w-8 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+                  <span className="font-medium text-indigo-300">Loading inventory data...</span>
+                </div>
+              </div>
+            ) : warehouseProducts.length === 0 ? (
+              <div className="text-center py-20 text-slate-400 flex flex-col items-center gap-4">
+                <div className="p-4 bg-slate-900 rounded-full border border-white/5">
+                  <Package className="h-12 w-12 text-slate-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300">No Inventory Found</h3>
+                  <p className="text-sm mt-1">There are currently no products stored in this location.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Advanced Modal Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-indigo-500/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Unique Products</div>
+                      <div className="text-2xl font-bold text-slate-200">{modalStats.uniqueProducts}</div>
+                    </div>
+                    <div className="h-10 w-10 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400">
+                      <Package className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-emerald-500/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Available</div>
+                      <div className="text-2xl font-bold text-emerald-400">{modalStats.totalAvailable.toLocaleString()}</div>
+                    </div>
+                    <div className="h-10 w-10 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-amber-500/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total On Hand</div>
+                      <div className="text-2xl font-bold text-amber-400">{modalStats.totalOnHand.toLocaleString()}</div>
+                    </div>
+                    <div className="h-10 w-10 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-400">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    placeholder="Search products by name or SKU..." 
+                    value={warehouseProductSearch}
+                    onChange={(e) => setWarehouseProductSearch(e.target.value)}
+                    className="pl-9 bg-slate-950/50 border-white/10 text-slate-200 focus:border-indigo-500/50 rounded-xl"
+                  />
+                </div>
+
+                {/* Compact Product Table */}
+                <div className="border border-white/5 rounded-xl overflow-hidden bg-slate-950/30">
+                  <Table>
+                    <TableHeader className="bg-slate-900/50">
+                      <TableRow className="border-b border-white/5 hover:bg-transparent">
+                        <TableHead className="text-slate-300 font-semibold pl-6">Product</TableHead>
+                        <TableHead className="text-slate-300 font-semibold text-center">Available</TableHead>
+                        <TableHead className="text-slate-300 font-semibold text-center pr-6">On Hand</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredWarehouseProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-slate-400">
+                            No matching products found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredWarehouseProducts.map(p => (
+                          <TableRow key={p.id} className="border-b border-white/5 hover:bg-slate-800/40 transition-colors">
+                            <TableCell className="pl-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs border border-indigo-500/20 shadow-inner">
+                                  {p.product_name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-slate-200 text-sm">{p.product_name}</div>
+                                  <div className="text-xs text-slate-500 font-mono mt-0.5">SKU: {p.product_sku}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-semibold px-2.5 py-0.5">
+                                {p.available}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center pr-6">
+                              <Badge variant="outline" className="bg-slate-900 text-slate-300 border-white/10 font-semibold px-2.5 py-0.5">
+                                {p.quantity_on_hand}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="border-t border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setViewingWarehouse(null)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
+              Close Window
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Cell } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { PieChart as PieChartIcon, BarChart3 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const ResponsiveContainer = dynamic(
   () => import("recharts").then((m) => m.ResponsiveContainer),
@@ -67,6 +68,7 @@ export function DistributionDonutChart({
   subtitle = "Status distribution",
   data = [],
 }) {
+  const router = useRouter();
   const defaultData = [
     { name: "In Stock", value: 540, color: "#8B5CF6" },
     { name: "Low Stock", value: 120, color: "#06B6D4" },
@@ -86,6 +88,14 @@ export function DistributionDonutChart({
   });
 
   const total = chartData.reduce((acc, item) => acc + (item.value || 0), 0);
+
+  const handleLegendClick = (name) => {
+    let status = "all";
+    if (name === "In Stock") status = "in_stock";
+    else if (name === "Low Stock") status = "low_stock";
+    else if (name === "Out of Stock") status = "out_of_stock";
+    router.push(`/products?status=${status}`);
+  };
 
   return (
     <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl">
@@ -135,7 +145,8 @@ export function DistributionDonutChart({
             return (
               <div
                 key={idx}
-                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs transition-colors hover:bg-white/10"
+                onClick={() => handleLegendClick(item.name)}
+                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs transition-colors hover:bg-indigo-500/20 cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -214,6 +225,8 @@ export function ComparisonBarChart({
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#94A3B8", fontSize: 11 }}
+              interval={0}
+              tickFormatter={(val) => (val.length > 12 ? val.substring(0, 12) + "..." : val)}
             />
             <YAxis
               axisLine={false}
@@ -229,6 +242,7 @@ export function ComparisonBarChart({
                 fill={b.color}
                 radius={[6, 6, 0, 0]}
                 maxBarSize={28}
+                minPointSize={b.key === "stockIn" || b.key === "stockOut" ? 3 : 0}
               />
             ))}
           </BarChart>

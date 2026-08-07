@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { categoriesApi } from "@/lib/api";
+import { categoriesApi, productsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
@@ -42,6 +42,23 @@ export default function CategoriesPage() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", description: "" });
   const [saving, setSaving] = useState(false);
+
+  const [viewingCategory, setViewingCategory] = useState(null);
+  const [selectedCategoryProducts, setSelectedCategoryProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  const openProductsModal = async (cat) => {
+    setViewingCategory(cat);
+    setLoadingProducts(true);
+    try {
+      const products = await productsApi.list({ category: cat.id });
+      setSelectedCategoryProducts(products);
+    } catch {
+      toast.error("Failed to load products");
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const loadCategories = useCallback(async () => {
     setLoading(true);
@@ -113,7 +130,7 @@ export default function CategoriesPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
         <div className="absolute -top-10 -left-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
-        
+
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -124,13 +141,13 @@ export default function CategoriesPage() {
             </h1>
           </div>
           <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
-            Organize and structure your product inventory with intelligent categorization. 
+            Organize and structure your product inventory with intelligent categorization.
             Assign products to categories for streamlined filtering and reporting.
           </p>
         </div>
 
         {canManage && (
-          <Button 
+          <Button
             onClick={openCreate}
             className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 px-4 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-indigo-500/50"
           >
@@ -211,8 +228,12 @@ export default function CategoriesPage() {
                           </p>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner">
-                            {cat.product_count ?? 0}
+                          <Badge 
+                            variant="outline" 
+                            className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner cursor-pointer hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:text-indigo-300 transition-colors"
+                            onClick={() => openProductsModal(cat)}
+                          >
+                            {cat.product_count ?? 0} Products
                           </Badge>
                         </TableCell>
                         {canManage && (
@@ -279,12 +300,65 @@ export default function CategoriesPage() {
             <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={saving}
               className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50"
             >
               {saving ? "Saving..." : editing ? "Save Changes" : "Create Category"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Products Modal */}
+      <Dialog open={!!viewingCategory} onOpenChange={(open) => !open && setViewingCategory(null)}>
+        <DialogContent className="sm:max-w-[600px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl flex flex-col max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              Products in {viewingCategory?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-4 min-h-[150px]">
+            {loadingProducts ? (
+              <div className="flex h-full items-center justify-center text-slate-400 py-12">
+                <div className="animate-pulse flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full bg-indigo-500/50 animate-bounce" />
+                  Loading products...
+                </div>
+              </div>
+            ) : selectedCategoryProducts.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 flex flex-col items-center gap-3">
+                <FolderOpen className="h-10 w-10 text-slate-600" />
+                <p>No products found in this category.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {selectedCategoryProducts.map(p => (
+                  <div key={p.id} className="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between hover:bg-slate-900/60 transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs border border-indigo-500/20 shadow-inner">
+                        {p.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-200 text-sm group-hover:text-indigo-300 transition-colors">{p.name}</div>
+                        <div className="text-xs text-slate-500 font-mono mt-0.5">SKU: {p.sku}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-slate-300">
+                        Stock: <span className={p.stock > 0 ? "text-emerald-400" : "text-rose-400"}>{p.stock}</span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5 font-mono">£{Number(p.unit_price).toFixed(2)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="border-t border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setViewingCategory(null)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

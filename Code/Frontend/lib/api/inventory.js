@@ -97,3 +97,11 @@ export const locationsApi = {
     return apiClient.delete(`/locations/${id}/`);
   },
 };
+
+export const inventoryBalancesApi = {
+  async list(params) {
+    const query = params ? `?${new URLSearchParams(params)}` : "";
+    const res = await apiClient.get(`/inventory-balances/${query}`);
+    return unwrapList(res);
+  }
+};

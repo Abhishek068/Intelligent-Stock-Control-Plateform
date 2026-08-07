@@ -21,6 +21,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { productsApi, analyticsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 
@@ -78,7 +83,22 @@ export default function ForecastingPage() {
   }, [loadSummary]);
 
   const chartData = useMemo(() => {
-    if (!chartPayload?.chart) return [];
+    if (!chartPayload?.chart || (!chartPayload.chart.history?.length && !chartPayload.chart.forecast?.length)) {
+  
+      const flatData = [];
+      const today = new Date();
+      for (let i = -7; i <= 7; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const label = d.toISOString().split("T")[0];
+        flatData.push({
+          label,
+          actual: i <= 0 ? 0 : null,
+          predicted: i >= 0 ? 0 : null
+        });
+      }
+      return flatData;
+    }
     const history = (chartPayload.chart.history || []).map((h) => ({
       label: h.date,
       actual: h.actual,
@@ -331,29 +351,76 @@ export default function ForecastingPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Card className="glass-card bg-slate-900/50 border-slate-800">
-            <CardContent className="flex flex-wrap items-center gap-4 p-4">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-slate-400" />
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) =>
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.name}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+          <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
+            
+            <CardContent className="flex flex-wrap items-center gap-4 p-6 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+                  <Package className="h-5 w-5" />
+                </div>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="relative w-[300px] flex items-center group cursor-text">
+                      <Search className="absolute left-3 h-4 w-4 text-slate-400 group-hover:text-indigo-400 transition-colors pointer-events-none" />
+                      <Input
+                        placeholder="Search for a product..."
+                        className="pl-9 pr-4 bg-slate-950/50 border-white/10 hover:border-indigo-500/50 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-200 rounded-xl h-10 w-full cursor-text"
+                        value={selectedProductId ? products.find(p => String(p.id) === selectedProductId)?.name || "" : ""}
+                        readOnly
+                      />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
+                    <Command className="bg-transparent">
+                      <CommandInput placeholder="Search products by name..." className="text-slate-200" />
+                      <CommandList>
+                        <CommandEmpty className="text-slate-400 py-6 text-sm text-center">No product found.</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((p) => (
+                            <CommandItem
+                              key={p.id}
+                              value={p.name}
+                              onSelect={() => {
+                                setSelectedProductId(String(p.id));
+                              }}
+                              className="text-slate-300 aria-selected:bg-indigo-500/20 aria-selected:text-indigo-300"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4 text-indigo-400",
+                                  selectedProductId === String(p.id) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {p.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
-              <Button variant="outline" size="sm" onClick={() => loadForecast(selectedProductId)} disabled={loading}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-              </Button>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleGenerate} disabled={generating || !selectedProductId}>
-                {generating ? "Generating..." : "Generate Forecast"}
-              </Button>
+              
+              <div className="flex items-center gap-3 ml-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => loadForecast(selectedProductId)} 
+                  disabled={loading}
+                  className="bg-slate-900/50 border-white/10 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+                </Button>
+                <Button 
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/50 rounded-xl" 
+                  onClick={handleGenerate} 
+                  disabled={generating || !selectedProductId}
+                >
+                  {generating ? "Generating..." : "Generate Forecast"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -366,9 +433,9 @@ export default function ForecastingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                {chartData.length === 0 ? (
+                {loading ? (
                   <p className="flex h-full items-center justify-center text-slate-400">
-                    {loading ? "Loading..." : "No forecast data — generate a forecast or run seed_demo_data"}
+                    Loading...
                   </p>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">

@@ -42,6 +42,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.ModelSerializer):
+    product_count = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -58,16 +59,16 @@ class LocationSerializer(serializers.ModelSerializer):
             "address",
 
             "is_active",
-
             "capacity",
-
+            "product_count",
             "created_at",
-
             "updated_at",
-
         ]
-
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_product_count(self, obj):
+        from inventory.models import InventoryBalance
+        return InventoryBalance.objects.filter(location=obj, quantity_on_hand__gt=0).count()
 
 
 
@@ -82,8 +83,9 @@ class ProductSerializer(serializers.ModelSerializer):
     supplier_id = serializers.IntegerField(source="supplier.id", read_only=True)
 
     stock = serializers.SerializerMethodField()
-
     status = serializers.SerializerMethodField()
+    last_order_date = serializers.SerializerMethodField()
+    last_order_price = serializers.SerializerMethodField()
 
 
 
@@ -124,13 +126,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_active",
 
             "abc_classification",
-
             "stock",
-
             "status",
-
+            "last_order_date",
+            "last_order_price",
             "created_at",
-
             "updated_at",
 
         ]
@@ -164,14 +164,24 @@ class ProductSerializer(serializers.ModelSerializer):
             return "critical"
 
         if stock <= obj.minimum_level:
-
             return "critical"
-
         if stock <= obj.reorder_level:
-
             return "low"
-
         return "ok"
+
+    def get_last_order_date(self, obj):
+        from procurement.models import PurchaseOrderLine
+        last_line = PurchaseOrderLine.objects.filter(product=obj).order_by('-purchase_order__created_at').first()
+        if last_line and last_line.purchase_order:
+            return last_line.purchase_order.created_at
+        return None
+
+    def get_last_order_price(self, obj):
+        from procurement.models import PurchaseOrderLine
+        last_line = PurchaseOrderLine.objects.filter(product=obj).order_by('-purchase_order__created_at').first()
+        if last_line:
+            return last_line.unit_cost
+        return None
 
 
 

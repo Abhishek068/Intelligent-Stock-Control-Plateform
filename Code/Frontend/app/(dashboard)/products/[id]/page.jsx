@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package, AlertTriangle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Package, AlertTriangle, TrendingUp, Box, MapPin, Tag, BarChart3 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   LineChart,
@@ -97,7 +97,22 @@ export default function ProductDetailPage() {
   }, [productId]);
 
   const chartData = useMemo(() => {
-    if (!forecast?.chart) return [];
+    if (!forecast?.chart || (!forecast.chart.history?.length && !forecast.chart.forecast?.length)) {
+      
+      const flatData = [];
+      const today = new Date();
+      for (let i = -7; i <= 7; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const label = d.toISOString().split("T")[0];
+        flatData.push({
+          label,
+          actual: i <= 0 ? 0 : null,
+          predicted: i >= 0 ? 0 : null
+        });
+      }
+      return flatData;
+    }
     const history = (forecast.chart.history || []).map((h) => ({
       label: h.date,
       actual: h.actual,
@@ -135,50 +150,108 @@ export default function ProductDetailPage() {
   "outline";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      {/* Header Section */}
+      <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-4">
+        <div className="absolute -top-20 -left-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none -z-10" />
+        
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => router.push("/products")}>
-            <ArrowLeft className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={() => router.push("/products")} className="bg-slate-900/50 hover:bg-slate-800 border border-white/5 rounded-xl text-slate-300 transition-all hover:-translate-x-1">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-100">{product.name}</h1>
-            <p className="font-mono text-sm text-slate-400">{product.sku}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                {product.name}
+              </h1>
+              <Badge variant={statusBadge} className={`px-3 py-1 font-semibold uppercase tracking-wider text-[10px] ${statusBadge === "destructive" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : statusBadge === "default" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>
+                {product.status}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <Badge variant="outline" className="bg-slate-900/50 text-indigo-300 border-indigo-500/20 font-mono text-xs shadow-inner">
+                SKU: {product.sku}
+              </Badge>
+              {product.barcode && (
+                <Badge variant="outline" className="bg-slate-900/50 text-slate-400 border-white/10 font-mono text-xs shadow-inner">
+                  BC: {product.barcode}
+                </Badge>
+              )}
+            </div>
           </div>
-          <Badge variant={statusBadge}>{product.status}</Badge>
         </div>
-        {product.barcode &&
-        <div className="rounded-lg border bg-white p-3">
-            <QRCodeSVG value={product.barcode || product.sku} size={64} />
+        
+        {product.barcode && (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-2 backdrop-blur-md shadow-xl flex items-center justify-center">
+            <div className="bg-white p-2 rounded-lg">
+              <QRCodeSVG value={product.barcode || product.sku} size={70} />
+            </div>
           </div>
-        }
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="glass-card">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Current Stock</p>
-            <p className="text-2xl font-bold">{product.stock}</p>
+      {/* Advanced Stats Grid */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card className="bg-slate-900/40 backdrop-blur-xl border-indigo-500/20 shadow-lg relative overflow-hidden group rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-semibold text-slate-400 tracking-wide uppercase">Current Stock</p>
+                <p className="text-4xl font-extrabold text-slate-100 mt-2">{product.stock}</p>
+              </div>
+              <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 ring-1 ring-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                <Package className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Reorder Level</p>
-            <p className="text-2xl font-bold">{product.reorder_level}</p>
+
+        <Card className="bg-slate-900/40 backdrop-blur-xl border-amber-500/20 shadow-lg relative overflow-hidden group rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-semibold text-slate-400 tracking-wide uppercase">Reorder Level</p>
+                <p className="text-4xl font-extrabold text-slate-100 mt-2">{product.reorder_level}</p>
+              </div>
+              <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Unit Price</p>
-            <p className="text-2xl font-bold">£{Number(product.unit_price).toFixed(2)}</p>
+
+        <Card className="bg-slate-900/40 backdrop-blur-xl border-emerald-500/20 shadow-lg relative overflow-hidden group rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-semibold text-slate-400 tracking-wide uppercase">Unit Price</p>
+                <p className="text-4xl font-extrabold text-slate-100 mt-2">£{Number(product.unit_price).toFixed(2)}</p>
+              </div>
+              <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 ring-1 ring-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                <Tag className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400">Suggested Reorder</p>
-            <p className="text-2xl font-bold text-teal-600">
-              {recommendation?.suggested_quantity ?? "—"}
-            </p>
+
+        <Card className="bg-slate-900/40 backdrop-blur-xl border-teal-500/20 shadow-lg relative overflow-hidden group rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardContent className="p-6 relative z-10">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-semibold text-slate-400 tracking-wide uppercase">Suggested Reorder</p>
+                <p className="text-4xl font-extrabold text-teal-400 mt-2">
+                  {recommendation?.suggested_quantity ?? "—"}
+                </p>
+              </div>
+              <div className="p-3 bg-teal-500/10 rounded-xl text-teal-400 ring-1 ring-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -192,53 +265,77 @@ export default function ProductDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Product Details</CardTitle>
+          <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+            <CardHeader className="border-b border-white/5 pb-4">
+              <CardTitle className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                <Box className="h-5 w-5 text-indigo-400" /> Product Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm md:grid-cols-2">
-              <p>
-                <span className="text-slate-400">Category:</span> {product.category_name}
-              </p>
-              <p>
-                <span className="text-slate-400">Supplier:</span> {product.supplier_name}
-              </p>
-              <p>
-                <span className="text-slate-400">Minimum Level:</span> {product.minimum_level}
-              </p>
-              <p>
-                <span className="text-slate-400">Description:</span> {product.description || "—"}
-              </p>
+            <CardContent className="p-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Category</span>
+                    <span className="font-medium text-slate-200">{product.category_name}</span>
+                  </div>
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Minimum Level</span>
+                    <span className="font-mono text-slate-200">{product.minimum_level} units</span>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Supplier</span>
+                    <span className="font-medium text-indigo-300 cursor-pointer hover:underline">{product.supplier_name}</span>
+                  </div>
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Description</span>
+                    <span className="text-sm text-slate-300">{product.description || "No description provided."}</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {product.inventory_by_location?.length > 0 &&
-          <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Stock by Location</CardTitle>
+          {product.inventory_by_location?.length > 0 && (
+            <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
+              <CardHeader className="border-b border-white/5 pb-4">
+                <CardTitle className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-emerald-400" /> Stock by Location
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Location</TableHead>
-                      <TableHead className="text-right">On Hand</TableHead>
-                      <TableHead className="text-right">Available</TableHead>
+                  <TableHeader className="bg-slate-950/40">
+                    <TableRow className="border-b border-white/5 hover:bg-transparent">
+                      <TableHead className="py-4 pl-6 text-slate-300 font-semibold">Location</TableHead>
+                      <TableHead className="py-4 text-center text-slate-300 font-semibold">On Hand</TableHead>
+                      <TableHead className="py-4 text-right pr-6 text-slate-300 font-semibold">Available</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {product.inventory_by_location.map((row) =>
-                  <TableRow key={row.location_id}>
-                        <TableCell>{row.location_name}</TableCell>
-                        <TableCell className="text-right font-mono">{row.quantity_on_hand}</TableCell>
-                        <TableCell className="text-right font-mono">{row.available}</TableCell>
+                    {product.inventory_by_location.map((row) => (
+                      <TableRow key={row.location_id} className="border-b border-white/5 hover:bg-slate-800/40 transition-colors">
+                        <TableCell className="pl-6 py-4 font-medium text-slate-200">{row.location_name}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-slate-900 text-slate-300 border-white/10 font-semibold px-2.5 py-0.5 shadow-inner">
+                            {row.quantity_on_hand}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-semibold px-2.5 py-0.5">
+                            {row.available}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                  )}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-          }
+          )}
 
           {recommendation &&
           <Card className="border-amber-200 bg-amber-50/50">
@@ -299,9 +396,6 @@ export default function ProductDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-72">
-              {chartData.length === 0 ?
-              <p className="text-center text-slate-400">No forecast data — run seed_demo_data or generate forecast.</p> :
-
               <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -319,7 +413,6 @@ export default function ProductDetailPage() {
                   
                   </LineChart>
                 </ResponsiveContainer>
-              }
               {forecast?.chart?.metrics &&
               <div className="mt-4 flex gap-6 text-sm">
                   {forecast.chart.metrics.mae != null &&
