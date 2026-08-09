@@ -57,24 +57,11 @@ export function ForecastChart({
 }) {
   const [timeRange, setTimeRange] = useState("30d");
 
-  const defaultData = [
-    { name: "06-28", actual: 1420, predicted: 1380 },
-    { name: "06-29", actual: 1850, predicted: 1790 },
-    { name: "06-30", actual: 2310, predicted: 2240 },
-    { name: "07-01", actual: 1980, predicted: 2100 },
-    { name: "07-02", actual: 2840, predicted: 2750 },
-    { name: "07-03", actual: 3420, predicted: 3350 },
-    { name: "07-04", actual: 3100, predicted: 3490 },
-    { name: "07-05", actual: 3950, predicted: 4120 },
-    { name: "07-06", actual: 4420, predicted: 4380 },
-    { name: "07-07", actual: 4890, predicted: 4950 },
-  ];
-
   const validPointsCount = (data || []).length;
   const hasValidData = data && Array.isArray(data) && validPointsCount > 0;
-  let chartData = hasValidData ? data : defaultData;
+  let chartData = hasValidData ? data : [];
 
-  // Bridge the visual gap between actual and predicted demand
+  
   if (hasValidData) {
     chartData = [...chartData];
     for (let i = chartData.length - 1; i >= 0; i--) {
@@ -165,64 +152,70 @@ export function ForecastChart({
 
       {/* Main Responsive Chart Area */}
       <CardContent className="flex-1 min-h-[300px] w-full p-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.45} />
-                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#94A3B8", fontSize: 12 }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#94A3B8", fontSize: 12 }}
-              tickFormatter={(value) =>
-                typeof value === "number" && value >= 1000
-                  ? `${(value / 1000).toFixed(1)}k`
-                  : value
-              }
-            />
-            <Tooltip content={<CustomChartTooltip />} />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              iconType="circle"
-              wrapperStyle={{ paddingBottom: "10px", fontSize: "12px", color: "#94A3B8" }}
-            />
-            <Area
-              type="monotone"
-              dataKey={actualKey}
-              name={actualLabel}
-              stroke="#8B5CF6"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#colorActual)"
-              connectNulls={true}
-            />
-            <Area
-              type="monotone"
-              dataKey={predictedKey}
-              name={predictedLabel}
-              stroke="#06B6D4"
-              strokeDasharray="4 4"
-              strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#colorPredicted)"
-              connectNulls={true}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {hasValidData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 12 }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 12 }}
+                tickFormatter={(value) =>
+                  typeof value === "number" && value >= 1000
+                    ? `${(value / 1000).toFixed(1)}k`
+                    : value
+                }
+              />
+              <Tooltip content={<CustomChartTooltip />} />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="circle"
+                wrapperStyle={{ paddingBottom: "10px", fontSize: "12px", color: "#94A3B8" }}
+              />
+              <Area
+                type="monotone"
+                dataKey={actualKey}
+                name={actualLabel}
+                stroke="#8B5CF6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorActual)"
+                connectNulls={true}
+              />
+              <Area
+                type="monotone"
+                dataKey={predictedKey}
+                name={predictedLabel}
+                stroke="#06B6D4"
+                strokeDasharray="4 4"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#colorPredicted)"
+                connectNulls={true}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <p className="text-slate-400 text-sm">No historical demand data available for this product.</p>
+          </div>
+        )}
       </CardContent>
 
       {/* Footer Telemetry Bar filling any empty space below chart */}

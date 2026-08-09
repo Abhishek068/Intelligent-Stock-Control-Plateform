@@ -72,4 +72,8 @@ export const analyticsApi = {
   resolvePredictiveAlert(id) {
     return apiClient.post(`/predictive-alerts/${id}/resolve/`);
   },
+
+  chatbotQuery(message) {
+    return apiClient.post("/chatbot/query/", { message });
+  },
 };

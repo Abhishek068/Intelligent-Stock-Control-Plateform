@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore, useUIStore } from "@/lib/store";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { ChatWidget } from "@/components/chatbot/ChatWidget";
 import { cn } from "@/lib/utils";
 import { authApi } from "@/lib/api";
 
@@ -49,6 +50,7 @@ export default function DashboardLayout({ children }) {
       <div className={cn("flex-1 transition-all duration-300", sidebarCollapsed ? "pl-16" : "pl-64")}>
         <Topbar />
         <main className="min-h-[calc(100vh-64px)] p-6">{children}</main>
+        <ChatWidget />
       </div>
     </div>
   );

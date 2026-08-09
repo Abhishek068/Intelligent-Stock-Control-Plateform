@@ -28,7 +28,7 @@ class DemandForecast(models.Model):
 
     predicted_demand = models.DecimalField(max_digits=12, decimal_places=2)
 
-    model_name = models.CharField(max_length=50)
+    model_name = models.CharField(max_length=150)
 
     mae = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
 
@@ -38,6 +38,7 @@ class DemandForecast(models.Model):
 
     generated_at = models.DateTimeField(auto_now_add=True)
 
+    weather_context = models.JSONField(default=dict, blank=True)
 
 
     class Meta:

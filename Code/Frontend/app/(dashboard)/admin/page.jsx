@@ -23,6 +23,13 @@ import {
 import { toast } from "sonner";
 import { adminDashboardApi, dashboardApi, analyticsApi, productsApi } from "@/lib/api";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ForecastChart,
   ReorderRecommendations,
   StatCardWithSparkline,
@@ -53,6 +60,8 @@ export default function AdminDashboard() {
   const [forecastData, setForecastData] = useState([]);
   const [forecastMetrics, setForecastMetrics] = useState({});
   const [loading, setLoading] = useState(true);
+  const [productsList, setProductsList] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState("all");
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -77,21 +86,37 @@ export default function AdminDashboard() {
         }))
       );
       if (products?.length > 0) {
-        const forecastRes = await analyticsApi.getForecast(products[0].id).catch(() => null);
-        if (forecastRes?.success && forecastRes.data?.chart) {
-          setForecastData(buildForecastChart(forecastRes.data.chart));
-          const latest = forecastRes.data.latest_forecast;
-          setForecastMetrics({
-            mae: latest?.mae,
-            rmse: latest?.rmse,
-            productName: products[0].name,
-          });
-        }
+        setProductsList(products);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchForecast = async () => {
+      const forecastRes = await analyticsApi.getForecast(selectedProduct).catch(() => null);
+      if (forecastRes?.success && forecastRes.data?.chart) {
+        setForecastData(buildForecastChart(forecastRes.data.chart));
+        const latest = forecastRes.data.latest_forecast;
+        
+        let pName = "All Products";
+        if (selectedProduct !== "all") {
+           const p = productsList.find(x => x.id.toString() === selectedProduct);
+           if (p) pName = p.name;
+        }
+
+        setForecastMetrics({
+          mae: latest?.mae,
+          rmse: latest?.rmse,
+          productName: pName,
+        });
+      }
+    };
+    if (productsList.length > 0 || selectedProduct === "all") {
+      fetchForecast();
+    }
+  }, [selectedProduct, productsList]);
 
   const handleRefresh = async () => {
     await loadDashboard();
@@ -240,7 +265,23 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-slate-100">Demand Forecasting</h2>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger className="w-[280px] bg-slate-900/50 border-white/10 text-slate-200">
+                <SelectValue placeholder="Select a product" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
+                <SelectItem value="all">Aggregate (All Products)</SelectItem>
+                {productsList.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <ForecastChart
             data={forecastData}
             title={

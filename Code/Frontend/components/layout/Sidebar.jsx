@@ -28,6 +28,7 @@ import {
   Layers,
   Undo2,
   KeyRound,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/store";
@@ -84,6 +85,7 @@ export function Sidebar() {
       label: "Intelligence",
       items: [
         { name: "Forecasting", href: "/forecasting", icon: TrendingUp, show: can("forecasting") },
+        { name: "AI Assistant", href: "/chatbot", icon: Bot, show: can("forecasting") },
         { name: "AI Alerts", href: "/alerts", icon: BellRing, show: can("alerts") },
         { name: "Notifications", href: "/notifications", icon: BellRing, show: can("notifications") },
         { name: "Reorder", href: "/reorder-recommendations", icon: BrainCircuit, show: can("forecasting") },

@@ -41,6 +41,7 @@ from accounts.views import (
     VerifyEmailView,
 )
 from activity.views import ActivityEventViewSet, AdminDashboardView, GlobalSearchView, DashboardStreamView
+from analytics.chatbot_views import ChatbotQueryView
 from analytics.views import (
     ForecastViewSet,
     PredictiveAlertViewSet,
@@ -130,5 +131,6 @@ urlpatterns = [
     path("api/v1/admin-dashboard/", AdminDashboardView.as_view(), name="admin-dashboard"),
     path("api/v1/dashboard/stream/", DashboardStreamView.as_view(), name="dashboard-stream"),
     path("api/v1/search/", GlobalSearchView.as_view(), name="global-search"),
+    path("api/v1/chatbot/query/", ChatbotQueryView.as_view(), name="chatbot-query"),
     path("api/v1/", include(router.urls)),
 ]

@@ -102,23 +102,24 @@ class ForecastingService:
 
     @staticmethod
 
-    def _daily_demand_series(product, days=90):
+    def _daily_demand_series(product=None, org=None, days=90):
 
         end = timezone.now()
 
         start = end - timedelta(days=days)
+        
+        qs = StockOutTransaction.objects.filter(
+            issued_at__gte=start,
+            issued_at__lte=end,
+        )
+        if product:
+            qs = qs.filter(product=product)
+        elif org:
+            qs = qs.filter(product__organization=org)
 
         txns = (
 
-            StockOutTransaction.objects.filter(
-
-                product=product,
-
-                issued_at__gte=start,
-
-                issued_at__lte=end,
-
-            )
+            qs
 
             .values("issued_at__date")
 
@@ -239,28 +240,56 @@ class ForecastingService:
             predicted_total = Decimal("0")
             model_name = "no_history"
 
+        from analytics.weather_service import WeatherService
+        weather_multiplier, weather_context = WeatherService.get_weather_impact(city="London")
+        
+        from analytics.holiday_service import HolidayService
+        holiday_multiplier, holiday_context = HolidayService.get_holiday_impact(horizon_days=horizon_days, country_code="GB")
+        
+        from analytics.events_service import EventsService
+        events_multiplier, events_context = EventsService.get_events_impact(city="London", country_code="GB", horizon_days=horizon_days)
+        
+        from analytics.trends_service import TrendsService
+        product_name = product.name if hasattr(product, 'name') else str(product)
+        trends_multiplier, trends_context = TrendsService.get_trends_impact(product_name=product_name)
+        
+        compound_multiplier = weather_multiplier * holiday_multiplier * events_multiplier * trends_multiplier
+        if compound_multiplier != 1.0:
+            predicted_total = Decimal(str(max(0, float(predicted_total) * compound_multiplier)))
+            
+            adjusted_parts = []
+            if weather_multiplier != 1.0:
+                adjusted_parts.append("weather")
+            if holiday_multiplier != 1.0:
+                adjusted_parts.append("holiday")
+            if events_multiplier != 1.0:
+                adjusted_parts.append("events")
+            if trends_multiplier != 1.0:
+                adjusted_parts.append("trends")
+            model_name = f"{model_name}_{'_'.join(adjusted_parts)}_adjusted"
+            
+        if holiday_context.get("upcoming_holidays"):
+            weather_context["holiday_event"] = holiday_context
+        if events_context.get("total_events_found", 0) > 0:
+            weather_context["local_events"] = events_context
+        if trends_context.get("trend_ratio"):
+            weather_context["google_trends"] = trends_context
+
+
 
 
         today = timezone.now().date()
 
         forecast = DemandForecast.objects.create(
-
             product=product,
-
             forecast_period_start=today,
-
             forecast_period_end=today + timedelta(days=horizon_days),
-
             predicted_demand=predicted_total,
-
             model_name=model_name,
-
             mae=Decimal(str(round(mae, 4))) if mae is not None else None,
-
             rmse=Decimal(str(round(rmse, 4))) if rmse is not None else None,
-
             mape=Decimal(str(round(mape, 4))) if mape is not None else None,
-
+            weather_context=weather_context
         )
 
         return forecast
@@ -269,9 +298,9 @@ class ForecastingService:
 
     @classmethod
 
-    def get_chart_data(cls, product, days=90):
+    def get_chart_data(cls, product=None, org=None, days=90):
 
-        series = cls._daily_demand_series(product, days=days)
+        series = cls._daily_demand_series(product=product, org=org, days=days)
 
         if series.empty:
 
@@ -289,47 +318,61 @@ class ForecastingService:
 
 
 
-        forecast_record = (
-
-            DemandForecast.objects.filter(product=product).order_by("-generated_at").first()
-
-        )
-
         forecast_points = []
+        metrics = {}
 
-        if forecast_record and len(series) > 0:
+        if product:
+            forecast_record = (
 
-            daily_pred = float(forecast_record.predicted_demand) / max(
-
-                (forecast_record.forecast_period_end - forecast_record.forecast_period_start).days, 1
+                DemandForecast.objects.filter(product=product).order_by("-generated_at").first()
 
             )
 
-            last_date = series.index[-1]
+            if forecast_record and len(series) > 0:
 
-            for i in range(1, 31):
+                daily_pred = float(forecast_record.predicted_demand) / max(
 
-                d = last_date + timedelta(days=i)
+                    (forecast_record.forecast_period_end - forecast_record.forecast_period_start).days, 1
 
-                forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": daily_pred})
+                )
+
+                last_date = series.index[-1]
+
+                for i in range(1, 31):
+
+                    d = last_date + timedelta(days=i)
+
+                    forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": daily_pred})
 
 
 
-        metrics = {}
+            if forecast_record:
 
-        if forecast_record:
+                metrics = {
 
-            metrics = {
+                    "mae": float(forecast_record.mae) if forecast_record.mae else None,
 
-                "mae": float(forecast_record.mae) if forecast_record.mae else None,
+                    "rmse": float(forecast_record.rmse) if forecast_record.rmse else None,
 
-                "rmse": float(forecast_record.rmse) if forecast_record.rmse else None,
+                    "mape": float(forecast_record.mape) if forecast_record.mape else None,
 
-                "mape": float(forecast_record.mape) if forecast_record.mape else None,
+                    "model_name": forecast_record.model_name,
 
-                "model_name": forecast_record.model_name,
-
-            }
+                }
+        elif org:
+            total_daily_pred = 0
+            for p in Product.objects.filter(organization=org):
+                record = DemandForecast.objects.filter(product=p).order_by("-generated_at").first()
+                if record:
+                    days_diff = max((record.forecast_period_end - record.forecast_period_start).days, 1)
+                    total_daily_pred += float(record.predicted_demand) / days_diff
+            
+            if len(series) > 0:
+                last_date = series.index[-1]
+                for i in range(1, 31):
+                    d = last_date + timedelta(days=i)
+                    forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": total_daily_pred})
+            metrics = {"model_name": "aggregate"}
 
 
 

@@ -47,6 +47,18 @@ class ForecastViewSet(viewsets.ViewSet):
 
         product_id = request.query_params.get("product")
 
+        if product_id == "all":
+            chart = ForecastingService.get_chart_data(org=org)
+            return Response(
+                {
+                    "success": True,
+                    "data": {
+                        "chart": chart,
+                        "latest_forecast": None,
+                    },
+                }
+            )
+
         if not product_id:
 
             forecasts = DemandForecast.objects.filter(
