@@ -40,6 +40,7 @@ import { ApiError } from "@/lib/api/client";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { BulkImportDialog } from "./BulkImportDialog";
 import { ProductInventorySummary } from "./ProductInventorySummary";
+import { AbcStochasticPanel } from "./AbcStochasticPanel";
 import {
   Dialog,
   DialogContent,
@@ -355,46 +356,6 @@ export function ProductTable() {
       <span className="font-mono text-sm text-teal-600">{row.getValue("recommendedReorder")}</span>
     },
     {
-      accessorKey: "abc_xyz_class",
-      header: "ABC/XYZ Matrix",
-      cell: ({ row }) => {
-        const cls = row.original.abc_xyz_class || "AX";
-        const policy = row.original.automated_reorder_policy || "automated";
-        return (
-          <div className="flex flex-col gap-0.5">
-            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold font-mono tracking-wider w-10 ${
-              cls.startsWith("A") ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
-              cls.startsWith("B") ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" :
-              "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-            }`}>
-              {cls}
-            </span>
-            <span className="text-[10px] text-slate-400 capitalize">
-              {policy.replace("_", " ")}
-            </span>
-          </div>
-        );
-      }
-    },
-    {
-      accessorKey: "stochastic_safety_stock",
-      header: "Stochastic SS / ROP",
-      cell: ({ row }) => {
-        const minLvl = Number(row.original.minimum_level) || 10;
-        const reorderLvl = Number(row.original.reorder_level) || 20;
-        const ss = row.original.stochastic_safety_stock ? row.original.stochastic_safety_stock : Math.max(3, Math.round(minLvl * 0.45));
-        const rop = row.original.dynamic_reorder_point ? row.original.dynamic_reorder_point : Math.max(5, reorderLvl);
-        const sl = row.original.target_service_level || 98;
-        return (
-          <div className="font-mono text-xs">
-            <span className="text-purple-400 font-semibold">SS: {ss}</span>
-            <span className="text-slate-400"> | ROP: {rop}</span>
-            <div className="text-[10px] text-slate-500">{sl}% Target SL</div>
-          </div>
-        );
-      }
-    },
-    {
       id: "actions",
       cell: ({ row }) =>
       <DropdownMenu>
@@ -493,12 +454,12 @@ export function ProductTable() {
   }, [table]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       <ProductInventorySummary data={data} onStatusClick={setStatusFilter} />
-      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full max-w-full">
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
-        <CardContent className="p-0 space-y-0 relative z-10">
+        <CardContent className="p-0 space-y-0 relative z-10 w-full max-w-full overflow-hidden">
         <div className="p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="w-full max-w-xl flex items-center gap-3">
         <SearchInput
@@ -625,6 +586,8 @@ export function ProductTable() {
         </div>
         </div>
       </CardContent>
+
+      <AbcStochasticPanel data={data} className="mt-6" />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-xl bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">

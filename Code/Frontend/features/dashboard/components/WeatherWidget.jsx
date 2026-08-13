@@ -4,21 +4,42 @@ import { useEffect, useState } from "react";
 import { Cloud, CloudRain, Sun, Snowflake, Thermometer, Zap, AlertTriangle, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { dashboardApi } from "@/lib/api";
 
+const UK_CITIES = [
+  { id: "London", label: "London 🇬🇧" },
+  { id: "Manchester", label: "Manchester 🇬🇧" },
+  { id: "Birmingham", label: "Birmingham 🇬🇧" },
+  { id: "Glasgow", label: "Glasgow 🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+  { id: "Edinburgh", label: "Edinburgh 🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+  { id: "Liverpool", label: "Liverpool 🇬🇧" },
+  { id: "Bristol", label: "Bristol 🇬🇧" },
+  { id: "Leeds", label: "Leeds 🇬🇧" },
+  { id: "Belfast", label: "Belfast 🇬🇧" },
+  { id: "Cardiff", label: "Cardiff 🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+  { id: "Newcastle", label: "Newcastle 🇬🇧" },
+  { id: "Sheffield", label: "Sheffield 🇬🇧" },
+  { id: "Nottingham", label: "Nottingham 🇬🇧" },
+  { id: "Southampton", label: "Southampton 🇬🇧" },
+];
+
 export function WeatherWidget({ initialData = null }) {
+  const [selectedCity, setSelectedCity] = useState("London");
   const [weather, setWeather] = useState(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWeather = async (isManual = false) => {
+  const fetchWeather = async (targetCity = selectedCity, isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
-      const res = await dashboardApi.getWeather("London");
-      if (res?.data) {
-        setWeather(res.data);
-        if (isManual) toast.success("Live weather context re-synced!");
+      const res = await dashboardApi.getWeather(targetCity);
+      const payload = res?.data?.data ? res.data.data : (res?.data || res);
+      if (payload) {
+        const clientTime = new Date().toLocaleTimeString();
+        setWeather({ ...payload, last_updated: clientTime });
+        if (isManual) toast.success(`Live weather for ${targetCity} re-synced!`);
       }
     } catch (err) {
       console.error("Failed to fetch weather widget data:", err);
@@ -29,11 +50,15 @@ export function WeatherWidget({ initialData = null }) {
     }
   };
 
+  const handleCityChange = (city) => {
+    setSelectedCity(city);
+    setLoading(true);
+    fetchWeather(city, false);
+  };
+
   useEffect(() => {
-    if (!initialData) {
-      fetchWeather();
-    }
-  }, [initialData]);
+    fetchWeather(selectedCity, false);
+  }, [selectedCity]);
 
   if (loading) {
     return (
@@ -89,16 +114,25 @@ export function WeatherWidget({ initialData = null }) {
       />
 
       <CardContent className="p-5">
-        {/* Header row: Title, Location & Refresh button */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Header row: Title, Location Dropdown & Refresh button */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="flex items-center space-x-2">
             <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               Live Weather Context
             </span>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-slate-700 text-slate-400 bg-slate-800/50">
-              London, UK 🇬🇧
-            </Badge>
+            <Select value={selectedCity} onValueChange={handleCityChange}>
+              <SelectTrigger className="h-7 text-[11px] font-semibold bg-slate-800/80 border-slate-700/60 text-cyan-300 rounded-lg px-2 py-0 focus:ring-1 focus:ring-cyan-500/30">
+                <SelectValue placeholder="Select City" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-700 text-slate-200 shadow-xl max-h-60">
+                {UK_CITIES.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="text-xs focus:bg-cyan-500/20 focus:text-cyan-200 cursor-pointer">
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -108,7 +142,7 @@ export function WeatherWidget({ initialData = null }) {
               </span>
             )}
             <button
-              onClick={() => fetchWeather(true)}
+              onClick={() => fetchWeather(selectedCity, true)}
               disabled={refreshing}
               className="text-slate-400 hover:text-slate-200 transition-colors p-1.5 rounded-md hover:bg-slate-800 flex items-center space-x-1"
               title="Refresh Live Weather Data"
@@ -126,13 +160,17 @@ export function WeatherWidget({ initialData = null }) {
               {renderIcon()}
             </div>
             <div>
-              <div className="flex items-baseline space-x-1">
-                <span className="text-2xl font-bold text-slate-100 font-mono">
-                  {Math.round(data.temp_c)}°C
-                </span>
-                <span className="text-xs text-slate-400 flex items-center gap-0.5">
+              <div className="flex items-baseline space-x-2">
+                <div className="flex items-baseline space-x-1" title="Live Current Real-Time Temperature Right Now">
+                  <span className="text-2xl font-bold text-slate-100 font-mono">
+                    {Math.round(data.temp_c)}°C
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-semibold uppercase font-mono">LIVE NOW</span>
+                </div>
+                <span className="text-xs text-slate-400 flex items-center gap-0.5" title="Today's Minimum Low to Today's Maximum High">
                   <Thermometer className="h-3 w-3 text-slate-400" />
-                  {Math.round(data.min_temp_c)}° - {Math.round(data.max_temp_c)}°
+                  <span className="text-[10px] text-slate-500 font-medium">Today:</span>
+                  <span className="font-mono text-slate-300 font-medium">{Math.round(data.min_temp_c)}° - {Math.round(data.max_temp_c)}°</span>
                 </span>
               </div>
               <p className="text-xs font-medium text-slate-300">

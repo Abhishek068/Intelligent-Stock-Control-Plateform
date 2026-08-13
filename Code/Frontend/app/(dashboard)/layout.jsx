@@ -45,11 +45,11 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen max-w-full overflow-x-hidden">
       <Sidebar />
-      <div className={cn("flex-1 transition-all duration-300", sidebarCollapsed ? "pl-16" : "pl-64")}>
+      <div className={cn("flex-1 min-w-0 max-w-full overflow-x-hidden transition-all duration-300", sidebarCollapsed ? "pl-16" : "pl-64")}>
         <Topbar />
-        <main className="min-h-[calc(100vh-64px)] p-6">{children}</main>
+        <main className="min-h-[calc(100vh-64px)] p-4 sm:p-6 w-full max-w-full overflow-x-hidden">{children}</main>
         <ChatWidget />
       </div>
     </div>

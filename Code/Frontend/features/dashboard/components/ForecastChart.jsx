@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,18 +59,45 @@ export function ForecastChart({
 
   const validPointsCount = (data || []).length;
   const hasValidData = data && Array.isArray(data) && validPointsCount > 0;
-  let chartData = hasValidData ? data : [];
 
-  
-  if (hasValidData) {
-    chartData = [...chartData];
-    for (let i = chartData.length - 1; i >= 0; i--) {
-      if (chartData[i][actualKey] != null) {
-        chartData[i] = { ...chartData[i], [predictedKey]: chartData[i][actualKey] };
+  const chartData = useMemo(() => {
+    if (!hasValidData) return [];
+
+    const historyPoints = data.filter((d) => d[actualKey] != null);
+    const forecastPoints = data.filter((d) => d[actualKey] == null && d[predictedKey] != null);
+
+    let histLimit = 14;
+    let foreLimit = 14;
+
+    if (timeRange === "7d") {
+      histLimit = 7;
+      foreLimit = 7;
+    } else if (timeRange === "30d") {
+      histLimit = 14;
+      foreLimit = 16;
+    } else if (timeRange === "90d") {
+      histLimit = 45;
+      foreLimit = 45;
+    } else if (timeRange === "year") {
+      histLimit = historyPoints.length;
+      foreLimit = forecastPoints.length;
+    }
+
+    const slicedHistory = historyPoints.slice(-histLimit);
+    const slicedForecast = forecastPoints.slice(0, foreLimit);
+
+    const combined = [...slicedHistory, ...slicedForecast];
+
+    // Connect actual line to predicted line smoothly at current day
+    for (let i = combined.length - 1; i >= 0; i--) {
+      if (combined[i][actualKey] != null) {
+        combined[i] = { ...combined[i], [predictedKey]: combined[i][actualKey] };
         break;
       }
     }
-  }
+
+    return combined;
+  }, [data, hasValidData, timeRange, actualKey, predictedKey]);
 
   const actualPoints = data?.filter((d) => d[actualKey] != null) || [];
   const avgDaily = actualPoints.length > 0 

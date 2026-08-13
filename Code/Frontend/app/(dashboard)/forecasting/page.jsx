@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { productsApi, analyticsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
-import { ExternalFactorsPanel, AccuracyTrendChart, DemandPatternBadge } from "@/features/dashboard/components";
+import { ExternalFactorsPanel, DemandPatternBadge } from "@/features/dashboard/components";
 
 export default function ForecastingPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -497,8 +497,6 @@ export default function ForecastingPage() {
             </div>
           </div>
 
-          {/* AI Accuracy Telemetry & Error Tracking Over Time */}
-          <AccuracyTrendChart productId={selectedProductId || "all"} className="mt-8" />
         </div>
       )}
     </div>

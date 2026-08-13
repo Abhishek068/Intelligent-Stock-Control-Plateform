@@ -34,12 +34,12 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 function buildForecastChart(chart) {
   if (!chart) return [];
-  const history = (chart.history || []).slice(-7).map((h) => ({
+  const history = (chart.history || []).map((h) => ({
     name: h.date?.slice(5) || h.date,
     actual: h.actual,
     predicted: null,
   }));
-  const forecast = (chart.forecast || []).slice(0, 7).map((f) => ({
+  const forecast = (chart.forecast || []).map((f) => ({
     name: f.date?.slice(5) || f.date,
     actual: null,
     predicted: f.predicted,

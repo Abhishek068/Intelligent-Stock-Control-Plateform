@@ -199,7 +199,7 @@ export default function WarehousesPage() {
 
   const modalStats = {
     uniqueProducts: warehouseProducts.length,
-    totalAvailable: warehouseProducts.reduce((sum, p) => sum + (Number(p.available) || 0), 0),
+    totalAvailable: warehouseProducts.reduce((sum, p) => sum + (Number(p.available_quantity ?? (p.quantity_on_hand - (p.reserved_qty || 0))) || 0), 0),
     totalOnHand: warehouseProducts.reduce((sum, p) => sum + (Number(p.quantity_on_hand) || 0), 0),
   };
 
@@ -580,7 +580,7 @@ export default function WarehousesPage() {
                             </TableCell>
                             <TableCell className="text-center">
                               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-semibold px-2.5 py-0.5">
-                                {p.available}
+                                {p.available_quantity ?? (p.quantity_on_hand - (p.reserved_qty || 0))}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-center pr-6">
