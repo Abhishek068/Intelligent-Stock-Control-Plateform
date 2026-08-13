@@ -7,6 +7,23 @@ logger = logging.getLogger(__name__)
 class WeatherService:
     BASE_URL = "https://api.openweathermap.org/data/2.5/forecast"
     
+    UK_CITIES_COORDS = {
+        "London": (51.5074, -0.1278),
+        "Manchester": (53.4808, -2.2426),
+        "Birmingham": (52.4862, -1.8904),
+        "Glasgow": (55.8642, -4.2518),
+        "Edinburgh": (55.9533, -3.1883),
+        "Liverpool": (53.4084, -2.9916),
+        "Bristol": (51.4545, -2.5879),
+        "Leeds": (53.8008, -1.5491),
+        "Belfast": (54.5973, -5.9301),
+        "Cardiff": (51.4816, -3.1791),
+        "Newcastle": (54.9783, -1.6178),
+        "Sheffield": (53.3811, -1.4701),
+        "Nottingham": (52.9548, -1.1581),
+        "Southampton": (50.9097, -1.4044),
+    }
+
     @classmethod
     def get_weather_impact(cls, city="London"):
         """
@@ -38,7 +55,7 @@ class WeatherService:
                         multiplier = 1.0
                         if min_temp < 5:
                             multiplier += 0.15
-                        elif max_temp > 30:
+                        elif max_temp > 25:
                             multiplier += 0.10
                         if has_extreme_weather:
                             multiplier += 0.10
@@ -54,19 +71,42 @@ class WeatherService:
             except Exception as e:
                 logger.error(f"OpenWeather API error: {e}")
 
-        # Free Open-Meteo Live Weather API (London: 51.5074, -0.1278) - No API Key Needed
+        # Free Open-Meteo Live Weather API - No API Key Needed
         try:
-            open_meteo_url = "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,rain_sum&timezone=Europe%2FLondon"
+            lat, lon = cls.UK_CITIES_COORDS.get(city, cls.UK_CITIES_COORDS.get(city.title(), (51.5074, -0.1278)))
+            open_meteo_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,rain_sum&timezone=Europe%2FLondon"
             res = requests.get(open_meteo_url, timeout=5)
             if res.status_code == 200:
                 data = res.json()
-                current_temp = data.get("current", {}).get("temperature_2m", 15.0)
                 daily = data.get("daily", {})
-                max_temp = max(daily.get("temperature_2m_max", [current_temp]))
-                min_temp = min(daily.get("temperature_2m_min", [current_temp]))
-                rain_sum = sum(daily.get("rain_sum", [0.0]))
+                hourly = data.get("hourly", {})
+                current_obj = data.get("current", {})
+
+                daily_max_list = daily.get("temperature_2m_max", [25.0])
+                daily_min_list = daily.get("temperature_2m_min", [15.0])
                 
-                has_extreme = rain_sum > 2.0
+                # Today's high/low
+                max_temp = daily_max_list[0] if len(daily_max_list) > 0 else 25.0
+                min_temp = daily_min_list[0] if len(daily_min_list) > 0 else 15.0
+
+                # Match exact current UK local hour from Open-Meteo hourly forecast
+                from django.utils import timezone
+                now_local = timezone.now()
+                target_time_prefix = now_local.strftime("%Y-%m-%dT%H:00")
+                
+                hourly_times = hourly.get("time", [])
+                hourly_temps = hourly.get("temperature_2m", [])
+                
+                current_temp = current_obj.get("temperature_2m", None)
+                if target_time_prefix in hourly_times:
+                    idx = hourly_times.index(target_time_prefix)
+                    current_temp = hourly_temps[idx]
+                
+                if current_temp is None:
+                    current_temp = max_temp if (12 <= now_local.hour <= 18) else (min_temp + max_temp) / 2.0
+                
+                rain_sum = sum(daily.get("rain_sum", [0.0]))
+                has_extreme = rain_sum > 15.0 or max_temp >= 30.0
                 multiplier = 1.0
                 if min_temp < 5:
                     multiplier += 0.15
@@ -115,14 +155,22 @@ class WeatherService:
             min_t = context.get("min_temp_c", 18.0)
             max_t = context.get("max_temp_c", 34.0)
             
-            if extreme:
-                condition = "Rain & Rainy Weather"
+            if max_t >= 30 or temp_c >= 25:
+                condition = "Hot & Sunny (Heatwave)"
+                icon = "sun"
+                mult = max(mult, 1.15)
+            elif extreme and temp_c > 20:
+                condition = "Warm Rain & Summer Showers"
+                icon = "rain"
+                mult = max(mult, 1.10)
+            elif extreme:
+                condition = "Heavy Rain & Rainy Weather"
                 icon = "rain"
                 mult = max(mult, 1.10)
             elif temp_c < 5:
                 condition = "Cold Snap"
                 icon = "cold"
-            elif temp_c > 20:
+            elif temp_c >= 18:
                 condition = "Warm & Clear (Summer)"
                 icon = "sun"
                 mult = max(mult, 1.10)

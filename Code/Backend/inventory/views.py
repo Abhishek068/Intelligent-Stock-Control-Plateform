@@ -147,6 +147,12 @@ class ProductViewSet(OrganizationScopedViewSet):
 
         product = serializer.instance
         try:
+            from analytics.services import ForecastingService
+            ForecastingService.forecast_product(product, horizon_days=30)
+        except Exception as e:
+            pass
+
+        try:
             from activity.services import record_activity
 
             record_activity(

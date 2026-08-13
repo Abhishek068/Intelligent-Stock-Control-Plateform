@@ -301,11 +301,9 @@ class InventoryBalanceSerializer(serializers.ModelSerializer):
             "location_name",
 
             "quantity_on_hand",
-
             "reserved_qty",
-
+            "available_quantity",
             "updated_at",
-
         ]
 
         read_only_fields = fields
