@@ -37,8 +37,19 @@ export const analyticsApi = {
     return apiClient.get(`/forecasts/?product=${productId}`);
   },
 
+  async listForecasts(params) {
+    const query = params ? `?${new URLSearchParams(params)}` : "";
+    const res = await apiClient.get(`/forecasts/${query}`);
+    return unwrapList(res);
+  },
+
   getForecastSummary() {
     return apiClient.get("/forecasts/summary/");
+  },
+
+  getAccuracyHistory(productId = "all") {
+    const q = productId ? `?product=${encodeURIComponent(productId)}` : "";
+    return apiClient.get(`/forecasts/accuracy-history/${q}`);
   },
 
   generateForecast(productId, horizonDays = 30) {
@@ -75,5 +86,19 @@ export const analyticsApi = {
 
   chatbotQuery(message) {
     return apiClient.post("/chatbot/query/", { message });
+  },
+
+  getAbcXyzMatrix() {
+    return apiClient.get("/analytics/abc-xyz-matrix/");
+  },
+
+  recalculateAbcXyz() {
+    return apiClient.post("/analytics/recalculate-abc-xyz/");
+  },
+
+  calculateStochasticSafetyStock(targetServiceLevel = 98.0) {
+    return apiClient.post("/analytics/calculate-stochastic-safety-stock/", {
+      target_service_level: targetServiceLevel,
+    });
   },
 };

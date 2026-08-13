@@ -43,6 +43,7 @@ from accounts.views import (
 from activity.views import ActivityEventViewSet, AdminDashboardView, GlobalSearchView, DashboardStreamView
 from analytics.chatbot_views import ChatbotQueryView
 from analytics.views import (
+    AbcXyzAnalyticsViewSet,
     ForecastViewSet,
     PredictiveAlertViewSet,
     ReorderRecommendationViewSet,
@@ -100,6 +101,7 @@ router.register(r"audit-logs", ActivityLogViewSet, basename="audit-log")
 router.register(r"forecasts", ForecastViewSet, basename="forecast")
 router.register(r"reorder-recommendations", ReorderRecommendationViewSet, basename="reorder-recommendation")
 router.register(r"predictive-alerts", PredictiveAlertViewSet, basename="predictive-alert")
+router.register(r"analytics", AbcXyzAnalyticsViewSet, basename="abc-xyz-analytics")
 router.register(r"reports", ReportViewSet, basename="report")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"settings", SettingsViewSet, basename="settings")

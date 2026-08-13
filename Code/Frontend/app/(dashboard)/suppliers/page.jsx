@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, MoreHorizontal, Truck, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, Truck, Package, Sparkles, ShieldAlert, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,25 @@ export default function SuppliersPage() {
     }
   };
 
+  const [riskModalOpen, setRiskModalOpen] = useState(false);
+  const [riskData, setRiskData] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+
+  const openRiskAnalytics = async (sup) => {
+    setRiskModalOpen(true);
+    setLoadingRisk(true);
+    try {
+      const res = await suppliersApi.getRiskAnalytics(sup.id);
+      setRiskData(res?.data || res);
+    } catch (err) {
+      toast.error("Failed to load risk analytics");
+    } finally {
+      setLoadingRisk(false);
+    }
+  };
+
   const loadSuppliers = useCallback(async () => {
+
     setLoading(true);
     try {
       setSuppliers(await suppliersApi.list());
@@ -275,8 +293,29 @@ export default function SuppliersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-900/50 border border-white/5 text-slate-300 text-sm font-medium shadow-inner">
-                            {sup.lead_time_days}d
+                          <div className="flex flex-col gap-1">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900/50 border border-white/5 text-slate-300 text-xs font-medium">
+                              <span className="text-slate-400">Contract:</span>
+                              <span className="font-mono text-slate-200">{sup.lead_time_days}d</span>
+                            </div>
+                            {sup.predicted_lead_time_info && (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0.5 font-mono border ${
+                                  sup.predicted_lead_time_info.delay_bias_days > 1.0
+                                    ? "bg-red-500/10 border-red-500/30 text-red-300"
+                                    : sup.predicted_lead_time_info.delay_bias_days < -1.0
+                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                                    : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
+                                }`}
+                              >
+                                AI Pred: {sup.predicted_lead_time_info.predicted_lead_time_days}d (
+                                {sup.predicted_lead_time_info.delay_bias_days > 0
+                                  ? `+${sup.predicted_lead_time_info.delay_bias_days}d late`
+                                  : "On time"}
+                                )
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -308,6 +347,9 @@ export default function SuppliersPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
+                                <DropdownMenuItem onClick={() => openRiskAnalytics(sup)} className="hover:bg-purple-500/10 cursor-pointer text-purple-300">
+                                  <Sparkles className="mr-2 h-4 w-4 text-purple-400" /> AI Risk Profile
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEdit(sup)} className="hover:bg-white/5 cursor-pointer text-slate-300">
                                   <Pencil className="mr-2 h-4 w-4 text-indigo-400" /> Edit Supplier
                                 </DropdownMenuItem>
@@ -535,6 +577,73 @@ export default function SuppliersPage() {
               })}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Risk Analytics Dialog */}
+      <Dialog open={riskModalOpen} onOpenChange={setRiskModalOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-[#0F172A] border-purple-500/30 text-white shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-purple-400">
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              <span>AI Supplier Risk & Lead-Time Analytics</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {loadingRisk ? (
+            <div className="py-12 text-center text-slate-400 animate-pulse">Running Random Forest Risk Assessment...</div>
+          ) : riskData ? (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/80 border border-white/10">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-semibold">Supplier Name</p>
+                  <p className="text-lg font-bold text-slate-100">{riskData.supplier_name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400 uppercase font-semibold">Dynamic Risk Score</p>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider ${
+                    riskData.current_risk_assessment?.risk_level === "low" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
+                    riskData.current_risk_assessment?.risk_level === "medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                    riskData.current_risk_assessment?.risk_level === "high" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                    "bg-red-500/20 text-red-400 border border-red-500/30"
+                  }`}>
+                    {riskData.current_risk_assessment?.risk_level} ({riskData.current_risk_assessment?.risk_score}/100)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-3 bg-slate-900/60 rounded-lg border border-white/5">
+                  <p className="text-xs text-slate-400">Baseline Lead Time</p>
+                  <p className="text-base font-bold text-slate-200 mt-1">{riskData.lead_time_days} Days</p>
+                </div>
+                <div className="p-3 bg-slate-900/60 rounded-lg border border-white/5">
+                  <p className="text-xs text-slate-400">Delivery Reliability</p>
+                  <p className="text-base font-bold text-emerald-400 mt-1">{riskData.delivery_reliability}%</p>
+                </div>
+                <div className="p-3 bg-slate-900/60 rounded-lg border border-white/5">
+                  <p className="text-xs text-slate-400">Delay Prob (Standard PO)</p>
+                  <p className="text-base font-bold text-purple-400 mt-1">{riskData.current_risk_assessment?.delay_probability}%</p>
+                </div>
+              </div>
+
+              {riskData.current_risk_assessment?.risk_factors?.drivers?.length > 0 && (
+                <div className="space-y-2 bg-purple-950/20 border border-purple-500/20 p-3.5 rounded-xl">
+                  <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Predictive Risk Drivers</p>
+                  <div className="space-y-1.5">
+                    {riskData.current_risk_assessment.risk_factors.drivers.map((driver, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                        <Activity className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-slate-200">{driver.factor}:</span> {driver.impact}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

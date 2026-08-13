@@ -24,5 +24,17 @@ export const suppliersApi = {
 
   delete(id) {
     return apiClient.delete(`/suppliers/${id}/`);
+  },
+
+  predictRisk(data) {
+    return apiClient.post("/suppliers/predict-risk/", data);
+  },
+
+  getRiskAnalytics(id) {
+    return apiClient.get(`/suppliers/${id}/risk-analytics/`);
+  },
+
+  getScorecard(id) {
+    return apiClient.get(`/suppliers/${id}/scorecard/`);
   }
 };

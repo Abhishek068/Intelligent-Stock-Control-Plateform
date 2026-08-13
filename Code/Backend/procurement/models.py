@@ -48,6 +48,23 @@ class PurchaseOrder(TimeStampedModel):
     submitted_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
 
+    class RiskLevel(models.TextChoices):
+        LOW = "low", "Low Risk"
+        MEDIUM = "medium", "Medium Risk"
+        HIGH = "high", "High Risk"
+        CRITICAL = "critical", "Critical Risk"
+
+    delay_probability = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0.00"), help_text="Predicted delay probability (0-100%)"
+    )
+    risk_score = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0.00"), help_text="Dynamic Supplier Risk Score (0-100)"
+    )
+    risk_level = models.CharField(
+        max_length=20, choices=RiskLevel.choices, default=RiskLevel.LOW
+    )
+    risk_factors = models.JSONField(default=dict, blank=True, help_text="Feature importances and risk driver explanations")
+
     class Meta:
         ordering = ["-created_at"]
         unique_together = [("organization", "po_number")]

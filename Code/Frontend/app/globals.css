@@ -96,7 +96,7 @@
     scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
 
   /* Prevent browser autofill white background */

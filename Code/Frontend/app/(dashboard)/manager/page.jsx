@@ -27,6 +27,7 @@ import {
   StatCardWithSparkline,
   DistributionDonutChart,
   ComparisonBarChart,
+  WeatherWidget,
 } from "@/features/dashboard/components";
 import { dashboardApi, analyticsApi, productsApi } from "@/lib/api";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -167,6 +168,9 @@ export default function ManagerDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Live Weather Context Widget */}
+      <WeatherWidget initialData={stats?.weather} />
 
       {/* Row 1: 4 Advanced Glowing KPI Cards with Sparkline Graphs */}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">

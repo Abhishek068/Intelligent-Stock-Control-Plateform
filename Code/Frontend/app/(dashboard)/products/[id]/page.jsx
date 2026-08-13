@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { productsApi, analyticsApi, stockApi } from "@/lib/api";
+import { ExternalFactorsPanel } from "@/features/dashboard/components";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -434,6 +435,9 @@ export default function ProductDetailPage() {
               }
             </CardContent>
           </Card>
+
+          {/* External Influencing Factors Panel */}
+          <ExternalFactorsPanel weatherContext={forecast?.chart?.metrics?.weather_context || forecast?.latest_forecast?.weather_context} className="mt-6" />
         </TabsContent>
 
         <TabsContent value="history">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, Package, Truck, User } from "lucide-react";
+import { Search, Bell, Package, Truck, User, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -24,6 +24,30 @@ export function Topbar() {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light") {
+      document.documentElement.classList.remove("dark");
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
   useEffect(() => {
     setSelectedIndex(-1);
@@ -168,6 +192,20 @@ export function Topbar() {
         <span className="hidden rounded-full bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 text-xs font-medium uppercase text-indigo-400 sm:inline">
           {user?.primaryRole || user?.role}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+          onClick={toggleTheme}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDark ? (
+            <Sun className="h-5 w-5 text-amber-400" />
+          ) : (
+            <Moon className="h-5 w-5 text-indigo-400" />
+          )}
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"

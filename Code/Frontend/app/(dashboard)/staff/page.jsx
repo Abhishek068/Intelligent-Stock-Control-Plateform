@@ -23,6 +23,7 @@ import {
   StatCardWithSparkline,
   DistributionDonutChart,
   ComparisonBarChart,
+  WeatherWidget,
 } from "@/features/dashboard/components";
 import { dashboardApi, analyticsApi, notificationsApi } from "@/lib/api";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -111,6 +112,9 @@ export default function StaffDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Live Weather Context Widget */}
+      <WeatherWidget initialData={stats?.weather} />
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/stock-in">

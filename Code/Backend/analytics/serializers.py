@@ -46,6 +46,8 @@ class DemandForecastSerializer(serializers.ModelSerializer):
 
             "generated_at",
 
+            "weather_context",
+
         ]
 
         read_only_fields = fields

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MoreHorizontal, Eye, Trash2, Send, PackageCheck } from "lucide-react";
+import { Plus, MoreHorizontal, Eye, Trash2, Send, PackageCheck, Sparkles, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,36 @@ function PurchaseOrdersPageContent() {
     quantity: 1,
     unitCost: "",
   });
+  const [riskPrediction, setRiskPrediction] = useState(null);
+  const [predictingRisk, setPredictingRisk] = useState(false);
+
+  useEffect(() => {
+    if (!newOrder.supplierId) {
+      setRiskPrediction(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setPredictingRisk(true);
+      try {
+        const qty = Number(newOrder.quantity) || 1;
+        const cost = Number(newOrder.unitCost) || 0;
+        const res = await suppliersApi.predictRisk({
+          supplier: Number(newOrder.supplierId),
+          location: newOrder.locationId ? Number(newOrder.locationId) : null,
+          total_volume: qty,
+          total_amount: qty * cost,
+          expected_delivery: newOrder.expectedDelivery || null,
+        });
+        const data = res?.data || res;
+        setRiskPrediction(data);
+      } catch (err) {
+        console.error("Risk prediction error:", err);
+      } finally {
+        setPredictingRisk(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [newOrder.supplierId, newOrder.quantity, newOrder.unitCost, newOrder.expectedDelivery, newOrder.locationId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -317,6 +347,71 @@ function PurchaseOrdersPageContent() {
                       }
                     />
                   </div>
+
+                  {newOrder.supplierId && (
+                    <div className="rounded-lg border border-purple-500/30 bg-purple-950/20 p-3.5 space-y-2.5 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-semibold text-purple-400">
+                          <Sparkles className="h-4 w-4 animate-pulse text-purple-400" />
+                          <span>AI Supplier Delay Risk Assessment</span>
+                        </div>
+                        {predictingRisk && (
+                          <span className="text-xs text-purple-300/70 animate-pulse">Calculating ML Risk...</span>
+                        )}
+                      </div>
+
+                      {riskPrediction && !predictingRisk && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-md">
+                            <div>
+                              <p className="text-xs text-slate-400">Predicted Delay Probability</p>
+                              <p className="text-lg font-bold font-mono text-white">
+                                {riskPrediction.delay_probability}%
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-slate-400">Dynamic Risk Score</p>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${
+                                riskPrediction.risk_level === "low" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
+                                riskPrediction.risk_level === "medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                                riskPrediction.risk_level === "high" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                                "bg-red-500/20 text-red-400 border border-red-500/30"
+                              }`}>
+                                {riskPrediction.risk_level === "low" && <CheckCircle2 className="h-3 w-3" />}
+                                {riskPrediction.risk_level === "medium" && <AlertTriangle className="h-3 w-3" />}
+                                {(riskPrediction.risk_level === "high" || riskPrediction.risk_level === "critical") && <ShieldAlert className="h-3 w-3" />}
+                                {riskPrediction.risk_level} ({riskPrediction.risk_score}/100)
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                riskPrediction.delay_probability < 25 ? "bg-emerald-400" :
+                                riskPrediction.delay_probability < 50 ? "bg-amber-400" :
+                                riskPrediction.delay_probability < 75 ? "bg-orange-400" : "bg-red-500"
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(5, riskPrediction.delay_probability))}%` }}
+                            />
+                          </div>
+
+                          {riskPrediction.risk_factors?.drivers?.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-slate-400 font-medium">Key Risk Drivers:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {riskPrediction.risk_factors.drivers.map((d, i) => (
+                                  <span key={i} className="text-xs px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700/60" title={d.impact}>
+                                    • {d.factor}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -383,6 +478,7 @@ function PurchaseOrdersPageContent() {
                 <TableHead>PO #</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>AI Risk Level</TableHead>
                 <TableHead>Expected</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="w-12" />
@@ -412,6 +508,16 @@ function PurchaseOrdersPageContent() {
                       status={order.status}
                       colorMap={PO_STATUS_COLORS}
                     />
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-mono font-medium ${
+                      order.risk_level === "critical" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                      order.risk_level === "high" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                      order.risk_level === "medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                      "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    }`}>
+                      {order.risk_level || "low"} ({Number(order.delay_probability || 0).toFixed(1)}%)
+                    </span>
                   </TableCell>
                   <TableCell>{order.expected_delivery || "—"}</TableCell>
                   <TableCell className="text-right font-mono">

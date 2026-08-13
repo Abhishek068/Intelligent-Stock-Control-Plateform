@@ -59,6 +59,23 @@ class PurchaseOrderService:
                 notes=line.get("notes", ""),
             )
         po.recalculate_total()
+        try:
+            from suppliers.risk_prediction_service import SupplierRiskPredictionService
+            tot_vol = sum(line["quantity_ordered"] for line in lines)
+            risk_res = SupplierRiskPredictionService.predict_po_risk(
+                supplier=supplier,
+                total_volume=tot_vol,
+                total_amount=po.total_amount,
+                expected_delivery=expected_delivery,
+                location=location,
+            )
+            po.delay_probability = Decimal(str(risk_res["delay_probability"]))
+            po.risk_score = Decimal(str(risk_res["risk_score"]))
+            po.risk_level = risk_res["risk_level"]
+            po.risk_factors = risk_res["risk_factors"]
+            po.save(update_fields=["delay_probability", "risk_score", "risk_level", "risk_factors", "updated_at"])
+        except Exception as exc:
+            pass
         return po
 
     @classmethod

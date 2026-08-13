@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { productsApi, analyticsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
+import { ExternalFactorsPanel, AccuracyTrendChart, DemandPatternBadge } from "@/features/dashboard/components";
 
 export default function ForecastingPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -424,8 +425,8 @@ export default function ForecastingPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6 lg:grid-cols-4">
-            <Card className="lg:col-span-3 border-slate-800 bg-slate-900/40 shadow-sm">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2 border-slate-800 bg-slate-900/40 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-slate-200">Demand Forecast</CardTitle>
                 <CardDescription>
@@ -463,8 +464,9 @@ export default function ForecastingPage() {
 
             <div className="space-y-6">
               <Card className="glass-card bg-slate-900/50 border-slate-800">
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium text-slate-200">Accuracy Metrics</CardTitle>
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-200">Accuracy & Pattern</CardTitle>
+                  <DemandPatternBadge patternInfo={metrics?.demand_pattern_info || metrics?.weather_context?.demand_pattern_info} />
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
@@ -482,15 +484,21 @@ export default function ForecastingPage() {
                     <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1 bg-slate-800" />
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mt-4 pt-2 border-t border-slate-800">
-                      <span className="text-slate-400">Model</span>
-                      <span className="font-mono text-xs text-slate-300">{metrics.model_name ?? "—"}</span>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm mt-4 pt-2 border-t border-slate-800">
+                      <span className="text-slate-400 font-medium">Model</span>
+                      <span className="font-mono text-[11px] text-cyan-300 break-all">{metrics.model_name ?? "—"}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* External Influencing Factors Panel */}
+              <ExternalFactorsPanel weatherContext={metrics?.weather_context || {}} />
             </div>
           </div>
+
+          {/* AI Accuracy Telemetry & Error Tracking Over Time */}
+          <AccuracyTrendChart productId={selectedProductId || "all"} className="mt-8" />
         </div>
       )}
     </div>

@@ -123,19 +123,66 @@ class ProductSerializer(serializers.ModelSerializer):
 
             "qr_code",
 
-            "is_active",
-
             "abc_classification",
+            "xyz_classification",
+            "abc_xyz_class",
+            "demand_coefficient_of_variation",
+            "automated_reorder_policy",
+            "target_service_level",
+            "stochastic_safety_stock",
+            "dynamic_reorder_point",
+            "demand_std_dev",
+            "lead_time_std_dev",
             "stock",
             "status",
             "last_order_date",
             "last_order_price",
             "created_at",
             "updated_at",
-
         ]
 
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and getattr(request.user, "organization", None):
+            org = request.user.organization
+            sku = attrs.get("sku")
+            if sku:
+                qs = Product.objects.filter(organization=org, sku__iexact=sku)
+                if self.instance:
+                    qs = qs.exclude(pk=self.instance.pk)
+                if qs.exists():
+                    raise serializers.ValidationError({
+                        "sku": f"A product with SKU '{sku}' already exists in your organization."
+                    })
+        return super().validate(attrs)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+        if not data.get("stochastic_safety_stock") or data.get("stochastic_safety_stock") == 0:
+            min_lvl = instance.minimum_level or 10
+            data["stochastic_safety_stock"] = max(3, int(round(min_lvl * 0.45)))
+
+        if not data.get("dynamic_reorder_point") or data.get("dynamic_reorder_point") == 0:
+            reorder_lvl = instance.reorder_level or 20
+            data["dynamic_reorder_point"] = max(5, int(reorder_lvl))
+
+        tsl = data.get("target_service_level")
+        if not tsl:
+            data["target_service_level"] = 98.0
+        else:
+            try:
+                tsl_val = float(tsl)
+                if tsl_val <= 1.0:
+                    data["target_service_level"] = round(tsl_val * 100, 1)
+                else:
+                    data["target_service_level"] = round(tsl_val, 1)
+            except (ValueError, TypeError):
+                data["target_service_level"] = 98.0
+
+        return data
 
 
 

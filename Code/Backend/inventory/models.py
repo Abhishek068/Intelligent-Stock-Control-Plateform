@@ -138,9 +138,45 @@ class Product(TimeStampedModel):
 
     qr_code = models.CharField(max_length=255, blank=True)
 
+    class XYZClass(models.TextChoices):
+        X = "X", "X (Steady Demand)"
+        Y = "Y", "Y (Variable Demand)"
+        Z = "Z", "Z (Erratic Demand)"
+
+    class ReorderPolicy(models.TextChoices):
+        AUTOMATED = "automated", "Automated Reordering"
+        REVIEW_REQUIRED = "review_required", "Review Required"
+        MANUAL = "manual", "Manual Review / JIT"
+
     is_active = models.BooleanField(default=True)
     abc_classification = models.CharField(
         max_length=1, choices=ABCClass.choices, blank=True
+    )
+    xyz_classification = models.CharField(
+        max_length=1, choices=XYZClass.choices, default=XYZClass.X
+    )
+    abc_xyz_class = models.CharField(max_length=5, default="AX", help_text="Combined ABC/XYZ Matrix Class (e.g. AX, CZ)")
+    demand_coefficient_of_variation = models.DecimalField(
+        max_digits=6, decimal_places=4, default=Decimal("0.0000"), help_text="CV = StdDev / Mean demand"
+    )
+    automated_reorder_policy = models.CharField(
+        max_length=30, choices=ReorderPolicy.choices, default=ReorderPolicy.AUTOMATED
+    )
+
+    target_service_level = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("98.00"), help_text="Target non-stockout service level (e.g., 98.0%)"
+    )
+    stochastic_safety_stock = models.PositiveIntegerField(
+        default=0, help_text="Dynamic safety stock calculated via Stochastic Optimization"
+    )
+    dynamic_reorder_point = models.PositiveIntegerField(
+        default=0, help_text="Stochastic Reorder Point = (Mean Daily Demand * Mean Lead Time) + Safety Stock"
+    )
+    demand_std_dev = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("0.00"), help_text="Standard deviation of daily demand"
+    )
+    lead_time_std_dev = models.DecimalField(
+        max_digits=6, decimal_places=2, default=Decimal("0.00"), help_text="Standard deviation of supplier lead time (days)"
     )
 
 

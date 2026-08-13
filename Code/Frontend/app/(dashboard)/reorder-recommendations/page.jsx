@@ -202,6 +202,26 @@ export default function ReorderRecommendationsPage() {
         </Card>
       </div>
 
+      {/* Stochastic Safety Stock & ABC/XYZ Optimization Info Banner */}
+      <Card className="border border-purple-500/30 bg-purple-950/20 backdrop-blur-2xl shadow-lg rounded-2xl p-4 text-sm text-slate-200">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-purple-400 font-bold text-base">
+              <TrendingUp className="h-5 w-5 text-purple-400" />
+              <span>Stochastic Safety Stock & ABC/XYZ Policy Engine</span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Safety stock is dynamically optimized using probabilistic math: <span className="font-mono text-purple-300">SS = Z × √(L̄·σD² + D̄²·σL²)</span> with a <strong className="text-white">98% Target Service Level (Z = 2.054)</strong>.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">AX/AY/BX: Auto Reorder</span>
+            <span className="px-2.5 py-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">AZ/BY/CX: Review Req</span>
+            <span className="px-2.5 py-1 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">BZ/CY/CZ: Manual JIT</span>
+          </div>
+        </div>
+      </Card>
+
       <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
 

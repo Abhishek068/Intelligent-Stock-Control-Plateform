@@ -8,6 +8,10 @@ export const dashboardApi = {
   getTrends(days = 14) {
     return apiClient.get(`/dashboard/trends/?days=${days}`);
   },
+
+  getWeather(city = "London") {
+    return apiClient.get(`/dashboard/weather/?city=${encodeURIComponent(city)}`);
+  },
 };
 
 export const productsApi = {
@@ -91,6 +95,10 @@ export const locationsApi = {
 
   update(id, data) {
     return apiClient.patch(`/locations/${id}/`, data);
+  },
+
+  getComparison() {
+    return apiClient.get("/locations/comparison/");
   },
 
   delete(id) {
