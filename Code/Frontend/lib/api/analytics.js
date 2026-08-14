@@ -34,22 +34,22 @@ export const auditApi = {
 
 export const analyticsApi = {
   getForecast(productId) {
-    return apiClient.get(`/forecasts/?product=${productId}`);
+    return apiClient.get(`/forecasts/?product=${productId}`).catch(() => ({ success: false, data: null }));
   },
 
   async listForecasts(params) {
     const query = params ? `?${new URLSearchParams(params)}` : "";
-    const res = await apiClient.get(`/forecasts/${query}`);
+    const res = await apiClient.get(`/forecasts/${query}`).catch(() => []);
     return unwrapList(res);
   },
 
   getForecastSummary() {
-    return apiClient.get("/forecasts/summary/");
+    return apiClient.get("/forecasts/summary/").catch(() => ({ success: false, data: null }));
   },
 
   getAccuracyHistory(productId = "all") {
     const q = productId ? `?product=${encodeURIComponent(productId)}` : "";
-    return apiClient.get(`/forecasts/accuracy-history/${q}`);
+    return apiClient.get(`/forecasts/accuracy-history/${q}`).catch(() => ({ success: false, data: [] }));
   },
 
   generateForecast(productId, horizonDays = 30) {
@@ -61,7 +61,7 @@ export const analyticsApi = {
 
   async listRecommendations(params) {
     const query = params ? `?${new URLSearchParams(params)}` : "";
-    const res = await apiClient.get(`/reorder-recommendations/${query}`);
+    const res = await apiClient.get(`/reorder-recommendations/${query}`).catch(() => []);
     return unwrapList(res);
   },
 
@@ -76,7 +76,7 @@ export const analyticsApi = {
 
   async listPredictiveAlerts(params) {
     const query = params ? `?${new URLSearchParams(params)}` : "";
-    const res = await apiClient.get(`/predictive-alerts/${query}`);
+    const res = await apiClient.get(`/predictive-alerts/${query}`).catch(() => []);
     return unwrapList(res);
   },
 

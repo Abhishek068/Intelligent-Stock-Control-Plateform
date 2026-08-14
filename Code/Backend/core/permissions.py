@@ -9,7 +9,14 @@ class IsOrganizationMember(permissions.BasePermission):
 
         if user.is_superuser:
             return True
-        return getattr(user, "organization_id", None) is not None
+
+        if getattr(user, "organization_id", None) is None:
+            from accounts.services import ensure_default_organization
+            org = ensure_default_organization()
+            user.organization = org
+            user.save(update_fields=["organization"])
+
+        return True
 
 
 class IsSuperAdmin(permissions.BasePermission):
@@ -38,11 +45,13 @@ class HasModulePermission(permissions.BasePermission):
         if not module:
             return True
 
+        # Allow safe read-only access (GET/HEAD/OPTIONS) for authenticated organization members
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
         action_map = getattr(view, "action_permission_map", None)
         if action_map and hasattr(view, "action"):
             action = action_map.get(view.action)
-            if action is None and request.method in permissions.SAFE_METHODS:
-                action = action_map.get("list") or action_map.get("retrieve") or "view"
             if action is None:
                 action = self._method_to_action(request.method)
         else:

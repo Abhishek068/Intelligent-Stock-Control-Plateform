@@ -62,7 +62,7 @@ export default function AdminDashboard() {
   const [forecastMetrics, setForecastMetrics] = useState({});
   const [loading, setLoading] = useState(true);
   const [productsList, setProductsList] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState("all");
+  const [selectedProduct, setSelectedProduct] = useState("");
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -88,6 +88,7 @@ export default function AdminDashboard() {
       );
       if (products?.length > 0) {
         setProductsList(products);
+        setSelectedProduct(products[0].id.toString());
       }
     } finally {
       setLoading(false);
@@ -96,25 +97,27 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchForecast = async () => {
+      if (!selectedProduct) return;
+      const p = productsList.find((x) => x.id.toString() === selectedProduct);
+      const pName = p ? p.name : "";
+
       const forecastRes = await analyticsApi.getForecast(selectedProduct).catch(() => null);
       if (forecastRes?.success && forecastRes.data?.chart) {
         setForecastData(buildForecastChart(forecastRes.data.chart));
         const latest = forecastRes.data.latest_forecast;
-        
-        let pName = "All Products";
-        if (selectedProduct !== "all") {
-           const p = productsList.find(x => x.id.toString() === selectedProduct);
-           if (p) pName = p.name;
-        }
-
         setForecastMetrics({
           mae: latest?.mae,
           rmse: latest?.rmse,
           productName: pName,
         });
+      } else {
+        setForecastData([]);
+        setForecastMetrics({
+          productName: pName,
+        });
       }
     };
-    if (productsList.length > 0 || selectedProduct === "all") {
+    if (selectedProduct) {
       fetchForecast();
     }
   }, [selectedProduct, productsList]);
@@ -277,7 +280,6 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Select a product" />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
-                <SelectItem value="all">Aggregate (All Products)</SelectItem>
                 {productsList.map((p) => (
                   <SelectItem key={p.id} value={p.id.toString()}>
                     {p.name}

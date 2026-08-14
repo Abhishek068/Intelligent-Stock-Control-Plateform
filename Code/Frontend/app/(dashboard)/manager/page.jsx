@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ShoppingCart,
   Clock,
@@ -29,7 +30,7 @@ import {
   ComparisonBarChart,
   WeatherWidget,
 } from "@/features/dashboard/components";
-import { dashboardApi, analyticsApi, productsApi } from "@/lib/api";
+import { dashboardApi, analyticsApi, productsApi, adminDashboardApi } from "@/lib/api";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 function buildForecastChart(chart) {
@@ -51,22 +52,27 @@ export default function ManagerDashboard() {
   const { isSuperAdmin, hasPermission } = useRoleAccess();
   const can = (module, action = "view") => isSuperAdmin || hasPermission(module, action);
 
+  const [admin, setAdmin] = useState(null);
   const [stats, setStats] = useState(null);
   const [reorderItems, setReorderItems] = useState([]);
   const [forecastData, setForecastData] = useState([]);
   const [forecastMetrics, setForecastMetrics] = useState({});
   const [movementData, setMovementData] = useState([]);
+  const [productsList, setProductsList] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState("");
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [statsRes, recommendations, trendsRes, products] = await Promise.all([
+      const [adminRes, statsRes, recommendations, trendsRes, products] = await Promise.all([
+        adminDashboardApi.get().catch(() => null),
         dashboardApi.getStats().catch(() => null),
         analyticsApi.listRecommendations().catch(() => []),
         dashboardApi.getTrends(14).catch(() => null),
         productsApi.list().catch(() => []),
       ]);
+      if (adminRes?.success && adminRes.data) setAdmin(adminRes.data);
       if (statsRes?.success && statsRes.data) setStats(statsRes.data);
       setReorderItems(
         recommendations.slice(0, 5).map((r) => ({
@@ -89,17 +95,36 @@ export default function ManagerDashboard() {
         );
       }
       if (products?.length > 0) {
-        const forecastRes = await analyticsApi.getForecast(products[0].id).catch(() => null);
-        if (forecastRes?.success && forecastRes.data?.chart) {
-          setForecastData(buildForecastChart(forecastRes.data.chart));
-          const latest = forecastRes.data.latest_forecast;
-          setForecastMetrics({ mae: latest?.mae, rmse: latest?.rmse });
-        }
+        setProductsList(products);
+        setSelectedProduct(products[0].id.toString());
       }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchForecast = async () => {
+      if (!selectedProduct) return;
+      const p = productsList.find((x) => x.id.toString() === selectedProduct);
+      const pName = p ? p.name : "";
+
+      const forecastRes = await analyticsApi.getForecast(selectedProduct).catch(() => null);
+      if (forecastRes?.success && forecastRes.data?.chart) {
+        setForecastData(buildForecastChart(forecastRes.data.chart));
+        const latest = forecastRes.data.latest_forecast;
+        setForecastMetrics({
+          mae: latest?.mae,
+          rmse: latest?.rmse,
+          productName: pName,
+        });
+      } else {
+        setForecastData([]);
+        setForecastMetrics({ productName: pName });
+      }
+    };
+    fetchForecast();
+  }, [selectedProduct, productsList]);
 
   const handleRefresh = async () => {
     await loadDashboard();
@@ -130,13 +155,17 @@ export default function ManagerDashboard() {
     { name: "On Order", value: 65, color: "#10B981" },
   ];
 
-  const categoryMovements = [
-    { name: "Electronics", stockIn: 480, stockOut: 390 },
-    { name: "Hardware", stockIn: 520, stockOut: 440 },
-    { name: "Accessories", stockIn: 610, stockOut: 530 },
-    { name: "Cables", stockIn: 340, stockOut: 290 },
-    { name: "Peripherals", stockIn: 410, stockOut: 360 },
-  ];
+  const categoryMovements = admin?.category_movements?.length > 0 
+    ? admin.category_movements 
+    : stats?.category_movements?.length > 0 
+    ? stats.category_movements 
+    : [
+        { name: "Electronics", stockIn: 480, stockOut: 390 },
+        { name: "Hardware", stockIn: 520, stockOut: 440 },
+        { name: "Accessories", stockIn: 610, stockOut: 530 },
+        { name: "Cables", stockIn: 340, stockOut: 290 },
+        { name: "Peripherals", stockIn: 410, stockOut: 360 },
+      ];
 
   return (
     <div className="space-y-8 pb-10">
@@ -178,10 +207,10 @@ export default function ManagerDashboard() {
           <div className="h-full">
             <StatCardWithSparkline
               title="Inventory Value"
-              value={`£${stats ? stats.total_inventory_value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "45,231"}`}
+              value={stats ? `£${stats.total_inventory_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "£0"}
               change="+20.1%"
               changeType="up"
-              subtitle="+20.1% from last month"
+              subtitle="Live database asset valuation"
               colorScheme="indigo"
               icon={DollarSign}
               sparklineData={[
@@ -201,7 +230,7 @@ export default function ManagerDashboard() {
           <div className="h-full">
             <StatCardWithSparkline
               title="Low Stock Items"
-              value={stats?.low_stock_count ?? "45"}
+              value={stats?.low_stock_count ?? 0}
               change="-14.2%"
               changeType="down"
               subtitle="Critical thresholds reached"
@@ -224,7 +253,7 @@ export default function ManagerDashboard() {
           <div className="h-full">
             <StatCardWithSparkline
               title="Reorder Queue"
-              value={stats?.reorder_count ?? "28"}
+              value={stats?.reorder_count ?? 0}
               change="+12.5%"
               changeType="up"
               subtitle="Suggested supplier POs"
@@ -247,20 +276,20 @@ export default function ManagerDashboard() {
           <div className="h-full">
             <StatCardWithSparkline
               title="Open Alerts"
-              value={stats?.open_alerts_count ?? "12"}
+              value={stats?.open_alerts_count ?? 0}
               change="-18.0%"
               changeType="down"
               subtitle="Active system notifications"
               colorScheme="cyan"
-              icon={Package}
+              icon={ShieldAlert}
               sparklineData={[
+                { val: 50 },
+                { val: 45 },
                 { val: 40 },
                 { val: 35 },
-                { val: 30 },
                 { val: 28 },
-                { val: 22 },
-                { val: 18 },
-                { val: 12 },
+                { val: 20 },
+                { val: 15 },
               ]}
             />
           </div>
@@ -269,20 +298,33 @@ export default function ManagerDashboard() {
 
       {/* Row 2: Main Curved Glowing Area Chart (2/3 width) + Reorder Recommendations (1/3 width) */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-slate-100">Demand Forecasting</h2>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger className="w-[280px] bg-slate-900/50 border-white/10 text-slate-200">
+                <SelectValue placeholder="Select a product" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
+                {productsList.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <ForecastChart
-            data={forecastData.length ? forecastData : movementData}
-            title={forecastData.length ? "AI Demand Forecast vs Actuals" : "Stock In/Out Trajectory (14 Days)"}
-            description={
-              forecastData.length
-                ? "Machine learning predictive analytics model with confidence bounds"
-                : "Aggregated inbound vs outbound warehouse stock movements"
+            data={forecastData}
+            title={
+              forecastMetrics.productName
+                ? `AI Demand Forecast · ${forecastMetrics.productName}`
+                : "Real-time Demand Telemetry & Projections"
             }
-            showMetrics={!!forecastData.length}
+            description="Statistical machine learning models forecasting inventory depletion"
+            showMetrics
             mae={forecastMetrics.mae}
             rmse={forecastMetrics.rmse}
-            actualLabel={forecastData.length ? "Actual Demand" : "Stock In"}
-            predictedLabel={forecastData.length ? "Predicted Demand" : "Stock Out"}
           />
         </div>
 
@@ -295,8 +337,8 @@ export default function ManagerDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <ComparisonBarChart
-            title="Stock Movements by Category"
-            subtitle="Inbound vs Outbound inventory flow comparison"
+            title="System Stock Movement Velocity"
+            subtitle="Warehouse inbound vs outbound fulfillment"
             data={categoryMovements}
           />
         </div>

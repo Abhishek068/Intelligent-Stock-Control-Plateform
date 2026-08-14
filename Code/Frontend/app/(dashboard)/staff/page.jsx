@@ -25,13 +25,14 @@ import {
   ComparisonBarChart,
   WeatherWidget,
 } from "@/features/dashboard/components";
-import { dashboardApi, analyticsApi, notificationsApi } from "@/lib/api";
+import { dashboardApi, analyticsApi, notificationsApi, adminDashboardApi } from "@/lib/api";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 export default function StaffDashboard() {
   const { isSuperAdmin, hasPermission } = useRoleAccess();
   const can = (module, action = "view") => isSuperAdmin || hasPermission(module, action);
 
+  const [admin, setAdmin] = useState(null);
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [reorderItems, setReorderItems] = useState([]);
@@ -40,15 +41,15 @@ export default function StaffDashboard() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [statsRes, alertsRes, recsRes] = await Promise.all([
+      const [adminRes, statsRes, alertsRes, recsRes] = await Promise.all([
+        adminDashboardApi.get().catch(() => null),
         dashboardApi.getStats().catch(() => null),
         analyticsApi.listPredictiveAlerts().catch(() => []),
         analyticsApi.listRecommendations().catch(() => []),
       ]);
 
-      if (statsRes?.success && statsRes.data) {
-        setStats(statsRes.data);
-      }
+      if (adminRes?.success && adminRes.data) setAdmin(adminRes.data);
+      if (statsRes?.success && statsRes.data) setStats(statsRes.data);
       if (Array.isArray(alertsRes)) setAlerts(alertsRes.slice(0, 5));
       if (Array.isArray(recsRes)) setReorderItems(recsRes.slice(0, 5));
     } finally {
@@ -75,13 +76,17 @@ export default function StaffDashboard() {
     { name: "On Order", value: 75, color: "#10B981" },
   ];
 
-  const categoryMovements = [
-    { name: "Electronics", stockIn: 510, stockOut: 420 },
-    { name: "Hardware", stockIn: 440, stockOut: 390 },
-    { name: "Accessories", stockIn: 630, stockOut: 580 },
-    { name: "Cables", stockIn: 390, stockOut: 310 },
-    { name: "Peripherals", stockIn: 480, stockOut: 410 },
-  ];
+  const categoryMovements = admin?.category_movements?.length > 0 
+    ? admin.category_movements 
+    : stats?.category_movements?.length > 0 
+    ? stats.category_movements 
+    : [
+        { name: "Electronics", stockIn: 510, stockOut: 420 },
+        { name: "Hardware", stockIn: 440, stockOut: 390 },
+        { name: "Accessories", stockIn: 630, stockOut: 580 },
+        { name: "Cables", stockIn: 390, stockOut: 310 },
+        { name: "Peripherals", stockIn: 480, stockOut: 410 },
+      ];
 
   return (
     <div className="space-y-8 pb-10">
@@ -213,8 +218,8 @@ export default function StaffDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <ComparisonBarChart
-            title="Daily Fulfillment & Stock Velocity"
-            subtitle="Recent inbound receiving vs outbound dispatch"
+            title="System Stock Movement Velocity"
+            subtitle="Warehouse inbound vs outbound fulfillment"
             data={categoryMovements}
           />
         </div>

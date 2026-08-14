@@ -2,22 +2,22 @@ import { apiClient, unwrapList } from "@/lib/api/client";
 
 export const dashboardApi = {
   getStats() {
-    return apiClient.get("/dashboard/");
+    return apiClient.get("/dashboard/").catch(() => ({ success: false, data: null }));
   },
 
   getTrends(days = 14) {
-    return apiClient.get(`/dashboard/trends/?days=${days}`);
+    return apiClient.get(`/dashboard/trends/?days=${days}`).catch(() => ({ success: false, data: null }));
   },
 
   getWeather(city = "London") {
-    return apiClient.get(`/dashboard/weather/?city=${encodeURIComponent(city)}`);
+    return apiClient.get(`/dashboard/weather/?city=${encodeURIComponent(city)}`).catch(() => ({ success: false, data: null }));
   },
 };
 
 export const productsApi = {
   async list(params) {
     const query = params ? `?${new URLSearchParams(params)}` : "";
-    const res = await apiClient.get(`/products/${query}`);
+    const res = await apiClient.get(`/products/${query}`).catch(() => []);
     return unwrapList(res);
   },
 

@@ -191,16 +191,23 @@ export function ComparisonBarChart({
   ];
 
   const chartData = data && data.length > 0 ? data : defaultData;
+  const isManyCategories = chartData.length > 5;
+  const minChartWidth = isManyCategories ? `${chartData.length * 85}px` : "100%";
 
   return (
     <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl">
       <CardHeader className="p-0 pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-purple-400" />
-              {title}
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-purple-400" />
+                {title}
+              </CardTitle>
+              <span className="rounded-full bg-purple-500/10 px-2.5 py-0.5 text-xs font-semibold text-purple-300 border border-purple-500/20">
+                {chartData.length} Categories
+              </span>
+            </div>
             <CardDescription className="text-xs text-slate-400 mt-0.5">
               {subtitle}
             </CardDescription>
@@ -216,37 +223,42 @@ export function ComparisonBarChart({
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 pt-2 h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} barGap={6}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#94A3B8", fontSize: 11 }}
-              interval={0}
-              tickFormatter={(val) => (val.length > 12 ? val.substring(0, 12) + "..." : val)}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#94A3B8", fontSize: 11 }}
-            />
-            <Tooltip content={<CustomDarkTooltip />} />
-            {bars.map((b, idx) => (
-              <Bar
-                key={idx}
-                dataKey={b.key}
-                name={b.name}
-                fill={b.color}
-                radius={[6, 6, 0, 0]}
-                maxBarSize={28}
-                minPointSize={b.key === "stockIn" || b.key === "stockOut" ? 3 : 0}
+      <CardContent className="p-0 pt-2 flex-1 w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700/50">
+        <div className="h-64" style={{ minWidth: minChartWidth, width: "100%" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barGap={6} margin={{ top: 10, right: 10, left: -15, bottom: isManyCategories ? 35 : 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                interval={0}
+                angle={isManyCategories ? -25 : 0}
+                textAnchor={isManyCategories ? "end" : "middle"}
+                height={isManyCategories ? 50 : 30}
+                tickFormatter={(val) => (val && val.length > 18 ? val.substring(0, 16) + "..." : val)}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 11 }}
+              />
+              <Tooltip content={<CustomDarkTooltip />} />
+              {bars.map((b, idx) => (
+                <Bar
+                  key={idx}
+                  dataKey={b.key}
+                  name={b.name}
+                  fill={b.color}
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={28}
+                  minPointSize={b.key === "stockIn" || b.key === "stockOut" ? 3 : 0}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

@@ -104,7 +104,7 @@ class AdminDashboardView(APIView):
         staff = users_qs.filter(roles__name__iexact="Staff").distinct().count()
 
         category_movements = []
-        for c in categories_qs[:5]:
+        for c in categories_qs:
             stock_in = c.products.aggregate(t=Coalesce(Sum("stock_in_transactions__quantity"), 0))["t"]
             stock_out = c.products.aggregate(t=Coalesce(Sum("stock_out_transactions__quantity"), 0))["t"]
             category_movements.append({

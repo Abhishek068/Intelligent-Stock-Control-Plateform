@@ -42,8 +42,14 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
     def list(self, request):
+        from accounts.services import ensure_default_organization
 
         org = request.user.organization
+        if not org and request.user.is_superuser:
+            org = ensure_default_organization()
+            request.user.organization = org
+            request.user.status = request.user.Status.ACTIVE
+            request.user.save(update_fields=["organization", "status"])
 
         product_id = request.query_params.get("product")
 

@@ -564,26 +564,32 @@ class DashboardViewSet(viewsets.ViewSet):
 
 
 
+        from django.db.models import Sum
+        from django.db.models.functions import Coalesce
+        from categories.models import Category
+
+        categories_qs = Category.objects.filter(organization=org) if org else Category.objects.all()
+        category_movements = []
+        for c in categories_qs:
+            stock_in = c.products.aggregate(t=Coalesce(Sum("stock_in_transactions__quantity"), 0))["t"]
+            stock_out = c.products.aggregate(t=Coalesce(Sum("stock_out_transactions__quantity"), 0))["t"]
+            category_movements.append({
+                "name": c.name,
+                "stockIn": stock_in,
+                "stockOut": stock_out
+            })
+
         return Response(
-
             {
-
                 "success": True,
-
                 "data": {
-
                     "total_inventory_value": float(total_value),
-
                     "low_stock_count": low_stock,
-
                     "out_of_stock_count": out_of_stock,
-
                     "open_alerts_count": open_alerts,
-
                     "reorder_count": reorder_count,
-
                     "total_products": products.count(),
-
+                    "category_movements": category_movements,
                     "role": request.user.primary_role_name(),
                     "is_superuser": request.user.is_superuser,
                     "permissions": request.user.permission_map(),

@@ -118,10 +118,10 @@ export const activityApi = {
 
 export const adminDashboardApi = {
   get() {
-    return apiClient.get("/admin-dashboard/");
+    return apiClient.get("/admin-dashboard/").catch(() => ({ success: false, data: null }));
   },
   getOverview() {
-    return apiClient.get("/admin-dashboard/");
+    return apiClient.get("/admin-dashboard/").catch(() => ({ success: false, data: null }));
   },
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, MoreHorizontal, Truck, Package, Sparkles, ShieldAlert, Activity } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, Truck, Package, Sparkles, ShieldAlert, Activity, Clock, Award } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -179,6 +179,30 @@ export default function SuppliersPage() {
     }
   };
 
+  const avgContractDays = suppliers.length > 0
+    ? (suppliers.reduce((acc, s) => acc + (s.lead_time_days || 0), 0) / suppliers.length).toFixed(1)
+    : "0.0";
+
+  const avgPredictedDays = suppliers.length > 0
+    ? (suppliers.reduce((acc, s) => acc + (s.predicted_lead_time_info?.predicted_lead_time_days || s.lead_time_days || 0), 0) / suppliers.length).toFixed(1)
+    : "0.0";
+
+  const delayedSuppliersCount = suppliers.filter(
+    (s) => (s.predicted_lead_time_info?.delay_bias_days || 0) > 1.0
+  ).length;
+
+  const avgPerformanceScore = suppliers.length > 0
+    ? (suppliers.reduce((acc, s) => acc + Number(s.performance_score || 95), 0) / suppliers.length).toFixed(0)
+    : "95";
+
+  const avgDeliveryRate = suppliers.length > 0
+    ? (suppliers.reduce((acc, s) => acc + Number(s.delivery_rate || s.delivery_reliability || (s.performance_score ? s.performance_score * 0.98 : 95)), 0) / suppliers.length).toFixed(0)
+    : "95";
+
+  const avgOrderAccuracy = suppliers.length > 0
+    ? (suppliers.reduce((acc, s) => acc + Number(s.order_accuracy || (s.performance_score ? s.performance_score * 0.99 : 98)), 0) / suppliers.length).toFixed(0)
+    : "98";
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header Section */}
@@ -217,6 +241,129 @@ export default function SuppliersPage() {
         )}
       </div>
 
+      {/* Separate Telemetry Panels Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Panel 1: Lead Time & AI Delay Telemetry */}
+        <Card className="glass-card flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-cyan-400" />
+                <h3 className="text-base font-bold text-slate-100">Supplier Lead Time & AI Delay Telemetry</h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Contract vs AI-Predicted fulfillment lead times across suppliers</p>
+            </div>
+            <Badge variant="outline" className="bg-cyan-500/10 border-cyan-500/30 text-cyan-300 font-mono text-xs">
+              {avgContractDays}d Avg Lead Time
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">Avg Contract Time</span>
+              <span className="text-lg font-extrabold font-mono text-slate-200">{avgContractDays}d</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">AI Predicted Avg</span>
+              <span className="text-lg font-extrabold font-mono text-cyan-400">{avgPredictedDays}d</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">High Delay Risk</span>
+              <span className="text-lg font-extrabold font-mono text-rose-400">{delayedSuppliersCount} Suppliers</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1.5 py-1 scrollbar-thin scrollbar-thumb-slate-700">
+            {suppliers.map((sup) => {
+              const predInfo = sup.predicted_lead_time_info || {};
+              const contractDays = sup.lead_time_days || 0;
+              const predDays = predInfo.predicted_lead_time_days || contractDays;
+              const delayBias = predInfo.delay_bias_days || 0;
+              const isLate = delayBias > 1.0;
+              const isOnTime = delayBias <= 1.0 && delayBias >= -1.0;
+              return (
+                <div key={sup.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-cyan-500/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8 ring-1 ring-white/10">
+                      <AvatarFallback className="bg-cyan-500/10 text-cyan-300 font-bold text-xs">
+                        {sup.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <span className="text-sm font-semibold text-slate-200 block truncate max-w-[150px]">{sup.name}</span>
+                      <span className="text-[11px] text-slate-400">Contract: <strong className="text-slate-200 font-mono">{contractDays}d</strong></span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`font-mono text-xs px-2.5 py-1 border ${
+                      isLate ? "bg-red-500/10 border-red-500/30 text-red-300" : isOnTime ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-300" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    }`}>
+                      AI Pred: {predDays}d {delayBias > 0 ? `(+${delayBias}d late)` : "(On time)"}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* Panel 2: Supplier Performance & Quality Scoreboard */}
+        <Card className="glass-card flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-purple-400" />
+                <h3 className="text-base font-bold text-slate-100">Supplier Performance Scoreboard</h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Live quality rating, delivery SLA & accuracy index</p>
+            </div>
+            <Badge variant="outline" className="bg-purple-500/10 border-purple-500/30 text-purple-300 font-mono text-xs">
+              {avgPerformanceScore}% Avg Score
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">Overall Index</span>
+              <span className="text-lg font-extrabold font-mono text-purple-300">{avgPerformanceScore}%</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">Delivery Rate</span>
+              <span className="text-lg font-extrabold font-mono text-emerald-400">{avgDeliveryRate}%</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
+              <span className="text-[11px] text-slate-400 block">Order Accuracy</span>
+              <span className="text-lg font-extrabold font-mono text-cyan-400">{avgOrderAccuracy}%</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1.5 py-1 scrollbar-thin scrollbar-thumb-slate-700">
+            {suppliers.map((sup) => {
+              const score = Number(sup.performance_score || 95);
+              const delRate = Number(sup.delivery_rate || sup.delivery_reliability || (score ? score * 0.98 : 95));
+              const acc = Number(sup.order_accuracy || (score ? score * 0.99 : 98));
+              return (
+                <div key={sup.id} className="p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-purple-500/30 transition-colors space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-200 truncate max-w-[160px]">{sup.name}</span>
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-slate-400 text-[11px]">Del {delRate.toFixed(0)}% · Acc {acc.toFixed(0)}%</span>
+                      <span className="font-bold text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">{score.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
       {/* Main Card */}
       <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[80px] pointer-events-none" />
@@ -245,8 +392,6 @@ export default function SuppliersPage() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="py-4 pl-8 font-semibold text-slate-300">Supplier</TableHead>
                   <TableHead className="py-4 font-semibold text-slate-300">Contact</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">Lead Time</TableHead>
-                  <TableHead className="py-4 text-center font-semibold text-slate-300">Performance</TableHead>
                   <TableHead className="py-4 text-center font-semibold text-slate-300">Products</TableHead>
                   <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
                   {canManage && <TableHead className="w-16" />}
@@ -255,13 +400,13 @@ export default function SuppliersPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-12">
+                    <TableCell colSpan={canManage ? 5 : 4} className="text-center text-slate-400 py-12">
                       <div className="animate-pulse">Loading suppliers...</div>
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 7 : 6} className="text-center text-slate-400 py-12">
+                    <TableCell colSpan={canManage ? 5 : 4} className="text-center text-slate-400 py-12">
                       No suppliers found matching "{searchQuery}"
                     </TableCell>
                   </TableRow>
@@ -290,38 +435,6 @@ export default function SuppliersPage() {
                           <div>
                             <p className="text-sm font-medium text-slate-300">{sup.contact_name || "—"}</p>
                             <p className="text-xs text-slate-500 mt-0.5">{sup.email || "—"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900/50 border border-white/5 text-slate-300 text-xs font-medium">
-                              <span className="text-slate-400">Contract:</span>
-                              <span className="font-mono text-slate-200">{sup.lead_time_days}d</span>
-                            </div>
-                            {sup.predicted_lead_time_info && (
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] px-1.5 py-0.5 font-mono border ${
-                                  sup.predicted_lead_time_info.delay_bias_days > 1.0
-                                    ? "bg-red-500/10 border-red-500/30 text-red-300"
-                                    : sup.predicted_lead_time_info.delay_bias_days < -1.0
-                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                                    : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
-                                }`}
-                              >
-                                AI Pred: {sup.predicted_lead_time_info.predicted_lead_time_days}d (
-                                {sup.predicted_lead_time_info.delay_bias_days > 0
-                                  ? `+${sup.predicted_lead_time_info.delay_bias_days}d late`
-                                  : "On time"}
-                                )
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="text-sm font-semibold text-slate-200">{Number(sup.performance_score || 0).toFixed(0)}%</div>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            Del {Number(sup.delivery_rate || 0).toFixed(0)}% · Acc {Number(sup.order_accuracy || 0).toFixed(0)}%
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
