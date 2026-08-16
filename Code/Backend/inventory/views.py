@@ -566,7 +566,10 @@ class DashboardViewSet(viewsets.ViewSet):
 
         from django.db.models import Sum
         from django.db.models.functions import Coalesce
-        from categories.models import Category
+        from inventory.models import Category
+        from analytics.weather_service import WeatherService
+
+        weather_data = WeatherService.get_weather_widget_data(city="London")
 
         categories_qs = Category.objects.filter(organization=org) if org else Category.objects.all()
         category_movements = []
