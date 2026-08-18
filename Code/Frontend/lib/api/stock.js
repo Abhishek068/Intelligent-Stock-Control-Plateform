@@ -35,6 +35,19 @@ export const stockApi = {
     return apiClient.post(`/stock-transfers/${id}/cancel/`);
   },
 
+  async downloadTransferPdf(id) {
+    const res = await apiClient.get(`/stock-transfers/${id}/pdf/`, { responseType: "blob" });
+    const blob = new Blob([res], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Transfer-TR-${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
   async listStockIn(productId) {
     const query = productId ? `?product=${productId}` : "";
     const res = await apiClient.get(`/stock-in/${query}`);

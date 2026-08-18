@@ -84,6 +84,7 @@ class StockTransferViewSet(viewsets.ModelViewSet):
         "ship": "approve",
         "complete": "approve",
         "cancel": "approve",
+        "pdf": "view",
     }
     permission_classes = [HasModulePermission]
     filter_backends = [DjangoFilterBackend]
@@ -157,6 +158,109 @@ class StockTransferViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         return self._transition(request, StockService.cancel_transfer)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        transfer = self.get_object()
+        
+        import io
+        from django.http import FileResponse
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        
+        styles = getSampleStyleSheet()
+        normal = styles["Normal"]
+        
+        story = []
+        
+        header_data = [
+            [
+                Paragraph("<b><font size=20 color='#0d9488'>StockSense</font></b><br/><font size=9 color='#334155'>Inventory Intelligence Systems</font>", normal),
+                Paragraph(f"<b><font size=20 color='#0f172a'>STOCK TRANSFER SLIP</font></b><br/><font size=10 color='#334155'>Waybill #: TR-{transfer.id:05d}</font>", normal)
+            ]
+        ]
+        header_table = Table(header_data, colWidths=[270, 270])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 20))
+        
+        source_name = transfer.source_location.name if transfer.source_location else "Main Warehouse"
+        source_addr = getattr(transfer.source_location, "address", "") or "Main Warehouse Facility"
+        dest_name = transfer.destination_location.name if transfer.destination_location else "Destination Branch"
+        dest_addr = getattr(transfer.destination_location, "address", "") or "Branch Location Facility"
+        created_by_name = transfer.created_by.get_full_name() or transfer.created_by.username if transfer.created_by else "System Operator"
+        
+        metadata_data = [
+            [
+                Paragraph(f"<b>FROM (SOURCE WAREHOUSE):</b><br/><b>{source_name}</b><br/>{source_addr}", normal),
+                Paragraph(f"<b>TO (DESTINATION BRANCH):</b><br/><b>{dest_name}</b><br/>{dest_addr}", normal)
+            ],
+            [
+                Paragraph(f"<b>Date Created:</b> {transfer.created_at.strftime('%Y-%m-%d %H:%M')}<br/><b>Dispatched By:</b> {created_by_name}", normal),
+                Paragraph(f"<b>Transfer Status:</b> {transfer.status.upper()}<br/><b>Notes:</b> {transfer.notes or 'Standard Internal Transfer'}", normal)
+            ]
+        ]
+        metadata_table = Table(metadata_data, colWidths=[270, 270])
+        metadata_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(metadata_table)
+        story.append(Spacer(1, 20))
+        
+        table_data = [
+            [
+                Paragraph("<b>Product Name</b>", normal),
+                Paragraph("<b>SKU Code</b>", normal),
+                Paragraph("<b>Category</b>", normal),
+                Paragraph("<b>Quantity Transferred</b>", normal)
+            ],
+            [
+                Paragraph(f"<b>{transfer.product.name}</b>", normal),
+                Paragraph(transfer.product.sku, normal),
+                Paragraph(transfer.product.category.name if transfer.product.category else "-", normal),
+                Paragraph(f"<b>{transfer.quantity} units</b>", normal)
+            ]
+        ]
+        
+        items_table = Table(table_data, colWidths=[200, 110, 110, 120])
+        items_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f8fafc")),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor("#cbd5e1")),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
+            ('TOPPADDING', (0, 1), (-1, -1), 10),
+            ('LINEBELOW', (0, 1), (-1, -1), 1, colors.HexColor("#e2e8f0")),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(items_table)
+        story.append(Spacer(1, 40))
+        
+        sig_data = [
+            [
+                Paragraph("<b>Dispatched By (Warehouse Supervisor):</b><br/><br/><br/>_____________________________________<br/>Signature & Date", normal),
+                Paragraph("<b>Received & Checked By (Branch Manager):</b><br/><br/><br/>_____________________________________<br/>Signature & Date", normal)
+            ]
+        ]
+        sig_table = Table(sig_data, colWidths=[270, 270])
+        sig_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(sig_table)
+        
+        doc.build(story)
+        buffer.seek(0)
+        return FileResponse(buffer, as_attachment=True, filename=f"Transfer-TR-{transfer.id:05d}.pdf")
 
 
 class StockTakeViewSet(viewsets.ModelViewSet):

@@ -15,6 +15,7 @@ import {
   XCircle,
   MapPin,
   Package,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -196,6 +197,16 @@ function StockTransferPageContent() {
     setScannedCode("");
     setScanError("");
     setScanOpen(true);
+  };
+
+  const handleDownloadPdf = async (id) => {
+    try {
+      toast.info("Generating Transfer Slip PDF...");
+      await stockApi.downloadTransferPdf(id);
+      toast.success("Downloaded Stock Transfer Slip!");
+    } catch {
+      toast.error("Failed to download transfer PDF");
+    }
   };
 
   const handleVerifyScan = (e) => {
@@ -567,6 +578,15 @@ function StockTransferPageContent() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 font-semibold cursor-pointer"
+                          onClick={() => handleDownloadPdf(t.id)}
+                          title="Download Internal Transfer Delivery Slip PDF"
+                        >
+                          <FileText className="mr-1.5 h-3.5 w-3.5 text-teal-600 dark:text-teal-400" /> Slip PDF
+                        </Button>
                         {canApprove && t.status === "draft" && (
                           <Button
                             size="sm"
