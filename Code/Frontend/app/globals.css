@@ -165,3 +165,15 @@
     @apply bg-slate-600 rounded-full;
   }
 }
+
+/* Hide Next.js Dev Mode Overlay & Rendering Indicator */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dialog-overlay],
+[data-nextjs-dev-overlay],
+[data-next-dev-indicator] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

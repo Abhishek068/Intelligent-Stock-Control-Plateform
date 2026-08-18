@@ -71,17 +71,31 @@ retry = true)
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers
+    });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new ApiError(0, "Request cancelled");
+    }
+    throw new ApiError(0, err?.message || "Network error: Unable to connect to server");
+  }
 
   if (response.status === 401 && retry) {
-    const newToken = await refreshAccessToken();
+    let newToken = null;
+    try {
+      newToken = await refreshAccessToken();
+    } catch {
+      newToken = null;
+    }
     if (newToken) {
       return request(path, options, false);
     }
     onUnauthorized();
+    throw new ApiError(401, "Session expired");
   }
 
   return parseResponse(response);
@@ -119,8 +133,17 @@ export const apiClient = {
 
 export function unwrapList(payload) {
   if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === "object" && "results" in payload) {
-    return payload.results;
+  if (payload && typeof payload === "object") {
+    if (Array.isArray(payload.data)) return payload.data;
+    if ("results" in payload && Array.isArray(payload.results)) return payload.results;
+    if (
+      payload.data &&
+      typeof payload.data === "object" &&
+      "results" in payload.data &&
+      Array.isArray(payload.data.results)
+    ) {
+      return payload.data.results;
+    }
   }
   return [];
 }

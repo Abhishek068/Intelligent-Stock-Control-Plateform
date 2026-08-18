@@ -70,6 +70,10 @@ export default function ScheduledReportsPage() {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
 
+  const [runningId, setRunningId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
   const load = async (showToast = false) => {
     setLoading(true);
     try {
@@ -119,31 +123,40 @@ export default function ScheduledReportsPage() {
   };
 
   const toggleActive = async (report) => {
+    setTogglingId(report.id);
     try {
       await scheduledReportsApi.update(report.id, { is_active: !report.is_active });
-      load();
+      await load();
     } catch (e) {
       toast.error(e.message || "Update failed");
+    } finally {
+      setTogglingId(null);
     }
   };
 
   const runNow = async (id) => {
+    setRunningId(id);
     try {
       await scheduledReportsApi.runNow(id);
-      toast.success("Report queued/delivered");
-      load();
+      toast.success("Report execution triggered successfully");
+      await load();
     } catch (e) {
       toast.error(e.message || "Run failed");
+    } finally {
+      setRunningId(null);
     }
   };
 
   const remove = async (id) => {
+    setDeletingId(id);
     try {
       await scheduledReportsApi.remove(id);
-      toast.success("Deleted");
-      load();
+      toast.success("Scheduled report deleted");
+      await load();
     } catch (e) {
       toast.error(e.message || "Delete failed");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -275,17 +288,20 @@ export default function ScheduledReportsPage() {
                     size="sm" 
                     variant="outline" 
                     onClick={() => runNow(r.id)}
-                    className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg shadow-sm"
+                    disabled={runningId === r.id || togglingId === r.id || deletingId === r.id}
+                    className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg shadow-sm disabled:opacity-50"
                   >
-                    <Play className="h-3.5 w-3.5 mr-1.5" /> Run Now
+                    <Play className={`h-3.5 w-3.5 mr-1.5 ${runningId === r.id ? "animate-spin text-purple-400" : ""}`} />
+                    {runningId === r.id ? "Running..." : "Run Now"}
                   </Button>
                   <Button 
                     size="icon" 
                     variant="ghost" 
                     onClick={() => remove(r.id)}
-                    className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    disabled={deletingId === r.id || runningId === r.id}
+                    className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className={`h-4 w-4 ${deletingId === r.id ? "animate-spin text-rose-400" : ""}`} />
                   </Button>
                 </div>
               </div>

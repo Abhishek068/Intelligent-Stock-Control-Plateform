@@ -140,59 +140,63 @@ def build_report_body(report: ScheduledReport) -> str:
 def _deliver_report(report: ScheduledReport):
     from accounts.models import Role, User
     from notifications.services import NotificationService
+    import logging
 
-    body = build_report_body(report)
-    summary = f"{report.get_report_type_display()}: {report.name}\n\n{body[:4000]}"
-    emails = set(report.recipient_emails or [])
-    user_ids = set(report.recipient_user_ids or [])
-    for role_id in report.recipient_role_ids or []:
-        role = Role.objects.filter(id=role_id).first()
-        if role:
-            user_ids.update(role.users.values_list("id", flat=True))
+    try:
+        body = build_report_body(report)
+        summary = f"{report.get_report_type_display()}: {report.name}\n\n{body[:4000]}"
+        emails = set(report.recipient_emails or [])
+        user_ids = set(report.recipient_user_ids or [])
+        for role_id in report.recipient_role_ids or []:
+            role = Role.objects.filter(id=role_id).first()
+            if role:
+                user_ids.update(role.users.values_list("id", flat=True))
 
-    users = User.objects.filter(id__in=user_ids)
-    for u in users:
-        emails.add(u.email)
-
-    template_key = {
-        ScheduledReport.ReportType.LOW_STOCK: "low_stock",
-        ScheduledReport.ReportType.FORECAST: "forecast",
-        ScheduledReport.ReportType.REORDER: "reorder",
-    }.get(report.report_type, "daily_report")
-
-    if report.delivery in (
-        ScheduledReport.Delivery.EMAIL,
-        ScheduledReport.Delivery.BOTH,
-    ):
-        for email in emails:
-            queue_email(
-                recipient=email,
-                template_key=template_key,
-                context={
-                    "date": timezone.now().date().isoformat(),
-                    "report_body": body,
-                    "name": email,
-                    "product_name": report.name,
-                    "quantity": "",
-                    "summary": summary[:500],
-                    "title": report.name,
-                    "message": summary[:1000],
-                },
-                organization=report.organization,
-                subject_override=f"[StockSense] {report.name}",
-            )
-
-    if report.delivery in (
-        ScheduledReport.Delivery.NOTIFICATION,
-        ScheduledReport.Delivery.BOTH,
-    ):
+        users = User.objects.filter(id__in=user_ids)
         for u in users:
-            NotificationService.notify(
-                organization=report.organization,
-                user=u,
-                title=report.name,
-                message=summary[:1000],
-                notification_type="report",
-                severity="info",
-                priority="normal",
-            )
+            emails.add(u.email)
+
+        template_key = {
+            ScheduledReport.ReportType.LOW_STOCK: "low_stock",
+            ScheduledReport.ReportType.FORECAST: "forecast",
+            ScheduledReport.ReportType.REORDER: "reorder",
+        }.get(report.report_type, "daily_report")
+
+        if report.delivery in (
+            ScheduledReport.Delivery.EMAIL,
+            ScheduledReport.Delivery.BOTH,
+        ):
+            for email in emails:
+                queue_email(
+                    recipient=email,
+                    template_key=template_key,
+                    context={
+                        "date": timezone.now().date().isoformat(),
+                        "report_body": body,
+                        "name": email,
+                        "product_name": report.name,
+                        "quantity": "",
+                        "summary": summary[:500],
+                        "title": report.name,
+                        "message": summary[:1000],
+                    },
+                    organization=report.organization,
+                    subject_override=f"[StockSense] {report.name}",
+                )
+
+        if report.delivery in (
+            ScheduledReport.Delivery.NOTIFICATION,
+            ScheduledReport.Delivery.BOTH,
+        ):
+            for u in users:
+                NotificationService.notify(
+                    organization=report.organization,
+                    user=u,
+                    title=report.name,
+                    message=summary[:1000],
+                    notification_type="report",
+                    severity="info",
+                    priority="normal",
+                )
+    except Exception as exc:
+        logging.getLogger(__name__).exception("Failed to deliver scheduled report: %s", exc)
