@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, MoreHorizontal, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, FolderOpen, FolderTree } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -130,17 +130,17 @@ export default function CategoriesPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
         <div className="absolute -top-10 -left-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none -z-10" />
-
+        
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <FolderOpen className="h-6 w-6" />
+            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-xl border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+              <FolderTree className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Category Management
             </h1>
           </div>
-          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+          <p className="text-slate-500 dark:text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
             Organize and structure your product inventory with intelligent categorization.
             Assign products to categories for streamlined filtering and reporting.
           </p>
@@ -149,7 +149,7 @@ export default function CategoriesPage() {
         {canManage && (
           <Button
             onClick={openCreate}
-            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 px-4 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-indigo-500/50"
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-2 px-4 rounded-xl shadow-md cursor-pointer transition-all duration-200"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Category
           </Button>
@@ -157,47 +157,47 @@ export default function CategoriesPage() {
       </div>
 
       {/* Main Card */}
-      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
 
         <CardContent className="p-0">
           {/* Toolbar */}
-          <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between relative z-10">
+          <div className="p-6 border-b border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-between relative z-10">
             <div className="relative w-full max-w-md group">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 dark:group-focus-within:text-indigo-400 transition-colors" />
               <Input
                 placeholder="Search categories by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-950/50 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all rounded-xl h-10"
+                className="pl-9 rounded-xl h-10"
               />
             </div>
-            <div className="text-sm text-slate-400 font-medium px-4 py-2 bg-slate-950/50 border border-white/5 rounded-lg shadow-inner">
-              Total Categories: <span className="text-slate-200">{categories.length}</span>
+            <div className="text-sm text-slate-600 dark:text-slate-400 font-semibold px-4 py-2 bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl">
+              Total Categories: <span className="text-slate-900 dark:text-slate-200 font-bold">{categories.length}</span>
             </div>
           </div>
 
           <div className="overflow-x-auto relative z-10">
             <Table>
-              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+              <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">Category</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">Description</TableHead>
-                  <TableHead className="py-4 text-center font-semibold text-slate-300">Products</TableHead>
+                  <TableHead className="py-4 pl-8 font-bold text-slate-700 dark:text-slate-300">Category</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Description</TableHead>
+                  <TableHead className="py-4 text-center font-bold text-slate-700 dark:text-slate-300">Products</TableHead>
                   {canManage && <TableHead className="w-16" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-12">
+                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-500 dark:text-slate-400 py-12">
                       <div className="animate-pulse">Loading categories...</div>
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-400 py-12">
+                    <TableCell colSpan={canManage ? 4 : 3} className="text-center text-slate-500 dark:text-slate-400 py-12">
                       No categories found matching "{searchQuery}"
                     </TableCell>
                   </TableRow>
@@ -205,11 +205,11 @@ export default function CategoriesPage() {
                   filtered.map((cat, idx) => {
                     const color = COLORS[idx % COLORS.length];
                     return (
-                      <TableRow key={cat.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                      <TableRow key={cat.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-200/60 dark:border-white/5 group">
                         <TableCell className="pl-8 py-5">
                           <div className="flex items-center gap-4">
                             <div className="relative">
-                              <Avatar className="h-11 w-11 ring-1 ring-white/10 shadow-lg" style={{ backgroundColor: `${color}15` }}>
+                              <Avatar className="h-11 w-11 ring-1 ring-slate-200 dark:ring-white/10 shadow-sm" style={{ backgroundColor: `${color}15` }}>
                                 <AvatarFallback style={{ color }} className="font-bold bg-transparent text-sm">
                                   {cat.name.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
@@ -217,20 +217,20 @@ export default function CategoriesPage() {
                               <div className="absolute inset-0 rounded-full blur-[10px] opacity-30 -z-10" style={{ backgroundColor: color }} />
                             </div>
                             <div>
-                              <div className="font-semibold text-slate-200 text-[15px]">{cat.name}</div>
+                              <div className="font-bold text-slate-900 dark:text-slate-200 text-[15px]">{cat.name}</div>
                               <div className="text-xs text-slate-500 mt-0.5">ID: {cat.id}</div>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="max-w-md">
-                          <p className="truncate text-slate-400 text-sm">
+                          <p className="truncate text-slate-600 dark:text-slate-400 text-sm">
                             {cat.description || <span className="italic opacity-50">No description provided</span>}
                           </p>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge 
                             variant="outline" 
-                            className="bg-slate-950/50 border-white/10 text-slate-300 px-3 py-1 font-medium shadow-inner cursor-pointer hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:text-indigo-300 transition-colors"
+                            className="bg-slate-100 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3 py-1 font-semibold cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
                             onClick={() => openProductsModal(cat)}
                           >
                             {cat.product_count ?? 0} Products
@@ -240,15 +240,15 @@ export default function CategoriesPage() {
                           <TableCell className="pr-6 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 hover:text-slate-200">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
-                                <DropdownMenuItem onClick={() => openEdit(cat)} className="hover:bg-white/5 cursor-pointer text-slate-300">
-                                  <Pencil className="mr-2 h-4 w-4 text-indigo-400" /> Edit Category
+                              <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl backdrop-blur-xl rounded-xl">
+                                <DropdownMenuItem onClick={() => openEdit(cat)} className="cursor-pointer text-slate-700 dark:text-slate-300">
+                                  <Pencil className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Edit Category
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDelete(cat)} className="hover:bg-rose-500/10 cursor-pointer text-rose-400 focus:text-rose-400 focus:bg-rose-500/10">
+                                <DropdownMenuItem onClick={() => handleDelete(cat)} className="hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer text-rose-600 dark:text-rose-400 font-semibold">
                                   <Trash2 className="mr-2 h-4 w-4" /> Delete Category
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -267,43 +267,43 @@ export default function CategoriesPage() {
 
       {/* Modal */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl text-slate-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
               {editing ? "Edit Category" : "Create New Category"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label htmlFor="cat-name" className="text-sm font-semibold text-slate-200">Category Name <span className="text-rose-400">*</span></Label>
+              <Label htmlFor="cat-name" className="text-sm font-semibold text-slate-700 dark:text-slate-200">Category Name <span className="text-rose-500">*</span></Label>
               <Input
                 id="cat-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Abrasives, Electronics..."
-                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg"
+                className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 focus:border-indigo-500/50 text-slate-900 dark:text-slate-100 font-medium rounded-xl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cat-desc" className="text-sm font-semibold text-slate-200">Description</Label>
+              <Label htmlFor="cat-desc" className="text-sm font-semibold text-slate-700 dark:text-slate-200">Description</Label>
               <Textarea
                 id="cat-desc"
                 rows={3}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Describe what items belong in this category..."
-                className="bg-slate-950 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-100 font-medium rounded-lg resize-none"
+                className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 focus:border-indigo-500/50 text-slate-900 dark:text-slate-100 font-medium rounded-xl resize-none"
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0 border-t border-white/5 pt-4 mt-2">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
+          <DialogFooter className="gap-2 sm:gap-0 border-t border-slate-200 dark:border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl cursor-pointer">
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-lg shadow-indigo-500/20 rounded-xl border border-indigo-500/50"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium shadow-md rounded-xl cursor-pointer"
             >
               {saving ? "Saving..." : editing ? "Save Changes" : "Create Category"}
             </Button>
@@ -313,51 +313,51 @@ export default function CategoriesPage() {
 
       {/* Products Modal */}
       <Dialog open={!!viewingCategory} onOpenChange={(open) => !open && setViewingCategory(null)}>
-        <DialogContent className="sm:max-w-[600px] bg-[#0F172A] border-white/10 shadow-2xl rounded-2xl flex flex-col max-h-[85vh]">
+        <DialogContent className="sm:max-w-[600px] bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl flex flex-col max-h-[85vh] text-slate-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Products in {viewingCategory?.name}
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-4 min-h-[150px]">
             {loadingProducts ? (
-              <div className="flex h-full items-center justify-center text-slate-400 py-12">
+              <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400 py-12">
                 <div className="animate-pulse flex items-center gap-2">
                   <div className="h-4 w-4 rounded-full bg-indigo-500/50 animate-bounce" />
                   Loading products...
                 </div>
               </div>
             ) : selectedCategoryProducts.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 flex flex-col items-center gap-3">
-                <FolderOpen className="h-10 w-10 text-slate-600" />
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400 flex flex-col items-center gap-3">
+                <FolderOpen className="h-10 w-10 text-slate-400" />
                 <p>No products found in this category.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {selectedCategoryProducts.map(p => (
-                  <div key={p.id} className="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between hover:bg-slate-900/60 transition-colors group">
+                  <div key={p.id} className="p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-900/60 transition-colors group">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs border border-indigo-500/20 shadow-inner">
+                      <div className="h-10 w-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs border border-indigo-200 dark:border-indigo-500/20 shadow-2xs">
                         {p.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-200 text-sm group-hover:text-indigo-300 transition-colors">{p.name}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-200 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">{p.name}</div>
                         <div className="text-xs text-slate-500 font-mono mt-0.5">SKU: {p.sku}</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-slate-300">
-                        Stock: <span className={p.stock > 0 ? "text-emerald-400" : "text-rose-400"}>{p.stock}</span>
+                      <div className="text-sm font-semibold text-slate-800 dark:text-slate-300">
+                        Stock: <span className={p.stock > 0 ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-rose-600 dark:text-rose-400 font-bold"}>{p.stock}</span>
                       </div>
-                      <div className="text-xs text-slate-500 mt-0.5 font-mono">£{Number(p.unit_price).toFixed(2)}</div>
+                      <div className="text-xs text-slate-500 mt-0.5 font-mono font-semibold">£{Number(p.unit_price).toFixed(2)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <DialogFooter className="border-t border-white/5 pt-4 mt-2">
-            <Button variant="ghost" onClick={() => setViewingCategory(null)} className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl">
+          <DialogFooter className="border-t border-slate-200 dark:border-white/5 pt-4 mt-2">
+            <Button variant="ghost" onClick={() => setViewingCategory(null)} className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl cursor-pointer">
               Close
             </Button>
           </DialogFooter>

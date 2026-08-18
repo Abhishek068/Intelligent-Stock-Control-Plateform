@@ -197,45 +197,45 @@ function InvoicesPageContent() {
           canCreate && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md cursor-pointer">
                   <Plus className="mr-2 h-4 w-4" /> New Invoice
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl text-slate-900 dark:text-white">
                 <DialogHeader>
-                  <DialogTitle>Create invoice</DialogTitle>
-                  <DialogDescription>
+                  <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">Create invoice</DialogTitle>
+                  <DialogDescription className="text-slate-500 dark:text-slate-400">
                     Starts as draft. Issue when ready to collect payment.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-2 max-h-[60vh] overflow-y-auto">
+                <div className="grid gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
                   <div className="grid gap-2">
-                    <Label>Customer *</Label>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Customer <span className="text-rose-500">*</span></Label>
                     <Select
                       value={newInvoice.customerId}
                       onValueChange={(v) =>
                         setNewInvoice((s) => ({ ...s, customerId: v }))
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                         <SelectValue placeholder="Select customer" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
                         {customers.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
+                          <SelectItem key={c.id} value={String(c.id)} className="cursor-pointer">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {!customers.length && (
-                      <p className="text-xs text-amber-500">
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                         No customers yet — create one under Customers first.
                       </p>
                     )}
                   </div>
                   <div className="grid gap-2">
-                    <Label>Product</Label>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product</Label>
                     <Select
                       value={newInvoice.productId}
                       onValueChange={(v) => {
@@ -248,12 +248,12 @@ function InvoicesPageContent() {
                         }));
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                         <SelectValue placeholder="Optional product" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
                         {products.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
+                          <SelectItem key={p.id} value={String(p.id)} className="cursor-pointer">
                             {p.name} ({p.sku})
                           </SelectItem>
                         ))}
@@ -261,18 +261,19 @@ function InvoicesPageContent() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>Description</Label>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Description</Label>
                     <Input
                       value={newInvoice.description}
                       onChange={(e) =>
                         setNewInvoice((s) => ({ ...s, description: e.target.value }))
                       }
                       placeholder="Line description"
+                      className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-2">
-                      <Label>Quantity</Label>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Quantity</Label>
                       <Input
                         type="number"
                         min="1"
@@ -283,10 +284,11 @@ function InvoicesPageContent() {
                             quantity: parseInt(e.target.value) || 1,
                           }))
                         }
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Unit price</Label>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Unit price (£)</Label>
                       <Input
                         type="number"
                         min="0"
@@ -295,22 +297,24 @@ function InvoicesPageContent() {
                         onChange={(e) =>
                           setNewInvoice((s) => ({ ...s, unitPrice: e.target.value }))
                         }
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-2">
-                      <Label>Due date</Label>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Due date</Label>
                       <Input
                         type="date"
                         value={newInvoice.dueDate}
                         onChange={(e) =>
                           setNewInvoice((s) => ({ ...s, dueDate: e.target.value }))
                         }
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Tax %</Label>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tax %</Label>
                       <Input
                         type="number"
                         min="0"
@@ -319,24 +323,26 @@ function InvoicesPageContent() {
                         onChange={(e) =>
                           setNewInvoice((s) => ({ ...s, taxRate: e.target.value }))
                         }
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl"
                       />
                     </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label>Notes</Label>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
                     <Textarea
                       value={newInvoice.notes}
                       onChange={(e) =>
                         setNewInvoice((s) => ({ ...s, notes: e.target.value }))
                       }
+                      className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <DialogFooter className="mt-4 gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 cursor-pointer">
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateInvoice} disabled={saving}>
+                  <Button onClick={handleCreateInvoice} disabled={saving} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-md cursor-pointer">
                     {saving ? "Creating..." : "Create Draft"}
                   </Button>
                 </DialogFooter>
@@ -359,7 +365,7 @@ function InvoicesPageContent() {
         ]}
       />
 
-      <Card className="glass-card">
+      <Card className="glass-card border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl">
         <CardContent className="p-4 space-y-4">
           <FilterBar>
             <SearchInput
@@ -368,10 +374,10 @@ function InvoicesPageContent() {
               placeholder="Search invoice or customer..."
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl text-slate-800 dark:text-slate-200">
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="unpaid">Unpaid</SelectItem>
@@ -381,10 +387,10 @@ function InvoicesPageContent() {
               </SelectContent>
             </Select>
             <Select value={customerFilter} onValueChange={setCustomerFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Customer" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl text-slate-800 dark:text-slate-200">
                 <SelectItem value="all">All customers</SelectItem>
                 {customers.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>
@@ -396,35 +402,35 @@ function InvoicesPageContent() {
           </FilterBar>
 
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Due</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+            <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-4 pl-4 font-bold text-slate-700 dark:text-slate-300">Invoice #</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Customer</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Due</TableHead>
+                <TableHead className="py-4 text-right font-bold text-slate-700 dark:text-slate-300">Total</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400">
-                    Loading...
+                  <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400 py-12">
+                    <div className="animate-pulse">Loading invoices...</div>
                   </TableCell>
                 </TableRow>
               )}
               {!loading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400">
-                    No invoices
+                  <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400 py-12">
+                    No invoices found.
                   </TableCell>
                 </TableRow>
               )}
               {filtered.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
-                  <TableCell>{inv.customer_name}</TableCell>
+                <TableRow key={inv.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-200/60 dark:border-white/5">
+                  <TableCell className="font-mono text-xs font-bold text-indigo-700 dark:text-indigo-400 pl-4">{inv.invoice_number}</TableCell>
+                  <TableCell className="font-bold text-slate-900 dark:text-slate-200">{inv.customer_name}</TableCell>
                   <TableCell>
                     <StatusBadge
                       status={inv.status}
@@ -432,26 +438,27 @@ function InvoicesPageContent() {
                       iconMap={INVOICE_STATUS_ICONS}
                     />
                   </TableCell>
-                  <TableCell>{inv.due_date || "—"}</TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-slate-600 dark:text-slate-400 font-medium">{inv.due_date || "—"}</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-slate-900 dark:text-slate-100">
                     £{Number(inv.total_amount || 0).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() => router.push(`/invoices/${inv.id}`)}
+                          className="cursor-pointer font-medium"
                         >
-                          <Eye className="mr-2 h-4 w-4" /> View
+                          <Eye className="mr-2 h-4 w-4 text-slate-600 dark:text-slate-400" /> View
                         </DropdownMenuItem>
                         {canApprove && inv.status === "draft" && (
-                          <DropdownMenuItem onClick={() => runAction(inv.id, "issue")}>
+                          <DropdownMenuItem onClick={() => runAction(inv.id, "issue")} className="cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold">
                             <Send className="mr-2 h-4 w-4" /> Issue
                           </DropdownMenuItem>
                         )}
@@ -459,6 +466,7 @@ function InvoicesPageContent() {
                           ["unpaid", "overdue"].includes(inv.status) && (
                             <DropdownMenuItem
                               onClick={() => runAction(inv.id, "mark_paid")}
+                              className="cursor-pointer text-emerald-600 dark:text-emerald-400 font-semibold"
                             >
                               <CheckCircle className="mr-2 h-4 w-4" /> Mark paid
                             </DropdownMenuItem>
@@ -467,13 +475,14 @@ function InvoicesPageContent() {
                           ["draft", "unpaid", "overdue"].includes(inv.status) && (
                             <DropdownMenuItem
                               onClick={() => runAction(inv.id, "cancel")}
+                              className="cursor-pointer"
                             >
                               <XCircle className="mr-2 h-4 w-4" /> Cancel
                             </DropdownMenuItem>
                           )}
                         {canDelete && inv.status === "draft" && (
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
                             onClick={() => runAction(inv.id, "delete")}
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete

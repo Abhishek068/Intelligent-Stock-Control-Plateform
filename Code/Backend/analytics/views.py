@@ -517,9 +517,7 @@ class ReportViewSet(viewsets.ViewSet):
             ]
 
         elif report_type == "movements":
-
             from datetime import timedelta
-
             from django.db.models import Count
             from django.db.models.functions import TruncDate
             from django.utils import timezone
@@ -527,9 +525,117 @@ class ReportViewSet(viewsets.ViewSet):
             days = min(int(request.query_params.get("days", 30)), 90)
             since = timezone.now() - timedelta(days=days)
 
-            ins = StockInTransaction.objects.filter(product__organization=org).count()
-            outs = StockOutTransaction.objects.filter(product__organization=org).count()
-            adjs = StockAdjustment.objects.filter(product__organization=org).count()
+            # Stock In Details by Product
+            in_qs = (
+                StockInTransaction.objects.filter(product__organization=org)
+                .select_related("product", "product__category", "supplier", "location", "created_by")
+                .order_by("-received_at")
+            )
+            in_by_product = {}
+            for txn in in_qs:
+                pid = txn.product_id
+                if pid not in in_by_product:
+                    in_by_product[pid] = {
+                        "product_id": pid,
+                        "product_name": txn.product.name,
+                        "sku": txn.product.sku,
+                        "category": txn.product.category.name if txn.product.category else "Uncategorized",
+                        "total_quantity": 0,
+                        "transaction_count": 0,
+                        "last_date": txn.received_at.strftime("%Y-%m-%d %H:%M") if txn.received_at else None,
+                        "last_supplier": txn.supplier.name if txn.supplier else "—",
+                        "last_location": txn.location.name if txn.location else "—",
+                        "transactions": [],
+                    }
+                in_by_product[pid]["total_quantity"] += txn.quantity
+                in_by_product[pid]["transaction_count"] += 1
+                if len(in_by_product[pid]["transactions"]) < 8:
+                    in_by_product[pid]["transactions"].append({
+                        "id": txn.id,
+                        "quantity": txn.quantity,
+                        "unit_cost": float(txn.unit_cost) if txn.unit_cost else 0,
+                        "reference": txn.reference or "—",
+                        "supplier": txn.supplier.name if txn.supplier else "—",
+                        "location": txn.location.name if txn.location else "—",
+                        "date": txn.received_at.strftime("%Y-%m-%d %H:%M") if txn.received_at else None,
+                        "user": txn.created_by.get_full_name() or txn.created_by.username if txn.created_by else "System",
+                        "notes": txn.notes or "",
+                    })
+
+            # Stock Out Details by Product
+            out_qs = (
+                StockOutTransaction.objects.filter(product__organization=org)
+                .select_related("product", "product__category", "location", "created_by")
+                .order_by("-issued_at")
+            )
+            out_by_product = {}
+            for txn in out_qs:
+                pid = txn.product_id
+                if pid not in out_by_product:
+                    out_by_product[pid] = {
+                        "product_id": pid,
+                        "product_name": txn.product.name,
+                        "sku": txn.product.sku,
+                        "category": txn.product.category.name if txn.product.category else "Uncategorized",
+                        "total_quantity": 0,
+                        "transaction_count": 0,
+                        "last_date": txn.issued_at.strftime("%Y-%m-%d %H:%M") if txn.issued_at else None,
+                        "last_issued_to": txn.issued_to or "—",
+                        "last_location": txn.location.name if txn.location else "—",
+                        "transactions": [],
+                    }
+                out_by_product[pid]["total_quantity"] += txn.quantity
+                out_by_product[pid]["transaction_count"] += 1
+                if len(out_by_product[pid]["transactions"]) < 8:
+                    out_by_product[pid]["transactions"].append({
+                        "id": txn.id,
+                        "quantity": txn.quantity,
+                        "issued_to": txn.issued_to or "—",
+                        "reference": txn.reference or "—",
+                        "location": txn.location.name if txn.location else "—",
+                        "date": txn.issued_at.strftime("%Y-%m-%d %H:%M") if txn.issued_at else None,
+                        "user": txn.created_by.get_full_name() or txn.created_by.username if txn.created_by else "System",
+                        "notes": txn.notes or "",
+                    })
+
+            # Stock Adjustments Details by Product
+            adj_qs = (
+                StockAdjustment.objects.filter(product__organization=org)
+                .select_related("product", "product__category", "location", "created_by")
+                .order_by("-adjusted_at")
+            )
+            adj_by_product = {}
+            for txn in adj_qs:
+                pid = txn.product_id
+                diff = txn.adjusted_qty - txn.previous_qty
+                if pid not in adj_by_product:
+                    adj_by_product[pid] = {
+                        "product_id": pid,
+                        "product_name": txn.product.name,
+                        "sku": txn.product.sku,
+                        "category": txn.product.category.name if txn.product.category else "Uncategorized",
+                        "net_adjustment": 0,
+                        "total_adjusted_quantity": 0,
+                        "transaction_count": 0,
+                        "last_date": txn.adjusted_at.strftime("%Y-%m-%d %H:%M") if txn.adjusted_at else None,
+                        "last_reason": txn.reason or "—",
+                        "last_location": txn.location.name if txn.location else "—",
+                        "transactions": [],
+                    }
+                adj_by_product[pid]["net_adjustment"] += diff
+                adj_by_product[pid]["total_adjusted_quantity"] += abs(diff)
+                adj_by_product[pid]["transaction_count"] += 1
+                if len(adj_by_product[pid]["transactions"]) < 8:
+                    adj_by_product[pid]["transactions"].append({
+                        "id": txn.id,
+                        "previous_qty": txn.previous_qty,
+                        "adjusted_qty": txn.adjusted_qty,
+                        "diff": diff,
+                        "reason": txn.reason or "—",
+                        "location": txn.location.name if txn.location else "—",
+                        "date": txn.adjusted_at.strftime("%Y-%m-%d %H:%M") if txn.adjusted_at else None,
+                        "user": txn.created_by.get_full_name() or txn.created_by.username if txn.created_by else "System",
+                    })
 
             ins_series = (
                 StockInTransaction.objects.filter(
@@ -557,12 +663,36 @@ class ReportViewSet(viewsets.ViewSet):
                 by_day.setdefault(key, {"date": key, "stock_in": 0, "stock_out": 0})
                 by_day[key]["stock_out"] = row["count"]
 
+            ins_count = in_qs.count()
+            outs_count = out_qs.count()
+            adjs_count = adj_qs.count()
+
             data = {
                 "totals": [
-                    {"type": "stock_in", "count": ins},
-                    {"type": "stock_out", "count": outs},
-                    {"type": "adjustments", "count": adjs},
+                    {
+                        "type": "stock_in",
+                        "count": ins_count,
+                        "total_quantity": sum(p["total_quantity"] for p in in_by_product.values()),
+                        "product_count": len(in_by_product),
+                    },
+                    {
+                        "type": "stock_out",
+                        "count": outs_count,
+                        "total_quantity": sum(p["total_quantity"] for p in out_by_product.values()),
+                        "product_count": len(out_by_product),
+                    },
+                    {
+                        "type": "adjustments",
+                        "count": adjs_count,
+                        "net_quantity": sum(p["net_adjustment"] for p in adj_by_product.values()),
+                        "product_count": len(adj_by_product),
+                    },
                 ],
+                "details": {
+                    "stock_in": sorted(list(in_by_product.values()), key=lambda x: x["total_quantity"], reverse=True),
+                    "stock_out": sorted(list(out_by_product.values()), key=lambda x: x["total_quantity"], reverse=True),
+                    "adjustments": sorted(list(adj_by_product.values()), key=lambda x: x["total_adjusted_quantity"], reverse=True),
+                },
                 "series": [by_day[k] for k in sorted(by_day.keys())],
                 "days": days,
             }

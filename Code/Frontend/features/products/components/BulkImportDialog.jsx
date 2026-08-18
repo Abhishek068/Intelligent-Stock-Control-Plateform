@@ -127,15 +127,15 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
         <DialogHeader>
-          <DialogTitle>Bulk Import Products</DialogTitle>
+          <DialogTitle className="text-slate-900 dark:text-white font-bold text-lg">Bulk Import Products</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div
-            className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-all ${
-              dragActive ? "border-indigo-500 bg-indigo-500/10" : "border-slate-800 hover:border-slate-700 bg-slate-900/20"
+            className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+              dragActive ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10" : "border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-900/20"
             }`}
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
@@ -145,10 +145,10 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
             {!file ? (
               <>
                 <Upload className="h-10 w-10 text-slate-400 mb-3" />
-                <p className="text-sm font-semibold text-slate-200 mb-1">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
                   Drag and drop your CSV or Excel file here
                 </p>
-                <p className="text-xs text-slate-400 mb-4">or click to browse from files</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">or click to browse from files</p>
                 <input
                   type="file"
                   id="product-import-upload"
@@ -161,16 +161,17 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
                   size="sm"
                   type="button"
                   onClick={() => document.getElementById("product-import-upload").click()}
+                  className="rounded-xl cursor-pointer"
                 >
                   Choose File
                 </Button>
               </>
             ) : (
-              <div className="flex items-center justify-between w-full bg-slate-900/80 rounded-lg p-3 border border-slate-850">
+              <div className="flex items-center justify-between w-full bg-slate-100 dark:bg-slate-900/80 rounded-xl p-3 border border-slate-200 dark:border-slate-850">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-6 w-6 text-indigo-400" />
+                  <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                   <div className="text-left">
-                    <p className="text-sm font-medium text-slate-200 max-w-[280px] truncate" title={file.name}>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 max-w-[280px] truncate" title={file.name}>
                       {file.name}
                     </p>
                     <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
@@ -179,7 +180,7 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
                 <button
                   onClick={clearFile}
                   disabled={importing}
-                  className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-rose-400 transition-colors"
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -187,19 +188,19 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
             )}
           </div>
 
-          <div className="text-xs text-slate-500 bg-slate-950/40 border border-white/5 rounded-lg p-3 space-y-1">
-            <p className="font-semibold text-slate-400">CSV / Excel headers required:</p>
-            <p className="font-mono text-indigo-400 text-[10px] break-all">sku, name, category, supplier, unit_price, minimum_level, reorder_level, barcode, description</p>
-            <p className="mt-2 text-slate-400">* Organization scoping is auto-configured; suppliers must be created beforehand.</p>
+          <div className="text-xs text-slate-600 dark:text-slate-500 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 space-y-1">
+            <p className="font-semibold text-slate-700 dark:text-slate-400">CSV / Excel headers required:</p>
+            <p className="font-mono text-indigo-600 dark:text-indigo-400 text-[10px] break-all font-medium">sku, name, category, supplier, unit_price, minimum_level, reorder_level, barcode, description</p>
+            <p className="mt-2 text-slate-500 dark:text-slate-400">* Organization scoping is auto-configured; suppliers must be created beforehand.</p>
           </div>
 
           {errors.length > 0 && (
-            <div className="border border-rose-500/20 bg-rose-500/5 text-rose-400 rounded-lg p-3 space-y-2">
+            <div className="border border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 text-rose-700 dark:text-rose-400 rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-2 font-semibold text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>Import Failed ({errors.length} errors)</span>
               </div>
-              <ul className="text-xs font-mono max-h-[120px] overflow-y-auto list-disc pl-4 space-y-1 text-rose-300">
+              <ul className="text-xs font-mono max-h-[120px] overflow-y-auto list-disc pl-4 space-y-1 text-rose-600 dark:text-rose-300">
                 {errors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
@@ -207,24 +208,24 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }) {
             </div>
           )}
           {importing && (
-            <div className="space-y-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 text-sm text-indigo-200">
+            <div className="space-y-2 rounded-xl border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/5 p-3 text-sm text-indigo-700 dark:text-indigo-200">
               <div className="flex justify-between">
                 <span>{status.startsWith("job:") ? "Starting import…" : status || "Uploading…"}</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded bg-slate-800">
-                <div className="h-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-2 overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
+                <div className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={importing}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={importing} className="rounded-xl cursor-pointer">
             Cancel
           </Button>
           <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer"
             onClick={handleUpload}
             disabled={!file || importing}
           >

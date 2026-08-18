@@ -134,49 +134,49 @@ function StockOutPageContent() {
         
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+            <div className="p-2.5 bg-blue-50 dark:bg-blue-500/20 rounded-xl border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
               <PackageMinus className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Stock Out
             </h1>
           </div>
-          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+          <p className="text-slate-500 dark:text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
             Issue stock to departments or customers seamlessly.
           </p>
         </div>
 
-        <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)] px-4 py-1.5 text-sm">
+        <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 px-4 py-1.5 text-sm font-semibold">
           <ArrowUpFromLine className="mr-2 h-4 w-4 animate-bounce" /> Issuing Mode Active
         </Badge>
       </div>
 
       {/* Barcode Quick-Scan Card */}
-      <Card className="bg-slate-900/40 backdrop-blur-xl border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.05)] overflow-hidden rounded-2xl relative">
+      <Card className="bg-white/90 dark:bg-slate-900/40 backdrop-blur-xl border border-blue-200 dark:border-blue-500/20 shadow-sm overflow-hidden rounded-2xl relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
         <CardContent className="flex flex-col items-center gap-4 p-6 sm:flex-row sm:justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-blue-500/20 p-3 text-blue-400 border border-blue-500/30 shadow-inner">
+            <div className="rounded-xl bg-blue-50 dark:bg-blue-500/20 p-3 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 shadow-xs">
               <Barcode className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-200 tracking-tight">Barcode Quick-Scan</p>
-              <p className="text-xs text-slate-400 mt-0.5">Scan a barcode to instantly select the product</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-200 tracking-tight">Barcode Quick-Scan</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Scan a barcode to instantly select the product</p>
             </div>
           </div>
           <div className="flex w-full max-w-md items-center gap-3">
             <div className="relative w-full group">
-              <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+              <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors" />
               <Input 
                 placeholder="Enter SKU or scan barcode..." 
                 value={barcodeInput} 
                 onChange={(e) => setBarcodeInput(e.target.value)} 
                 onKeyDown={(e) => e.key === "Enter" && handleBarcodeScan(barcodeInput.trim())} 
-                className="pl-9 bg-slate-950/80 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all rounded-xl h-11"
+                className="pl-9 bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-11"
               />
             </div>
             <Button 
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl h-11 px-6 shadow-lg shadow-blue-500/20"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl h-11 px-6 shadow-md cursor-pointer"
               onClick={() => handleBarcodeScan(barcodeInput.trim())}
             >
               Scan
@@ -186,13 +186,13 @@ function StockOutPageContent() {
       </Card>
 
       {/* Main Issuing Form */}
-      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
-          <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
-            <Box className="h-5 w-5 text-indigo-400" /> 
+        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10">
+          <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
+            <Box className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> 
             Issue Stock
           </div>
         </div>
@@ -203,51 +203,51 @@ function StockOutPageContent() {
               <div className="grid gap-6 md:grid-cols-2">
                 <FormField control={form.control} name="productId" render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="text-sm font-semibold text-slate-300">Product <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-between bg-slate-950/50 border-white/10 hover:bg-white/5 text-slate-200 rounded-xl h-11 font-medium">
+                        <Button variant="outline" className="justify-between bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium cursor-pointer">
                           {field.value ? products.find((p) => String(p.id) === field.value)?.name : "Select product..."}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
-                        <Command className="bg-transparent text-slate-200">
-                          <CommandInput placeholder="Search products..." className="border-b border-white/10 h-11" />
-                          <CommandEmpty className="py-6 text-center text-sm text-slate-400">No product found.</CommandEmpty>
+                      <PopoverContent className="w-[400px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
+                        <Command className="bg-transparent text-slate-800 dark:text-slate-200">
+                          <CommandInput placeholder="Search products..." className="border-b border-slate-200 dark:border-white/10 h-11" />
+                          <CommandEmpty className="py-6 text-center text-sm text-slate-500">No product found.</CommandEmpty>
                           <CommandGroup className="max-h-[300px] overflow-auto">
                             {products.map((p) => (
                               <CommandItem 
                                 key={p.id} 
                                 value={String(p.id)} 
                                 onSelect={() => field.onChange(String(p.id))}
-                                className="aria-selected:bg-blue-500/20 aria-selected:text-blue-200 cursor-pointer text-slate-300 py-3 flex items-center justify-between"
+                                className="cursor-pointer text-slate-800 dark:text-slate-300 py-3 flex items-center justify-between"
                               >
-                                {p.name}
-                                <span className="text-xs font-mono text-slate-500">Stock: {p.stock}</span>
+                                <span>{p.name}</span>
+                                <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">Stock: {p.stock}</span>
                               </CommandItem>
                             ))}
                           </CommandGroup>
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="locationId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Location <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Location <span className="text-rose-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                        <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                        {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-blue-500/20 focus:text-blue-200 cursor-pointer">{l.name}</SelectItem>)}
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                        {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">{l.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
@@ -259,20 +259,20 @@ function StockOutPageContent() {
 
                   return (
                     <FormItem className="col-span-2 sm:col-span-1">
-                      <FormLabel className="text-sm font-semibold text-slate-300 flex justify-between items-center">
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex justify-between items-center">
                         <span>Batch / Lot (optional)</span>
-                        <span className="text-[11px] text-indigo-400 font-normal">
+                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
                           Defaults to FEFO (Earliest Expiry)
                         </span>
                       </FormLabel>
                       <Select onValueChange={(v) => field.onChange(v === "fefo" ? "" : v)} value={field.value || "fefo"}>
                         <FormControl>
-                          <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                          <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                             <SelectValue placeholder="⭐ Automatic FEFO Selection (Earliest Expiry)" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200 max-h-60">
-                          <SelectItem value="fefo" className="focus:bg-blue-500/20 focus:text-blue-200 cursor-pointer font-bold text-indigo-300">
+                        <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200 max-h-60">
+                          <SelectItem value="fefo" className="cursor-pointer font-bold text-indigo-600 dark:text-indigo-300">
                             ⭐ Automatic FEFO (Recommended Earliest Expiry)
                           </SelectItem>
                           {batches.map((b) => {
@@ -282,7 +282,7 @@ function StockOutPageContent() {
                                 key={b.id} 
                                 value={String(b.id)} 
                                 disabled={isExpired}
-                                className={`focus:bg-blue-500/20 focus:text-blue-200 cursor-pointer ${isExpired ? "opacity-50 text-rose-400 line-through" : ""}`}
+                                className={`cursor-pointer ${isExpired ? "opacity-50 text-rose-500 line-through" : ""}`}
                               >
                                 {b.is_fifo_recommended ? "⭐ " : ""}{b.batch_number} — Qty: {b.quantity_on_hand} 
                                 {b.expiry_date ? ` (Exp: ${b.expiry_date})` : " (No Expiry)"}
@@ -295,19 +295,19 @@ function StockOutPageContent() {
                       
                       {/* Non-FIFO Warning Notice */}
                       {isNonFifoSelection && !isSelectedExpired && (
-                        <div className="mt-2 text-xs p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                        <div className="mt-2 text-xs p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                           <div>
                             <strong className="font-bold block">Non-FIFO Selection Warning</strong>
-                            An earlier expiring batch (<span className="font-mono font-bold text-white">{recommendedBatch.batch_number}</span>, exp {recommendedBatch.expiry_date}) exists for this location. FIFO guidelines recommend issuing earlier stock first.
+                            An earlier expiring batch (<span className="font-mono font-bold text-slate-900 dark:text-white">{recommendedBatch.batch_number}</span>, exp {recommendedBatch.expiry_date}) exists for this location. FIFO guidelines recommend issuing earlier stock first.
                           </div>
                         </div>
                       )}
 
                       {/* Expired Batch Alert Notice */}
                       {isSelectedExpired && (
-                        <div className="mt-2 text-xs p-3 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-200 flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5 animate-pulse" />
+                        <div className="mt-2 text-xs p-3 bg-rose-50 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/40 rounded-xl text-rose-800 dark:text-rose-200 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5 animate-pulse" />
                           <div>
                             <strong className="font-bold block">Expired Lot Issuance Blocked</strong>
                             Batch '{selectedBatch.batch_number}' expired on {selectedBatch.expiry_date}. Standard stock-out is blocked for expired goods. Please perform a stock adjustment or supplier return.
@@ -315,18 +315,18 @@ function StockOutPageContent() {
                         </div>
                       )}
                       
-                      <FormMessage className="text-rose-400 text-xs" />
+                      <FormMessage className="text-rose-500 text-xs" />
                     </FormItem>
                   );
                 }} />
 
                 <FormField control={form.control} name="quantity" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300 flex justify-between">
-                      <span>Quantity <span className="text-rose-400">*</span></span>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
+                      <span>Quantity <span className="text-rose-500">*</span></span>
                       {selectedProduct && (
-                        <span className="text-xs text-slate-400 font-normal">
-                          Available: <strong className="text-blue-400 font-mono">{availableStock}</strong>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">
+                          Available: <strong className="text-blue-600 dark:text-blue-400 font-mono font-bold">{availableStock}</strong>
                         </span>
                       )}
                     </FormLabel>
@@ -335,99 +335,99 @@ function StockOutPageContent() {
                         type="number" 
                         min="1" 
                         {...field} 
-                        className={`bg-slate-950/80 border-white/10 focus:ring-1 text-slate-100 font-bold rounded-xl h-11 ${isOverIssuing ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/30' : 'focus:border-blue-500/50 focus:ring-blue-500/30'}`}
+                        className={`bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl h-11 ${isOverIssuing ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30' : 'focus:border-blue-500/50 focus:ring-blue-500/30'}`}
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="issuedTo" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Destination <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Destination <span className="text-rose-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                        <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                           <SelectValue placeholder="Select destination" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                        {DESTINATIONS.map((d) => <SelectItem key={d.value} value={d.value} className="focus:bg-blue-500/20 focus:text-blue-200 cursor-pointer">{d.label}</SelectItem>)}
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                        {DESTINATIONS.map((d) => <SelectItem key={d.value} value={d.value} className="cursor-pointer">{d.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="reference" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Reference</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reference</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="e.g., SO-2024-042" 
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-500"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 focus:border-blue-500/50 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
               </div>
 
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-semibold text-slate-300">Notes</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</FormLabel>
                   <FormControl>
                     <Textarea 
                       rows={3} 
                       {...field} 
-                      className="bg-slate-950/80 border-white/10 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 text-slate-100 font-medium rounded-xl resize-none placeholder:text-slate-500"
+                      className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 focus:border-blue-500/50 text-slate-900 dark:text-slate-100 font-medium rounded-xl resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       placeholder="Add any additional notes about this stock issuance..."
                     />
                   </FormControl>
-                  <FormMessage className="text-rose-400 text-xs" />
+                  <FormMessage className="text-rose-500 text-xs" />
                 </FormItem>
               )} />
 
               {isOverIssuing && (
-                <div className="flex items-start gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-5 shadow-[0_0_20px_rgba(244,63,94,0.1)] relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors" />
-                  <AlertTriangle className="h-6 w-6 shrink-0 text-rose-400 relative z-10 animate-pulse" />
+                <div className="flex items-start gap-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-5 shadow-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors pointer-events-none" />
+                  <AlertTriangle className="h-6 w-6 shrink-0 text-rose-600 dark:text-rose-400 relative z-10 animate-pulse" />
                   <div className="relative z-10">
-                    <h5 className="font-bold text-rose-100 text-base">Insufficient Stock</h5>
-                    <p className="text-sm text-rose-200 mt-1">
-                      You are attempting to issue more stock than is available. Only <strong className="text-white font-mono bg-rose-500/20 px-1.5 py-0.5 rounded">{availableStock}</strong> units available.
+                    <h5 className="font-bold text-rose-800 dark:text-rose-100 text-base">Insufficient Stock</h5>
+                    <p className="text-sm text-rose-700 dark:text-rose-200 mt-1">
+                      You are attempting to issue more stock than is available. Only <strong className="text-rose-950 dark:text-white font-mono bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 rounded">{availableStock}</strong> units available.
                     </p>
                   </div>
                 </div>
               )}
 
               {selectedProduct && !isOverIssuing && quantity > 0 && (
-                <div className="flex items-start gap-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-5 shadow-[0_0_20px_rgba(59,130,246,0.1)] relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors" />
-                  <CheckCircle className="h-6 w-6 shrink-0 text-blue-400 relative z-10" />
+                <div className="flex items-start gap-4 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-5 shadow-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors pointer-events-none" />
+                  <CheckCircle className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400 relative z-10" />
                   <div className="relative z-10">
-                    <h5 className="font-bold text-blue-100 text-base font-sans">Issue Summary</h5>
-                    <p className="text-sm text-blue-200 mt-1">
-                      Ready to issue <strong className="text-white font-extrabold text-base mx-1 bg-blue-500/20 px-1.5 py-0.5 rounded">{quantity}</strong> units of <strong className="text-white font-bold">{selectedProduct.name}</strong> under <span className="italic">{form.watch("batchId") ? "specified lot" : "automatic FEFO (earliest expiry) rule"}</span>.
+                    <h5 className="font-bold text-blue-900 dark:text-blue-100 text-base font-sans">Issue Summary</h5>
+                    <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                      Ready to issue <strong className="text-blue-950 dark:text-white font-extrabold text-base mx-1 bg-blue-100 dark:bg-blue-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-blue-950 dark:text-white font-bold">{selectedProduct.name}</strong> under <span className="italic">{form.watch("batchId") ? "specified lot" : "automatic FEFO (earliest expiry) rule"}</span>.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-white/5">
+              <div className="flex justify-end gap-4 pt-4 border-t border-slate-200/80 dark:border-white/5">
                 <Button 
                   type="button" 
                   variant="ghost" 
                   onClick={() => form.reset()}
-                  className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl h-11 px-6"
+                  className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl h-11 px-6 cursor-pointer"
                 >
                   Reset Form
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || isOverIssuing}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/20 rounded-xl h-11 px-8 border border-blue-500/50 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-md rounded-xl h-11 px-8 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">

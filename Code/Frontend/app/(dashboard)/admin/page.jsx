@@ -43,13 +43,13 @@ function buildForecastChart(chart) {
   if (!chart) return [];
   const history = (chart.history || []).map((h) => ({
     name: h.date?.slice(5) || h.date,
-    actual: h.actual,
+    actual: h.actual != null ? Math.round(Number(h.actual)) : null,
     predicted: null,
   }));
   const forecast = (chart.forecast || []).map((f) => ({
     name: f.date?.slice(5) || f.date,
     actual: null,
-    predicted: f.predicted,
+    predicted: f.predicted != null ? Math.round(Number(f.predicted)) : null,
   }));
   return [...history, ...forecast];
 }
@@ -155,17 +155,17 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 pb-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Super Admin Control Center
             </h1>
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs font-semibold">
+            <Badge className="bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 text-xs font-semibold">
               <Shield className="mr-1 h-3 w-3" /> System Root
             </Badge>
           </div>
-          <p className="text-slate-400 mt-1 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
             Enterprise identity management, notification queues, automated reports, and inventory oversight
           </p>
         </div>
@@ -175,13 +175,13 @@ export default function AdminDashboard() {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="bg-slate-900/80 border-white/10 hover:bg-slate-800 text-slate-200 cursor-pointer shadow-lg rounded-xl px-4"
+            className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm rounded-xl px-4"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-500" : ""}`} />
             Refresh Data
           </Button>
           <Link href="/users">
-            <Button size="sm" className="rounded-xl shadow-lg bg-indigo-600 hover:bg-indigo-500 cursor-pointer">
+            <Button size="sm" className="rounded-xl shadow-md bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer">
               <UserPlus className="mr-2 h-4 w-4" /> Invite User
             </Button>
           </Link>
@@ -274,12 +274,12 @@ export default function AdminDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-lg font-bold text-slate-100">Demand Forecasting</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Demand Forecasting</h2>
             <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger className="w-[280px] bg-slate-900/50 border-white/10 text-slate-200">
+              <SelectTrigger className="w-[280px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Select a product" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 {productsList.map((p) => (
                   <SelectItem key={p.id} value={p.id.toString()}>
                     {p.name}
@@ -325,7 +325,7 @@ export default function AdminDashboard() {
       </div>
 
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
           System Overview & IAM Telemetry
         </h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
@@ -351,10 +351,10 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="glass-card rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
+        <Card className="glass-card rounded-2xl border border-slate-200/80 dark:border-white/10 p-6 shadow-xl">
           <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-bold text-slate-100">System Activity Stream</CardTitle>
-            <Link href="/activity" className="text-xs text-indigo-400 hover:underline">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">System Activity Stream</CardTitle>
+            <Link href="/activity" className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
               View full audit log →
             </Link>
           </CardHeader>
@@ -363,10 +363,10 @@ export default function AdminDashboard() {
               <p className="text-sm text-slate-500 py-4">No recent system activity recorded</p>
             )}
             {(admin?.activity || []).map((a) => (
-              <div key={a.id} className="border-b border-white/5 pb-3 last:border-0">
-                <p className="text-sm font-medium text-slate-200">{a.title}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  <span className="text-indigo-400">{a.event_type}</span> ·{" "}
+              <div key={a.id} className="border-b border-slate-200/70 dark:border-white/5 pb-3 last:border-0">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{a.title}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-medium">{a.event_type}</span> ·{" "}
                   {a.created_at ? new Date(a.created_at).toLocaleString() : ""}
                 </p>
               </div>
@@ -374,9 +374,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
+        <Card className="glass-card rounded-2xl border border-slate-200/80 dark:border-white/10 p-6 shadow-xl">
           <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-bold text-slate-100">Recent User Invitations</CardTitle>
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">Recent User Invitations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-0">
             {(admin?.recent_invitations || []).length === 0 && (
@@ -385,12 +385,12 @@ export default function AdminDashboard() {
             {(admin?.recent_invitations || []).map((invItem) => (
               <div
                 key={invItem.id}
-                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-slate-200/70 dark:border-white/5 bg-slate-50 dark:bg-white/5 p-3 text-sm"
               >
-                <span className="font-medium text-slate-200">{invItem.email}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{invItem.email}</span>
                 <Badge
                   variant="outline"
-                  className="bg-slate-800/80 text-slate-300 border-white/10 capitalize text-xs"
+                  className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 capitalize text-xs font-semibold"
                 >
                   {invItem.status?.replaceAll("_", " ")}
                 </Badge>
@@ -405,23 +405,23 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon: Icon, color }) {
   const colorMap = {
-    indigo: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
-    violet: "bg-violet-500/15 text-violet-400 border-violet-500/30",
-    sky: "bg-sky-500/15 text-sky-400 border-sky-500/30",
-    amber: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    rose: "bg-rose-500/15 text-rose-400 border-rose-500/30",
-    cyan: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-    orange: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-    emerald: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-400 dark:border-indigo-500/30",
+    violet: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/30",
+    sky: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/15 dark:text-sky-400 dark:border-sky-500/30",
+    amber: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
+    rose: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30",
+    cyan: "bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-400 dark:border-cyan-500/30",
+    orange: "bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30",
+    emerald: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
   };
   const valStr = value != null ? String(value) : "—";
   const isLong = valStr.length > 9;
   const isMedium = valStr.length > 6 && valStr.length <= 9;
   return (
-    <Card className="glass-card hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 cursor-pointer hover:scale-[1.02] h-full flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 p-0 shadow-md">
+    <Card className="glass-card hover:border-slate-300 dark:hover:border-white/20 transition-all duration-300 cursor-pointer hover:scale-[1.02] h-full flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 p-0 shadow-md">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
         <CardTitle
-          className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate"
+          className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate"
           title={title}
         >
           {title}
@@ -432,7 +432,7 @@ function StatCard({ title, value, icon: Icon, color }) {
       </CardHeader>
       <CardContent className="p-4 pt-1">
         <div
-          className={`font-extrabold text-slate-100 truncate tracking-tight ${
+          className={`font-extrabold text-slate-900 dark:text-slate-100 truncate tracking-tight ${
             isLong
               ? "text-base sm:text-lg xl:text-xl"
               : isMedium

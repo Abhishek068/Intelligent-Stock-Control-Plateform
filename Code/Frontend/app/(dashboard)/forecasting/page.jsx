@@ -102,13 +102,13 @@ export default function ForecastingPage() {
     }
     const history = (chartPayload.chart.history || []).map((h) => ({
       label: h.date,
-      actual: h.actual,
+      actual: h.actual != null ? Math.round(Number(h.actual)) : null,
       predicted: null
     }));
     const forecast = (chartPayload.chart.forecast || []).map((f) => ({
       label: f.date,
       actual: null,
-      predicted: f.predicted
+      predicted: f.predicted != null ? Math.round(Number(f.predicted)) : null
     }));
     return [...history, ...forecast];
   }, [chartPayload]);
@@ -137,29 +137,29 @@ export default function ForecastingPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Demand Forecasting</h1>
-          <p className="text-slate-400">Statistical demand predictions from stock movement history</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Demand Forecasting</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Statistical demand predictions from stock movement history</p>
         </div>
-        <Badge variant="outline" className="text-purple-650 border-purple-500/30">
-          <TrendingUp className="mr-1 h-3 w-3 text-purple-400" /> E08
+        <Badge variant="outline" className="text-purple-700 bg-purple-50 border-purple-200 dark:text-purple-300 dark:bg-purple-500/10 dark:border-purple-500/30">
+          <TrendingUp className="mr-1 h-3 w-3 text-purple-600 dark:text-purple-400" /> E08
         </Badge>
       </div>
 
-      <div className="flex border-b border-slate-800 gap-4">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`pb-2 text-sm font-semibold transition-colors ${activeTab === "overview"
-              ? "text-indigo-400 border-b-2 border-indigo-400"
-              : "text-slate-400 hover:text-slate-200"
+          className={`pb-2 text-sm font-semibold transition-colors cursor-pointer ${activeTab === "overview"
+              ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
         >
           Organization Summary
         </button>
         <button
           onClick={() => setActiveTab("product")}
-          className={`pb-2 text-sm font-semibold transition-colors ${activeTab === "product"
-              ? "text-indigo-400 border-b-2 border-indigo-400"
-              : "text-slate-400 hover:text-slate-200"
+          className={`pb-2 text-sm font-semibold transition-colors cursor-pointer ${activeTab === "product"
+              ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
         >
           Individual Product Forecast
@@ -169,55 +169,55 @@ export default function ForecastingPage() {
       {activeTab === "overview" ? (
         <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="glass-card bg-slate-900/50 border-slate-800">
+            <Card className="glass-card bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-400">Total Projected Demand</p>
-                    <h3 className="text-2xl font-bold text-slate-100 mt-1">
-                      {summaryData?.total_predicted_demand ? Math.round(summaryData.total_predicted_demand).toLocaleString() : "0"}
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Projected Demand</p>
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                      {summaryData?.total_predicted_demand ? Math.round(summaryData.total_predicted_demand).toLocaleString() : "0"} units
                     </h3>
                   </div>
-                  <div className="rounded-full bg-purple-500/10 p-3 text-purple-400">
+                  <div className="rounded-full bg-purple-50 dark:bg-purple-500/10 p-3 text-purple-600 dark:text-purple-400">
                     <Target className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-card bg-slate-900/50 border-slate-800">
+            <Card className="glass-card bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-400">Actual Sales (90 Days)</p>
-                    <h3 className="text-2xl font-bold text-slate-100 mt-1">
-                      {summaryData?.total_actual_sales_90_days?.toLocaleString() ?? "0"}
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Actual Sales (90 Days)</p>
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                      {summaryData?.total_actual_sales_90_days?.toLocaleString() ?? "0"} units
                     </h3>
                   </div>
-                  <div className="rounded-full bg-emerald-500/10 p-3 text-emerald-400">
+                  <div className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-400">
                     <ShoppingCart className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-card bg-slate-900/50 border-slate-800">
+            <Card className="glass-card bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-400">Active Forecast Models</p>
-                    <h3 className="text-base font-bold text-slate-100 mt-2">
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Forecast Models</p>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-2">
                       Exponential Smoothing
                     </h3>
                   </div>
-                  <div className="rounded-full bg-blue-500/10 p-3 text-blue-400">
+                  <div className="rounded-full bg-blue-50 dark:bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400">
                     <Activity className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-card bg-slate-900/50 border-slate-800">
+            <Card className="glass-card bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -235,114 +235,138 @@ export default function ForecastingPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-200">
-                  <LineChart className="h-5 w-5 text-indigo-400" />
+                <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold">
+                  <LineChart className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   Monthly Demand Forecast
                 </CardTitle>
-                <CardDescription>Predicted sales aggregated month-by-month</CardDescription>
+                <CardDescription className="text-slate-500 dark:text-slate-400">Predicted sales aggregated month-by-month</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 {summaryData?.monthly_forecast?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={summaryData.monthly_forecast}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
                       <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
                       <YAxis fontSize={11} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                        formatter={(value, name) => [
+                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                          name
+                        ]}
+                      />
                       <Legend />
                       <Line type="monotone" dataKey="predicted" stroke="#8B5CF6" strokeWidth={2.5} name="Predicted Demand" />
                       <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} strokeDasharray="3 3" name="Actual Sales" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="flex h-full items-center justify-center text-slate-450">
+                  <p className="flex h-full items-center justify-center text-slate-400 font-medium">
                     {summaryLoading ? "Loading..." : "No summary data found — try generating forecasts for products."}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-200">
-                  <BarChart2 className="h-5 w-5 text-indigo-400" />
+                <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold">
+                  <BarChart2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   Predicted vs Actual Sales
                 </CardTitle>
-                <CardDescription>Comparison of historical actual sales and forecasted volumes</CardDescription>
+                <CardDescription className="text-slate-500 dark:text-slate-400">Comparison of historical actual sales and forecasted volumes</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 {summaryData?.monthly_forecast?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={summaryData.monthly_forecast}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
                       <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
                       <YAxis fontSize={11} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                        formatter={(value, name) => [
+                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                          name
+                        ]}
+                      />
                       <Legend />
                       <Bar dataKey="actual" fill="#0D9488" radius={[4, 4, 0, 0]} name="Actual Sales" />
                       <Line type="monotone" dataKey="predicted" stroke="#EC4899" strokeWidth={2.5} name="Predicted Demand" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="flex h-full items-center justify-center text-slate-450">
+                  <p className="flex h-full items-center justify-center text-slate-400 font-medium">
                     {summaryLoading ? "Loading..." : "No summary data found."}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-200">
-                  <Calendar className="h-5 w-5 text-indigo-400" />
+                <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold">
+                  <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   Weekly Demand Trend
                 </CardTitle>
-                <CardDescription>Detailed weekly forecast vs actual tracking</CardDescription>
+                <CardDescription className="text-slate-500 dark:text-slate-400">Detailed weekly forecast vs actual tracking</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 {summaryData?.weekly_trend?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={summaryData.weekly_trend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
                       <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
                       <YAxis fontSize={11} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                        formatter={(value, name) => [
+                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                          name
+                        ]}
+                      />
                       <Legend />
                       <Line type="monotone" dataKey="predicted" stroke="#3B82F6" strokeWidth={2} name="Forecasted" />
                       <Line type="monotone" dataKey="actual" stroke="#10B981" strokeWidth={2} name="Actual" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="flex h-full items-center justify-center text-slate-450">
+                  <p className="flex h-full items-center justify-center text-slate-400 font-medium">
                     {summaryLoading ? "Loading..." : "No summary data found."}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-800 bg-slate-900/40 shadow-sm">
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-200">
-                  <TrendingUp className="h-5 w-5 text-indigo-400" />
+                <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold">
+                  <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   Top 10 Products with Highest Forecasted Demand
                 </CardTitle>
-                <CardDescription>Product safety and replenishment priorities by size</CardDescription>
+                <CardDescription className="text-slate-500 dark:text-slate-400">Product safety and replenishment priorities by size</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 {summaryData?.top_10?.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={summaryData.top_10} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
                       <XAxis type="number" fontSize={11} stroke="#94a3b8" />
                       <YAxis dataKey="product_name" type="category" width={110} fontSize={10} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                        formatter={(value, name) => [
+                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                          name
+                        ]}
+                      />
                       <Bar dataKey="predicted_demand" fill="#EC4899" radius={[0, 4, 4, 0]} name="Predicted Demand" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="flex h-full items-center justify-center text-slate-450">
+                  <p className="flex h-full items-center justify-center text-slate-400 font-medium">
                     {summaryLoading ? "Loading..." : "No products forecasted yet."}
                   </p>
                 )}
@@ -352,33 +376,33 @@ export default function ForecastingPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
+          <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
             
             <CardContent className="flex flex-wrap items-center gap-4 p-6 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
                   <Package className="h-5 w-5" />
                 </div>
                 
                 <Popover>
                   <PopoverTrigger asChild>
                     <div className="relative w-[300px] flex items-center group cursor-text">
-                      <Search className="absolute left-3 h-4 w-4 text-slate-400 group-hover:text-indigo-400 transition-colors pointer-events-none" />
+                      <Search className="absolute left-3 h-4 w-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors pointer-events-none" />
                       <Input
                         placeholder="Search for a product..."
-                        className="pl-9 pr-4 bg-slate-950/50 border-white/10 hover:border-indigo-500/50 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-slate-200 rounded-xl h-10 w-full cursor-text"
+                        className="pl-9 pr-4 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500/50 text-slate-900 dark:text-slate-200 rounded-xl h-10 w-full cursor-pointer font-semibold shadow-xs"
                         value={selectedProductId ? products.find(p => String(p.id) === selectedProductId)?.name || "" : ""}
                         readOnly
                       />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
+                  <PopoverContent className="w-[300px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
                     <Command className="bg-transparent">
-                      <CommandInput placeholder="Search products by name..." className="text-slate-200" />
+                      <CommandInput placeholder="Search products by name..." className="text-slate-900 dark:text-slate-200" />
                       <CommandList>
-                        <CommandEmpty className="text-slate-400 py-6 text-sm text-center">No product found.</CommandEmpty>
+                        <CommandEmpty className="text-slate-500 dark:text-slate-400 py-6 text-sm text-center">No product found.</CommandEmpty>
                         <CommandGroup>
                           {products.map((p) => (
                             <CommandItem
@@ -387,11 +411,11 @@ export default function ForecastingPage() {
                               onSelect={() => {
                                 setSelectedProductId(String(p.id));
                               }}
-                              className="text-slate-300 aria-selected:bg-indigo-500/20 aria-selected:text-indigo-300"
+                              className="text-slate-800 dark:text-slate-300 aria-selected:bg-indigo-50 dark:aria-selected:bg-indigo-500/20 aria-selected:text-indigo-700 dark:aria-selected:text-indigo-300 font-semibold cursor-pointer"
                             >
                               <Check
                                 className={cn(
-                                  "mr-2 h-4 w-4 text-indigo-400",
+                                  "mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400",
                                   selectedProductId === String(p.id) ? "opacity-100" : "opacity-0"
                                 )}
                               />
@@ -410,12 +434,12 @@ export default function ForecastingPage() {
                   variant="outline" 
                   onClick={() => loadForecast(selectedProductId)} 
                   disabled={loading}
-                  className="bg-slate-900/50 border-white/10 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl font-bold cursor-pointer"
                 >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+                  <RefreshCw className={`mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400 ${loading ? "animate-spin" : ""}`} /> Refresh
                 </Button>
                 <Button 
-                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/50 rounded-xl" 
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-md border border-indigo-500/50 rounded-xl font-bold cursor-pointer" 
                   onClick={handleGenerate} 
                   disabled={generating || !selectedProductId}
                 >
@@ -426,25 +450,31 @@ export default function ForecastingPage() {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 border-slate-800 bg-slate-900/40 shadow-sm">
+            <Card className="lg:col-span-2 border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-slate-200">Demand Forecast</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-slate-900 dark:text-slate-200 font-bold">Demand Forecast</CardTitle>
+                <CardDescription className="text-slate-500 dark:text-slate-400 font-medium">
                   {selectedProduct?.name || "—"} · Actual vs Predicted
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 {loading ? (
-                  <p className="flex h-full items-center justify-center text-slate-400">
+                  <p className="flex h-full items-center justify-center text-slate-400 font-medium animate-pulse">
                     Loading...
                   </p>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-slate-800" stroke="#1e293b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
                       <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
                       <YAxis fontSize={11} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px" }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                        formatter={(value, name) => [
+                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                          name
+                        ]}
+                      />
                       <Legend />
                       <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={{ r: 2 }} name="Actual" />
                       <Line
@@ -463,30 +493,30 @@ export default function ForecastingPage() {
             </Card>
 
             <div className="space-y-6">
-              <Card className="glass-card bg-slate-900/50 border-slate-800">
+              <Card className="bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-sm rounded-2xl">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Accuracy & Pattern</CardTitle>
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-200">Accuracy & Pattern</CardTitle>
                   <DemandPatternBadge patternInfo={metrics?.demand_pattern_info || metrics?.weather_context?.demand_pattern_info} />
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">MAE</span>
-                      <span className="font-mono font-bold text-slate-200">{metrics.mae ?? "—"}</span>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-slate-500 dark:text-slate-400">MAE</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{metrics.mae ?? "—"}</span>
                     </div>
-                    <Progress value={metrics.mae ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1 bg-slate-800" />
+                    <Progress value={metrics.mae ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">RMSE</span>
-                      <span className="font-mono font-bold text-slate-200">{metrics.rmse ?? "—"}</span>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-slate-500 dark:text-slate-400">RMSE</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{metrics.rmse ?? "—"}</span>
                     </div>
-                    <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1 bg-slate-800" />
+                    <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm mt-4 pt-2 border-t border-slate-800">
-                      <span className="text-slate-400 font-medium">Model</span>
-                      <span className="font-mono text-[11px] text-cyan-300 break-all">{metrics.model_name ?? "—"}</span>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm mt-4 pt-2 border-t border-slate-200 dark:border-slate-800 font-medium">
+                      <span className="text-slate-500 dark:text-slate-400 font-bold">Model</span>
+                      <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-300 break-all">{metrics.model_name ?? "—"}</span>
                     </div>
                   </div>
                 </CardContent>

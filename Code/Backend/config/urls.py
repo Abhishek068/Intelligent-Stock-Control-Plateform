@@ -18,15 +18,23 @@ def _seed_view(request):
 
 
 def _debug_perms(request):
-    from accounts.models import User, Role, RolePermission, UserPermissionOverride
-    staff_user = User.objects.filter(email="staff@stocksense.com").first()
-    deleted_overrides = 0
-    if staff_user:
-        deleted_overrides, _ = UserPermissionOverride.objects.filter(user=staff_user).delete()
-    user_perm_map = staff_user.permission_map() if staff_user else {}
+    from emails.models import EmailQueue, EmailLog, EmailProviderConfig
+    from emails.services import process_pending_emails, process_queue_item
+    from accounts.models import User
+    
+    # Check pending/failed emails
+    queue_items = list(EmailQueue.objects.order_by("-created_at")[:10].values("id", "recipient", "subject", "status", "attempts", "error_message", "created_at"))
+    logs = list(EmailLog.objects.order_by("-created_at")[:10].values("id", "recipient", "subject", "status", "provider_response", "created_at"))
+    configs = list(EmailProviderConfig.objects.all().values("id", "provider", "sender_email", "sender_name", "is_active", "environment"))
+    
+    # Try processing pending items
+    res = process_pending_emails(10)
+    
     return JsonResponse({
-        "deleted_overrides": deleted_overrides,
-        "staff_user_perm_map": user_perm_map,
+        "process_result": res,
+        "queue": queue_items,
+        "logs": logs,
+        "configs": configs,
     })
 
 from accounts.user_views import PermissionCatalogView, RoleViewSet, UserViewSet

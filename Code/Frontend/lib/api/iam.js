@@ -21,6 +21,9 @@ export const usersApi = {
   update(id, data) {
     return apiClient.patch(`/users/${id}/`, data);
   },
+  delete(id) {
+    return apiClient.delete(`/users/${id}/`);
+  },
   suspend(id) {
     return apiClient.post(`/users/${id}/suspend/`);
   },
@@ -35,6 +38,12 @@ export const usersApi = {
   },
   resendVerification(id) {
     return apiClient.post(`/users/${id}/resend_verification/`);
+  },
+  getVerificationLink(id) {
+    return apiClient.get(`/users/${id}/verification_link/`);
+  },
+  instantVerify(id) {
+    return apiClient.post(`/users/${id}/instant_verify/`);
   },
   setRoles(id, roleIds) {
     return apiClient.post(`/users/${id}/set_roles/`, { role_ids: roleIds });

@@ -223,50 +223,49 @@ function StockAdjustmentPageContent() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900/80 to-slate-950 p-6 rounded-2xl border border-white/10 shadow-xl relative overflow-hidden">
+    <div className="space-y-6 pb-12 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/90 dark:bg-gradient-to-r dark:from-slate-900 dark:via-slate-900/80 dark:to-slate-950 p-6 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
               Inventory Integrity Engine
             </span>
             <Badge
               variant="outline"
               className={
                 canAdjust
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold"
-                  : "border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300 text-xs font-bold"
+                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 text-xs font-bold"
               }
             >
               <ShieldAlert className="mr-1 h-3.5 w-3.5" />
               {canAdjust ? "Can adjust" : "Requires permission"}
             </Badge>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
             Stock Adjustment & Audit Control
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Real-time inventory reconciliation, AI anomaly verification, and
-            compliance logging.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+            Real-time inventory reconciliation, AI anomaly verification, and compliance logging.
           </p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-7 space-y-6">
-          <Card className="glass-card border-white/10 shadow-2xl relative overflow-hidden">
+          <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-2xl relative overflow-hidden rounded-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                <Package className="h-5 w-5 text-indigo-400" />
+            <CardHeader className="pb-4 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20">
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 Adjust Inventory
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-slate-500 dark:text-slate-400">
                 Enter corrected stock quantity at the selected warehouse location
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
@@ -278,14 +277,14 @@ function StockAdjustmentPageContent() {
                       name="productId"
                       render={({ field }) => (
                         <FormItem className="flex flex-col md:col-span-2">
-                          <FormLabel className="text-slate-200 font-semibold">
-                            Product <span className="text-rose-400">*</span>
+                          <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
+                            Product <span className="text-rose-500">*</span>
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="justify-between bg-slate-900/80 border-white/10 hover:border-indigo-500/50 text-slate-200 h-11"
+                                className="justify-between bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 hover:border-indigo-500/50 text-slate-800 dark:text-slate-200 h-11 rounded-xl cursor-pointer"
                               >
                                 {field.value
                                   ? products.find(
@@ -294,10 +293,10 @@ function StockAdjustmentPageContent() {
                                   : "Select product..."}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[380px] p-0">
-                              <Command>
-                                <CommandInput placeholder="Search products by SKU or name..." />
-                                <CommandEmpty>No product found.</CommandEmpty>
+                            <PopoverContent className="w-[380px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
+                              <Command className="bg-transparent text-slate-800 dark:text-slate-200">
+                                <CommandInput placeholder="Search products by SKU or name..." className="border-b border-slate-200 dark:border-white/10" />
+                                <CommandEmpty className="py-6 text-center text-sm text-slate-500">No product found.</CommandEmpty>
                                 <CommandGroup className="max-h-64 overflow-y-auto">
                                   {products.map((p) => (
                                     <CommandItem
@@ -306,6 +305,7 @@ function StockAdjustmentPageContent() {
                                       onSelect={() =>
                                         field.onChange(String(p.id))
                                       }
+                                      className="cursor-pointer text-slate-800 dark:text-slate-300 py-3"
                                     >
                                       {p.name}
                                     </CommandItem>
@@ -314,7 +314,7 @@ function StockAdjustmentPageContent() {
                               </Command>
                             </PopoverContent>
                           </Popover>
-                          <FormMessage />
+                          <FormMessage className="text-rose-500 text-xs" />
                         </FormItem>
                       )}
                     />
@@ -324,27 +324,27 @@ function StockAdjustmentPageContent() {
                       name="locationId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-200 font-semibold">
-                            Location <span className="text-rose-400">*</span>
+                          <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
+                            Location <span className="text-rose-500">*</span>
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="bg-slate-900/80 border-white/10 h-11">
+                              <SelectTrigger className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 h-11 rounded-xl">
                                 <SelectValue placeholder="Select location" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
                               {locations.map((l) => (
-                                <SelectItem key={l.id} value={String(l.id)}>
+                                <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">
                                   {l.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
+                          <FormMessage className="text-rose-500 text-xs" />
                         </FormItem>
                       )}
                     />
@@ -354,14 +354,14 @@ function StockAdjustmentPageContent() {
                       name="currentStock"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-200 font-semibold">
+                          <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
                             Current Stock (read-only)
                           </FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               disabled
-                              className="bg-slate-950/70 border-white/10 text-slate-300 font-bold h-11 cursor-not-allowed"
+                              className="bg-slate-100 dark:bg-slate-950/70 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold h-11 cursor-not-allowed rounded-xl"
                             />
                           </FormControl>
                         </FormItem>
@@ -373,14 +373,14 @@ function StockAdjustmentPageContent() {
                       name="adjustedStock"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-200 font-semibold">
-                            Corrected Stock <span className="text-rose-400">*</span>
+                          <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
+                            Corrected Stock <span className="text-rose-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               min="0"
-                              className="bg-slate-900/90 border-indigo-500/40 text-white font-extrabold text-lg h-11 focus:border-indigo-400"
+                              className="bg-white dark:bg-slate-900/90 border-slate-200 dark:border-indigo-500/40 text-slate-900 dark:text-white font-extrabold text-lg h-11 focus:border-indigo-500 rounded-xl"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(parseInt(e.target.value) || 0)
@@ -388,11 +388,11 @@ function StockAdjustmentPageContent() {
                             />
                           </FormControl>
                           {locationId && (
-                            <p className="text-xs text-indigo-400 font-medium">
+                            <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
                               At location: {locationStock} units currently
                             </p>
                           )}
-                          <FormMessage />
+                          <FormMessage className="text-rose-500 text-xs" />
                         </FormItem>
                       )}
                     />
@@ -402,27 +402,27 @@ function StockAdjustmentPageContent() {
                       name="reason"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel className="text-slate-200 font-semibold">
-                            Reason <span className="text-rose-400">*</span>
+                          <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
+                            Reason <span className="text-rose-500">*</span>
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="bg-slate-900/80 border-white/10 h-11">
+                              <SelectTrigger className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 h-11 rounded-xl">
                                 <SelectValue placeholder="Select reason for adjustment" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
                               {adjustmentReasons.map((r) => (
-                                <SelectItem key={r} value={r}>
+                                <SelectItem key={r} value={r} className="cursor-pointer">
                                   {r}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
+                          <FormMessage className="text-rose-500 text-xs" />
                         </FormItem>
                       )}
                     />
@@ -433,71 +433,70 @@ function StockAdjustmentPageContent() {
                     name="evidence"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-200 font-semibold">
-                          Evidence Notes <span className="text-rose-400">*</span>
+                        <FormLabel className="text-slate-700 dark:text-slate-200 font-semibold">
+                          Evidence Notes <span className="text-rose-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Detailed explanation, audit reference number, or physical recount verification details..."
                             rows={3}
-                            className="bg-slate-900/80 border-white/10 focus:border-indigo-500 text-slate-200 resize-none"
+                            className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 focus:border-indigo-500 text-slate-900 dark:text-slate-200 resize-none rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500"
                             {...field}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-rose-500 text-xs" />
                       </FormItem>
                     )}
                   />
 
                   {!canAdjust && (
-                    <Alert className="border-amber-500/30 bg-amber-500/10">
-                      <Info className="h-4 w-4 text-amber-400" />
-                      <AlertTitle className="text-amber-300 font-bold">
+                    <Alert className="border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
+                      <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertTitle className="text-amber-900 dark:text-amber-300 font-bold">
                         Permission Required
                       </AlertTitle>
-                      <AlertDescription className="text-slate-300 text-xs">
-                        You need `adjustments:create` permission to submit
-                        adjustments.
+                      <AlertDescription className="text-amber-800 dark:text-slate-300 text-xs">
+                        You need `adjustments:create` permission to submit adjustments.
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {selectedProduct && adjustedStock !== currentStock && (
-                    <div className="rounded-xl border border-white/10 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950 p-5 shadow-lg">
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <div className="rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-gradient-to-r dark:from-slate-900/90 dark:via-slate-900/60 dark:to-slate-950 p-5 shadow-sm">
+                      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Before / After Reconciliation
                       </p>
                       <div className="flex items-center justify-around">
                         <div className="text-center">
-                          <p className="text-xs text-slate-400 mb-1">Current</p>
-                          <p className="text-3xl font-extrabold text-slate-300">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">Current</p>
+                          <p className="text-3xl font-extrabold text-slate-800 dark:text-slate-300">
                             {currentStock}
                           </p>
                         </div>
-                        <ArrowRight className="h-6 w-6 text-indigo-400" />
+                        <ArrowRight className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                         <div className="text-center">
-                          <p className="text-xs text-slate-400 mb-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">
                             Adjusted
                           </p>
                           <p
                             className={`text-3xl font-extrabold ${
                               adjustedStock > currentStock
-                                ? "text-emerald-400"
-                                : "text-rose-400"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-rose-600 dark:text-rose-400"
                             }`}
                           >
                             {adjustedStock}
                           </p>
                         </div>
-                        <div className="border-l border-white/10 pl-6 text-center">
-                          <p className="text-xs text-slate-400 mb-1">
+                        <div className="border-l border-slate-200 dark:border-white/10 pl-6 text-center">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">
                             Net Variance
                           </p>
                           <Badge
                             className={`text-sm font-extrabold px-3 py-1 ${
                               netChange >= 0
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
+                                : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30"
                             }`}
                           >
                             {netChange >= 0 ? `+${netChange}` : netChange}
@@ -512,14 +511,14 @@ function StockAdjustmentPageContent() {
                       type="button"
                       variant="outline"
                       onClick={() => form.reset()}
-                      className="border-white/10 hover:bg-slate-800 text-slate-300"
+                      className="border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl cursor-pointer"
                     >
                       <RefreshCw className="mr-2 h-4 w-4" /> Reset
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSubmitting || !canAdjust}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-600/25 px-6"
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-md px-6 rounded-xl cursor-pointer"
                     >
                       {isSubmitting ? "Processing..." : "Confirm Adjustment"}
                     </Button>
@@ -531,68 +530,68 @@ function StockAdjustmentPageContent() {
         </div>
 
         <div className="lg:col-span-5 space-y-6">
-          <Card className="glass-card border-white/10 shadow-2xl relative overflow-hidden">
+          <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl relative overflow-hidden rounded-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500"></div>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 border-b border-slate-200/80 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
+                <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   AI Anomaly & Risk Analysis
                 </CardTitle>
-                <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs">
+                <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 text-xs font-semibold">
                   Live Engine
                 </Badge>
               </div>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
                 Automated statistical anomaly detection on stock variance
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div
                 className={`p-4 rounded-xl border flex items-start gap-3 ${anomalyLevel.color}`}
               >
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold">{anomalyLevel.label}</p>
-                  <p className="text-xs opacity-90 mt-0.5">
+                  <p className="text-xs opacity-90 mt-0.5 font-medium">
                     {anomalyLevel.desc}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-300">Anomaly Risk Index</span>
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Anomaly Risk Index</span>
                   <span
                     className={
                       anomalyScore > 70
-                        ? "text-rose-400"
+                        ? "text-rose-600 dark:text-rose-400"
                         : anomalyScore > 40
-                        ? "text-amber-400"
-                        : "text-emerald-400"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
                     }
                   >
                     {Math.round(anomalyScore)}%
                   </span>
                 </div>
-                <Progress value={anomalyScore} className="h-2" />
+                <Progress value={anomalyScore} className="h-2 bg-slate-100 dark:bg-slate-800" />
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
-                  <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
                     Verification
                   </p>
-                  <p className="text-sm font-bold text-slate-200 mt-0.5 flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-200 mt-0.5 flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     Auto-Checked
                   </p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
-                  <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
                     Role Authority
                   </p>
-                  <p className="text-sm font-bold text-slate-200 mt-0.5 capitalize">
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-200 mt-0.5 capitalize">
                     {role || "Staff"}
                   </p>
                 </div>
@@ -600,36 +599,36 @@ function StockAdjustmentPageContent() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-white/10 shadow-2xl relative overflow-hidden">
+          <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl relative overflow-hidden rounded-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-400" />
+            <CardHeader className="pb-3 border-b border-slate-200/80 dark:border-white/5">
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 Financial Valuation Impact
               </CardTitle>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
                 Real-time inventory monetary valuation variance
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               {selectedProduct ? (
                 <>
-                  <div className="p-4 rounded-xl bg-slate-900/80 border border-white/10 flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         Product Unit Price
                       </p>
-                      <p className="text-lg font-bold text-slate-200">
+                      <p className="text-lg font-bold text-slate-900 dark:text-slate-200">
                         £{unitPrice.toFixed(2)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-400">Total Net Impact</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Net Impact</p>
                       <p
                         className={`text-xl font-extrabold ${
                           financialImpact >= 0
-                            ? "text-emerald-400"
-                            : "text-rose-400"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
                         }`}
                       >
                         {financialImpact >= 0 ? "+" : ""}£
@@ -642,16 +641,16 @@ function StockAdjustmentPageContent() {
                   </div>
 
                   {selectedProductDetail?.sku && (
-                    <div className="flex items-center justify-between text-xs px-2 text-slate-400">
+                    <div className="flex items-center justify-between text-xs px-2 text-slate-500 dark:text-slate-400">
                       <span>
                         SKU:{" "}
-                        <strong className="text-slate-200 font-mono">
+                        <strong className="text-slate-900 dark:text-slate-200 font-mono">
                           {selectedProductDetail.sku}
                         </strong>
                       </span>
                       <span>
                         Category:{" "}
-                        <strong className="text-slate-200">
+                        <strong className="text-slate-900 dark:text-slate-200">
                           {selectedProductDetail.category || "General"}
                         </strong>
                       </span>
@@ -659,40 +658,39 @@ function StockAdjustmentPageContent() {
                   )}
                 </>
               ) : (
-                <div className="p-6 rounded-xl bg-slate-900/40 border border-dashed border-white/10 text-center">
-                  <Package className="h-8 w-8 text-slate-600 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-slate-300">
+                <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/10 text-center">
+                  <Package className="h-8 w-8 text-slate-400 mb-2 mx-auto" />
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                     No Product Selected
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    Select a product from the form to compute instant monetary
-                    variance impact.
+                    Select a product from the form to compute instant monetary variance impact.
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-white/10 shadow-2xl relative overflow-hidden">
-            <CardHeader className="pb-3">
+          <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl relative overflow-hidden rounded-2xl">
+            <CardHeader className="pb-3 border-b border-slate-200/80 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <History className="h-4 w-4 text-purple-400" />
+                <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <History className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   Session Audit Log
                 </CardTitle>
-                <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px]">
+                <Badge className="bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 text-[10px] font-bold">
                   {sessionHistory.length} Logged
                 </Badge>
               </div>
-              <CardDescription className="text-slate-400 text-xs">
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
                 Live trail of adjustments completed in this session
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {sessionHistory.length === 0 ? (
-                <div className="p-6 rounded-xl bg-slate-900/30 border border-dashed border-white/10 text-center">
-                  <FileText className="h-7 w-7 text-slate-600 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400 font-medium">
+                <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-dashed border-slate-200 dark:border-white/10 text-center">
+                  <FileText className="h-7 w-7 text-slate-400 mb-2 mx-auto" />
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
                     No adjustments recorded yet
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -704,13 +702,13 @@ function StockAdjustmentPageContent() {
                   {sessionHistory.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3 rounded-xl bg-slate-900/80 border border-white/10 flex items-center justify-between"
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-between"
                     >
                       <div className="truncate pr-2">
-                        <p className="text-xs font-bold text-slate-200 truncate">
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                           {item.productName}
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
                           {item.sku} • {item.reason.split(" - ")[0]}
                         </p>
                       </div>
@@ -718,8 +716,8 @@ function StockAdjustmentPageContent() {
                         <Badge
                           className={`text-xs font-bold ${
                             item.change >= 0
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
+                              : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30"
                           }`}
                         >
                           {item.change >= 0 ? `+${item.change}` : item.change}

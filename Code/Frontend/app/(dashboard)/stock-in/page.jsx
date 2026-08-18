@@ -107,49 +107,49 @@ function StockInPageContent() {
         
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+            <div className="p-2.5 bg-teal-50 dark:bg-teal-500/20 rounded-xl border border-teal-200 dark:border-teal-500/30 text-teal-600 dark:text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.15)]">
               <PackagePlus className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Stock In
             </h1>
           </div>
-          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+          <p className="text-slate-500 dark:text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
             Receive new goods into inventory via quick-scan or manual entry.
           </p>
         </div>
 
-        <Badge className="bg-teal-500/10 text-teal-400 border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.2)] px-4 py-1.5 text-sm">
+        <Badge className="bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20 px-4 py-1.5 text-sm font-semibold">
           <ArrowDownToLine className="mr-2 h-4 w-4 animate-bounce" /> Receiving Mode Active
         </Badge>
       </div>
 
       {/* Barcode Quick-Scan Card */}
-      <Card className="bg-slate-900/40 backdrop-blur-xl border border-teal-500/20 shadow-[0_0_20px_rgba(20,184,166,0.05)] overflow-hidden rounded-2xl relative">
+      <Card className="bg-white/90 dark:bg-slate-900/40 backdrop-blur-xl border border-teal-200 dark:border-teal-500/20 shadow-sm overflow-hidden rounded-2xl relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-[50px] pointer-events-none" />
         <CardContent className="flex flex-col items-center gap-4 p-6 sm:flex-row sm:justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-teal-500/20 p-3 text-teal-400 border border-teal-500/30 shadow-inner">
+            <div className="rounded-xl bg-teal-50 dark:bg-teal-500/20 p-3 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-500/30 shadow-xs">
               <Barcode className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-200 tracking-tight">Barcode Quick-Scan</p>
-              <p className="text-xs text-slate-400 mt-0.5">Scan a barcode to instantly select the product</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-200 tracking-tight">Barcode Quick-Scan</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Scan a barcode to instantly select the product</p>
             </div>
           </div>
           <div className="flex w-full max-w-md items-center gap-3">
             <div className="relative w-full group">
-              <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 group-focus-within:text-teal-400 transition-colors" />
+              <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 dark:group-focus-within:text-teal-400 transition-colors" />
               <Input 
                 placeholder="Enter SKU or scan barcode..." 
                 value={barcodeInput} 
                 onChange={(e) => setBarcodeInput(e.target.value)} 
                 onKeyDown={(e) => e.key === "Enter" && handleBarcodeScan(barcodeInput.trim())} 
-                className="pl-9 bg-slate-950/80 border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all rounded-xl h-11"
+                className="pl-9 bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-11"
               />
             </div>
             <Button 
-              className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-semibold rounded-xl h-11 px-6 shadow-lg shadow-teal-500/20"
+              className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-semibold rounded-xl h-11 px-6 shadow-md cursor-pointer"
               onClick={() => handleBarcodeScan(barcodeInput.trim())}
             >
               Scan
@@ -159,16 +159,16 @@ function StockInPageContent() {
       </Card>
 
       {/* Main Receiving Form */}
-      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
         <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
-          <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
-            <Box className="h-5 w-5 text-indigo-400" /> 
+        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10">
+          <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
+            <Box className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> 
             Receive Stock
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Transaction is persisted via API with audit logging
           </p>
         </div>
@@ -179,17 +179,17 @@ function StockInPageContent() {
               <div className="grid gap-6 md:grid-cols-2">
                 <FormField control={form.control} name="productId" render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="text-sm font-semibold text-slate-300">Product <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-between bg-slate-950/50 border-white/10 hover:bg-white/5 text-slate-200 rounded-xl h-11 font-medium">
+                        <Button variant="outline" className="justify-between bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium cursor-pointer">
                           {field.value ? products.find((p) => String(p.id) === field.value)?.name : "Select product..."}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
-                        <Command className="bg-transparent text-slate-200">
-                          <CommandInput placeholder="Search products..." className="border-b border-white/10 h-11" />
-                          <CommandEmpty className="py-6 text-center text-sm text-slate-400">No product found.</CommandEmpty>
+                      <PopoverContent className="w-[400px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
+                        <Command className="bg-transparent text-slate-800 dark:text-slate-200">
+                          <CommandInput placeholder="Search products..." className="border-b border-slate-200 dark:border-white/10 h-11" />
+                          <CommandEmpty className="py-6 text-center text-sm text-slate-500">No product found.</CommandEmpty>
                           <CommandGroup className="max-h-[300px] overflow-auto">
                             {products.map((p) => (
                               <CommandItem 
@@ -199,7 +199,7 @@ function StockInPageContent() {
                                   field.onChange(String(p.id));
                                   form.setValue("supplierId", String(p.supplier));
                                 }}
-                                className="aria-selected:bg-indigo-500/20 aria-selected:text-indigo-200 cursor-pointer text-slate-300 py-3"
+                                className="cursor-pointer text-slate-800 dark:text-slate-300 py-3"
                               >
                                 {p.name}
                               </CommandItem>
@@ -208,158 +208,158 @@ function StockInPageContent() {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="supplierId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Supplier <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Supplier <span className="text-rose-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-indigo-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                        <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                           <SelectValue placeholder="Select supplier" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                        {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)} className="focus:bg-indigo-500/20 focus:text-indigo-200 cursor-pointer">{s.name}</SelectItem>)}
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                        {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)} className="cursor-pointer">{s.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="locationId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Location <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Location <span className="text-rose-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-indigo-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                        <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                        {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-indigo-500/20 focus:text-indigo-200 cursor-pointer">{l.name}</SelectItem>)}
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                        {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">{l.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="quantity" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Quantity <span className="text-rose-400">*</span></FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Quantity <span className="text-rose-500">*</span></FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         min="1" 
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-bold rounded-xl h-11"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl h-11"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="unitCost" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Unit Cost (£)</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Unit Cost (£)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         step="0.01" 
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-medium rounded-xl h-11"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="batchNumber" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Batch / Lot Number</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Batch / Lot Number</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Leave blank to auto-generate" 
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-500"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="expiryDate" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Expiry Date</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Expiry Date</FormLabel>
                     <FormControl>
                       <Input 
                         type="date" 
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-medium rounded-xl h-11 [color-scheme:dark]"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="reference" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-300">Reference</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reference</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="e.g., PO-12345"
                         {...field} 
-                        className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-500"
+                        className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-400 text-xs" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )} />
               </div>
 
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-semibold text-slate-300">Notes</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</FormLabel>
                   <FormControl>
                     <Textarea 
                       rows={3} 
                       {...field} 
-                      className="bg-slate-950/80 border-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 font-medium rounded-xl resize-none placeholder:text-slate-500"
+                      className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       placeholder="Add any additional notes about this stock receipt..."
                     />
                   </FormControl>
-                  <FormMessage className="text-rose-400 text-xs" />
+                  <FormMessage className="text-rose-500 text-xs" />
                 </FormItem>
               )} />
 
               {selectedProduct && quantity > 0 && (
-                <div className="flex items-start gap-4 rounded-xl border border-teal-500/30 bg-teal-500/10 p-5 shadow-[0_0_20px_rgba(20,184,166,0.1)] relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-teal-500/5 group-hover:bg-teal-500/10 transition-colors" />
-                  <CheckCircle className="h-6 w-6 shrink-0 text-teal-400 relative z-10" />
+                <div className="flex items-start gap-4 rounded-xl border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 p-5 shadow-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-teal-500/5 group-hover:bg-teal-500/10 transition-colors pointer-events-none" />
+                  <CheckCircle className="h-6 w-6 shrink-0 text-teal-600 dark:text-teal-400 relative z-10" />
                   <div className="relative z-10">
-                    <h5 className="font-bold text-teal-100 text-base">Receipt Summary</h5>
-                    <p className="text-sm text-teal-200 mt-1">
-                      Ready to receive <strong className="text-white font-extrabold text-base mx-1 bg-teal-500/20 px-1.5 py-0.5 rounded">{quantity}</strong> units of <strong className="text-white font-bold">{selectedProduct.name}</strong> as <span className="italic">{user?.role}</span>.
+                    <h5 className="font-bold text-teal-900 dark:text-teal-100 text-base">Receipt Summary</h5>
+                    <p className="text-sm text-teal-800 dark:text-teal-200 mt-1">
+                      Ready to receive <strong className="text-teal-950 dark:text-white font-extrabold text-base mx-1 bg-teal-100 dark:bg-teal-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-teal-950 dark:text-white font-bold">{selectedProduct.name}</strong> as <span className="italic">{user?.role}</span>.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-white/5">
+              <div className="flex justify-end gap-4 pt-4 border-t border-slate-200/80 dark:border-white/5">
                 <Button 
                   type="button" 
                   variant="ghost" 
                   onClick={() => form.reset()}
-                  className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl h-11 px-6"
+                  className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl h-11 px-6 cursor-pointer"
                 >
                   Reset Form
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold shadow-lg shadow-indigo-500/20 rounded-xl h-11 px-8 border border-indigo-500/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold shadow-md rounded-xl h-11 px-8 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">

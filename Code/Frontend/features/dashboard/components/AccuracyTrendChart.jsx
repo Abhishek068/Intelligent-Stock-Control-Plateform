@@ -70,19 +70,19 @@ export function AccuracyTrendChart({ productId = "all", initialData = null, clas
   const isImproving = payload.improvement_pct > 0;
 
   return (
-    <Card className={`glass-card bg-slate-900/90 border-slate-800 text-slate-100 shadow-xl overflow-hidden ${className}`}>
-      <CardHeader className="pb-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <Card className={`glass-card border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 shadow-xl overflow-hidden ${className}`}>
+      <CardHeader className="pb-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <Award className="h-5 w-5 text-purple-400" />
-            <CardTitle className="text-base font-bold text-slate-100">
+            <Award className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
               AI Forecast Accuracy Tracking Over Time
             </CardTitle>
-            <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-300 bg-purple-500/10">
+            <Badge variant="outline" className="text-xs border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-500/30 dark:text-purple-300 dark:bg-purple-500/10">
               MSc Telemetry Metric
             </Badge>
           </div>
-          <CardDescription className="text-slate-400 text-xs mt-1">
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs mt-1">
             Empirical historical error trends (MAE & RMSE) across AI model iterations
           </CardDescription>
         </div>
@@ -91,8 +91,8 @@ export function AccuracyTrendChart({ productId = "all", initialData = null, clas
           <Badge
             className={`text-xs px-3 py-1 font-semibold flex items-center gap-1.5 border ${
               isImproving
-                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                : "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300"
+                : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300"
             }`}
           >
             {isImproving ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
@@ -102,10 +102,10 @@ export function AccuracyTrendChart({ productId = "all", initialData = null, clas
           <button
             onClick={() => fetchAccuracy(true)}
             disabled={refreshing}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Refresh Accuracy Telemetry"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin text-purple-400" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin text-purple-600 dark:text-purple-400" : ""}`} />
           </button>
         </div>
       </CardHeader>
@@ -113,44 +113,44 @@ export function AccuracyTrendChart({ productId = "all", initialData = null, clas
       <CardContent className="p-5 space-y-6">
         {/* KPI Mini Summary Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-              <Target className="h-3 w-3 text-cyan-400" /> Current MAE
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Target className="h-3 w-3 text-cyan-600 dark:text-cyan-400" /> Current MAE
             </span>
-            <div className="text-xl font-bold font-mono text-cyan-400 mt-1">
+            <div className="text-xl font-bold font-mono text-cyan-600 dark:text-cyan-400 mt-1">
               {payload.current_mae}
             </div>
-            <span className="text-[10px] text-slate-500">Lower is better</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Lower is better</span>
           </div>
 
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-              <Activity className="h-3 w-3 text-purple-400" /> Current RMSE
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Activity className="h-3 w-3 text-purple-600 dark:text-purple-400" /> Current RMSE
             </span>
-            <div className="text-xl font-bold font-mono text-purple-400 mt-1">
+            <div className="text-xl font-bold font-mono text-purple-600 dark:text-purple-400 mt-1">
               {payload.current_rmse}
             </div>
-            <span className="text-[10px] text-slate-500">Root Mean Sq Error</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Root Mean Sq Error</span>
           </div>
 
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
               Historical Avg MAE
             </span>
-            <div className="text-xl font-bold font-mono text-slate-300 mt-1">
+            <div className="text-xl font-bold font-mono text-slate-800 dark:text-slate-300 mt-1">
               {payload.average_mae}
             </div>
-            <span className="text-[10px] text-slate-500">All-time benchmark</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">All-time benchmark</span>
           </div>
 
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
               Error Reduction Rate
             </span>
-            <div className={`text-xl font-bold font-mono mt-1 ${isImproving ? "text-emerald-400" : "text-amber-400"}`}>
+            <div className={`text-xl font-bold font-mono mt-1 ${isImproving ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
               {payload.improvement_pct > 0 ? `-${payload.improvement_pct}%` : `${payload.improvement_pct}%`}
             </div>
-            <span className="text-[10px] text-slate-500">Model Learning Curve</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Model Learning Curve</span>
           </div>
         </div>
 

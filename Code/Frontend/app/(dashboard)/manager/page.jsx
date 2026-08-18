@@ -37,13 +37,13 @@ function buildForecastChart(chart) {
   if (!chart) return [];
   const history = (chart.history || []).map((h) => ({
     name: h.date?.slice(5) || h.date,
-    actual: h.actual,
+    actual: h.actual != null ? Math.round(Number(h.actual)) : null,
     predicted: null,
   }));
   const forecast = (chart.forecast || []).map((f) => ({
     name: f.date?.slice(5) || f.date,
     actual: null,
-    predicted: f.predicted,
+    predicted: f.predicted != null ? Math.round(Number(f.predicted)) : null,
   }));
   return [...history, ...forecast];
 }
@@ -170,17 +170,17 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-8 pb-10">
       {/* Top Banner / Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Manager Executive Dashboard
             </h1>
-            <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 text-xs font-semibold">
+            <Badge className="bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/30 text-xs font-semibold">
               <TrendingUp className="mr-1 h-3 w-3" /> Live Analytics
             </Badge>
           </div>
-          <p className="text-slate-400 mt-1 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
             AI-powered inventory forecasting, replenishment intelligence, and stock movement telemetry
           </p>
         </div>
@@ -190,9 +190,9 @@ export default function ManagerDashboard() {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="bg-slate-900/80 border-white/10 hover:bg-slate-800 text-slate-200 cursor-pointer shadow-lg rounded-xl px-4"
+            className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm rounded-xl px-4"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-500" : ""}`} />
             Refresh Data
           </Button>
         </div>
@@ -300,12 +300,12 @@ export default function ManagerDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-lg font-bold text-slate-100">Demand Forecasting</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Demand Forecasting</h2>
             <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger className="w-[280px] bg-slate-900/50 border-white/10 text-slate-200">
+              <SelectTrigger className="w-[280px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Select a product" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 {productsList.map((p) => (
                   <SelectItem key={p.id} value={p.id.toString()}>
                     {p.name}
@@ -352,18 +352,18 @@ export default function ManagerDashboard() {
       </div>
 
       {/* Row 4: Operational Health Bar */}
-      <Card className="glass-card rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
+      <Card className="glass-card rounded-2xl border border-slate-200/80 dark:border-white/10 p-6 shadow-xl">
         <CardHeader className="p-0 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-emerald-400" /> Operational Health Index
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Operational Health Index
               </CardTitle>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Composite score based on stockouts, low stock alerts, and replenishment SLA compliance
               </p>
             </div>
-            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-sm font-extrabold px-3 py-1">
+            <Badge className="bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-sm font-extrabold px-3 py-1">
               {Math.round(healthScore)}% HEALTHY
             </Badge>
           </div>
@@ -372,7 +372,7 @@ export default function ManagerDashboard() {
           <div className="flex items-center gap-4">
             <Progress
               value={healthScore}
-              className="h-3 flex-1 rounded-full bg-slate-800/80 overflow-hidden"
+              className="h-3 flex-1 rounded-full bg-slate-200 dark:bg-slate-800/80 overflow-hidden"
               indicatorClassName="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400"
             />
           </div>

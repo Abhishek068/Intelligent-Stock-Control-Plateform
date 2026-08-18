@@ -159,44 +159,47 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100">Roles & Permissions</h1>
-          <p className="text-slate-400 mt-1">Create, clone, assign members, and edit the permission matrix</p>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
+            Roles & Permissions
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Create, clone, assign members, and edit the permission matrix</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl px-5 shadow-md cursor-pointer">
           <Plus className="mr-2 h-4 w-4" /> Create Role
         </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="glass-card lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-slate-100">Roles</CardTitle>
+        <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl rounded-2xl lg:col-span-1">
+          <CardHeader className="border-b border-slate-200/80 dark:border-white/5 pb-4">
+            <CardTitle className="text-slate-900 dark:text-slate-100 font-bold">Roles</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 pt-4">
             {roles.map((r) => (
               <div
                 key={r.id}
-                className={`flex items-center justify-between rounded-lg border px-3 py-2 cursor-pointer ${
-                  selected?.id === r.id ? "border-indigo-500 bg-indigo-500/10" : "border-white/5"
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
+                  selected?.id === r.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10" : "border-slate-200/80 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-slate-800/40"
                 }`}
                 onClick={() => selectRole(r)}
               >
                 <div>
-                  <p className="text-sm text-slate-100">
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {r.name}
                     {r.is_system ? (
-                      <span className="ml-2 text-[10px] uppercase text-slate-500">system</span>
+                      <span className="ml-2 text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded">system</span>
                     ) : null}
                   </p>
-                  <p className="text-xs text-slate-500">{r.member_count} members</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{r.member_count} members</p>
                 </div>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="cursor-pointer text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       cloneRole(r);
@@ -208,12 +211,13 @@ export default function RolesPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="cursor-pointer text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteRole(r);
                       }}
                     >
-                      <Trash2 className="h-4 w-4 text-rose-400" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -222,15 +226,16 @@ export default function RolesPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-slate-100">
+        <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl rounded-2xl lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-200/80 dark:border-white/5 pb-4">
+            <CardTitle className="text-slate-900 dark:text-slate-100 font-bold">
               {selected ? selected.name : "Select a role"}
             </CardTitle>
             {selected && (
               <Button
                 size="sm"
                 variant="outline"
+                className="border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-xl cursor-pointer"
                 onClick={() => {
                   setEditForm({ name: selected.name, description: selected.description || "" });
                   setEditOpen(true);
@@ -240,31 +245,31 @@ export default function RolesPage() {
               </Button>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {!selected ? (
-              <p className="text-slate-500 text-sm">Choose a role to manage permissions and members.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm py-8 text-center">Choose a role to manage permissions and members.</p>
             ) : (
               <Tabs defaultValue="matrix">
-                <TabsList>
-                  <TabsTrigger value="matrix">Permission matrix</TabsTrigger>
-                  <TabsTrigger value="members">
-                    <Users className="mr-1 h-3 w-3" /> Members
+                <TabsList className="bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-xl">
+                  <TabsTrigger value="matrix" className="rounded-lg font-bold">Permission matrix</TabsTrigger>
+                  <TabsTrigger value="members" className="rounded-lg font-bold">
+                    <Users className="mr-1 h-3.5 w-3.5" /> Members
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="matrix" className="mt-4 space-y-3">
+                <TabsContent value="matrix" className="mt-4 space-y-4">
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={saveMatrix}>
+                    <Button size="sm" onClick={saveMatrix} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl cursor-pointer">
                       <Save className="mr-2 h-4 w-4" /> Save matrix
                     </Button>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-white/5 rounded-xl">
                     <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-slate-500">
-                          <th className="text-left py-2 pr-2">Module</th>
+                      <thead className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
+                        <tr className="text-slate-700 dark:text-slate-300 font-bold">
+                          <th className="text-left py-3 px-4">Module</th>
                           {catalog.actions.map((a) => (
-                            <th key={a.code} className="px-1 py-2 capitalize">
+                            <th key={a.code} className="px-2 py-3 capitalize text-center">
                               {a.label}
                             </th>
                           ))}
@@ -272,10 +277,10 @@ export default function RolesPage() {
                       </thead>
                       <tbody>
                         {catalog.modules.map((m) => (
-                          <tr key={m.code} className="border-t border-white/5">
-                            <td className="py-2 pr-2 text-slate-200">{m.label}</td>
+                          <tr key={m.code} className="border-t border-slate-200/60 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                            <td className="py-2.5 px-4 text-slate-900 dark:text-slate-200 font-semibold">{m.label}</td>
                             {catalog.actions.map((a) => (
-                              <td key={a.code} className="px-1 text-center">
+                              <td key={a.code} className="px-2 text-center">
                                 <Checkbox
                                   checked={!!matrix[`${m.code}:${a.code}`]}
                                   onCheckedChange={() => toggle(m.code, a.code)}
@@ -289,9 +294,9 @@ export default function RolesPage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="members" className="mt-4 space-y-3">
+                <TabsContent value="members" className="mt-4 space-y-4">
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={saveMembers}>
+                    <Button size="sm" onClick={saveMembers} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl cursor-pointer">
                       <Save className="mr-2 h-4 w-4" /> Save members
                     </Button>
                   </div>
@@ -299,7 +304,7 @@ export default function RolesPage() {
                     {allUsers.map((u) => (
                       <label
                         key={u.id}
-                        className="flex items-center gap-2 text-sm border border-white/5 rounded-lg px-3 py-2"
+                        className="flex items-center gap-2 text-sm border border-slate-200/80 dark:border-white/5 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer"
                       >
                         <Checkbox
                           checked={memberIds.includes(u.id)}
@@ -309,9 +314,9 @@ export default function RolesPage() {
                             );
                           }}
                         />
-                        <span className="text-slate-200">
+                        <span className="text-slate-900 dark:text-slate-200 font-semibold">
                           {u.display_name || u.email}
-                          <span className="text-slate-500 ml-2 text-xs">{u.email}</span>
+                          <span className="text-slate-500 ml-2 text-xs font-normal">{u.email}</span>
                         </span>
                       </label>
                     ))}
@@ -320,7 +325,7 @@ export default function RolesPage() {
                     )}
                   </div>
                   {members.length > 0 && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       Currently assigned: {members.map((m) => m.email).join(", ")}
                     </p>
                   )}
@@ -332,59 +337,66 @@ export default function RolesPage() {
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-slate-100">
+        <DialogContent className="bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Create role</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Create role</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="font-semibold text-slate-700 dark:text-slate-300">Name</Label>
+              <Input 
+                value={form.name} 
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-xl"
+              />
             </div>
-            <div>
-              <Label>Description</Label>
+            <div className="space-y-2">
+              <Label className="font-semibold text-slate-700 dark:text-slate-300">Description</Label>
               <Input
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-xl"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={createRole}>Create</Button>
+            <Button onClick={createRole} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl cursor-pointer">Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-slate-100">
+        <DialogContent className="bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Edit role</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Edit role</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="font-semibold text-slate-700 dark:text-slate-300">Name</Label>
               <Input
                 value={editForm.name}
                 disabled={selected?.is_system}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-xl"
               />
             </div>
-            <div>
-              <Label>Description</Label>
+            <div className="space-y-2">
+              <Label className="font-semibold text-slate-700 dark:text-slate-300">Description</Label>
               <Input
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-xl"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={saveEdit}>Save</Button>
+            <Button onClick={saveEdit} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl cursor-pointer">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -89,18 +89,18 @@ export default function StaffDashboard() {
       ];
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+    <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Staff Operations Dashboard
             </h1>
-            <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-xs font-semibold">
+            <Badge className="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30 text-xs font-bold shadow-xs">
               <TrendingUp className="mr-1 h-3 w-3" /> Daily Operations
             </Badge>
           </div>
-          <p className="text-slate-400 mt-1 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
             Quick stock inbound/outbound processing, barcode scanning, and active alert monitoring
           </p>
         </div>
@@ -110,9 +110,9 @@ export default function StaffDashboard() {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="bg-slate-900/80 border-white/10 hover:bg-slate-800 text-slate-200 cursor-pointer shadow-lg rounded-xl px-4"
+            className="bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 cursor-pointer shadow-sm rounded-xl px-4 font-bold"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
             Refresh Data
           </Button>
         </div>
@@ -233,54 +233,54 @@ export default function StaffDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="glass-card rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
           <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-400" /> Recent Inventory Alerts
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" /> Recent Inventory Alerts
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-52">
               {alerts.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4">No open alerts in your queue</p>
+                <p className="text-sm text-slate-500 py-4 font-medium">No open alerts in your queue</p>
               ) : (
                 alerts.map((a) => (
-                  <div key={a.id} className="mb-3 rounded-xl border border-white/5 bg-white/5 p-3.5 text-sm last:mb-0">
+                  <div key={a.id} className="mb-3 rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50 dark:bg-white/5 p-3.5 text-sm last:mb-0 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-200">{a.title}</span>
-                      <Badge variant="outline" className="border-white/10 text-slate-300 text-xs">{a.severity}</Badge>
+                      <span className="font-bold text-slate-900 dark:text-slate-200">{a.title}</span>
+                      <Badge variant="outline" className="border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-bold">{a.severity}</Badge>
                     </div>
-                    <p className="mt-1 text-xs text-slate-400">{a.message}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-medium">{a.message}</p>
                   </div>
                 ))
               )}
             </ScrollArea>
             <Link href="/alerts">
-              <Button variant="link" className="mt-2 px-0 text-indigo-400 text-xs">
+              <Button variant="link" className="mt-2 px-0 text-indigo-600 dark:text-indigo-400 text-xs font-bold cursor-pointer">
                 View all alerts →
               </Button>
             </Link>
           </CardContent>
         </Card>
 
-        <Card className="glass-card rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 p-6 shadow-xl backdrop-blur-xl">
           <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-indigo-400" /> Items Needing Attention
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Items Needing Attention
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-52">
               {reorderItems.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4">No critical items to display</p>
+                <p className="text-sm text-slate-500 py-4 font-medium">No critical items to display</p>
               ) : (
                 reorderItems.map((item) => (
                   <div
                     key={item.id}
-                    className="mb-2.5 flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3.5 text-sm last:mb-0"
+                    className="mb-2.5 flex items-center justify-between rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50 dark:bg-white/5 p-3.5 text-sm last:mb-0 shadow-xs"
                   >
-                    <span className="font-medium text-slate-200">{item.product_name}</span>
-                    <span className="font-mono text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded text-xs border border-rose-500/20">
+                    <span className="font-bold text-slate-900 dark:text-slate-200">{item.product_name}</span>
+                    <span className="font-mono text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-0.5 rounded text-xs border border-rose-200 dark:border-rose-500/20 font-bold">
                       Stock: {item.current_stock}
                     </span>
                   </div>

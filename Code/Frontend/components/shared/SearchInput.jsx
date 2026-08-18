@@ -21,13 +21,13 @@ export function SearchInput({
 }) {
   return (
     <div className={`relative flex-1 max-w-sm ${className}`}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
       <Input
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pl-9" />
-      
-    </div>);
-
+        className="pl-10"
+      />
+    </div>
+  );
 }

@@ -39,19 +39,19 @@ const CartesianGrid = dynamic(
 function CustomDarkTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-white/10 bg-slate-900/95 p-3 shadow-xl backdrop-blur-md">
-      {label && <p className="mb-1 text-xs font-semibold text-slate-300">{label}</p>}
+    <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md text-slate-800 dark:text-slate-100">
+      {label && <p className="mb-1 text-xs font-bold text-slate-700 dark:text-slate-300">{label}</p>}
       <div className="space-y-1">
         {payload.map((item, idx) => (
           <div key={idx} className="flex items-center justify-between gap-4 text-xs">
-            <span className="flex items-center gap-1.5 font-medium text-slate-300">
+            <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
               <span
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-2.5 w-2.5 rounded-full shadow-xs"
                 style={{ backgroundColor: item.color || item.fill }}
               />
               {item.name}:
             </span>
-            <span className="font-bold text-white">
+            <span className="font-bold text-slate-900 dark:text-white font-mono">
               {typeof item.value === "number" ? item.value.toLocaleString() : item.value}
             </span>
           </div>
@@ -98,19 +98,19 @@ export function DistributionDonutChart({
   };
 
   return (
-    <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl">
+    <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 shadow-xl">
       <CardHeader className="p-0 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <PieChartIcon className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               {title}
             </CardTitle>
-            <CardDescription className="text-xs text-slate-400 mt-0.5">
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {subtitle}
             </CardDescription>
           </div>
-          <span className="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-400 border border-indigo-500/20">
+          <span className="rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 px-2.5 py-1 text-xs font-semibold">
             {total.toLocaleString()} Total
           </span>
         </div>
@@ -146,20 +146,20 @@ export function DistributionDonutChart({
               <div
                 key={idx}
                 onClick={() => handleLegendClick(item.name)}
-                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs transition-colors hover:bg-indigo-500/20 cursor-pointer"
+                className="flex items-center justify-between rounded-xl border border-slate-200/70 dark:border-white/5 bg-slate-50/80 dark:bg-white/5 px-3 py-2 text-xs transition-all hover:bg-indigo-50 dark:hover:bg-indigo-500/20 cursor-pointer shadow-2xs"
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 rounded-full shadow-xs"
                     style={{ backgroundColor: item.fill }}
                   />
-                  <span className="font-medium text-slate-200 truncate">{item.name}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">
                     {(item.value || 0).toLocaleString()}
                   </span>
-                  <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+                  <span className="rounded bg-slate-200/70 dark:bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
                     {pct}%
                   </span>
                 </div>
@@ -195,26 +195,26 @@ export function ComparisonBarChart({
   const minChartWidth = isManyCategories ? `${chartData.length * 85}px` : "100%";
 
   return (
-    <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl">
+    <Card className="glass-card flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 shadow-xl">
       <CardHeader className="p-0 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-purple-400" />
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 {title}
               </CardTitle>
-              <span className="rounded-full bg-purple-500/10 px-2.5 py-0.5 text-xs font-semibold text-purple-300 border border-purple-500/20">
+              <span className="rounded-full bg-purple-50 border border-purple-200 text-purple-700 dark:bg-purple-500/10 dark:border-purple-500/20 dark:text-purple-300 px-2.5 py-0.5 text-xs font-semibold">
                 {chartData.length} Categories
               </span>
             </div>
-            <CardDescription className="text-xs text-slate-400 mt-0.5">
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {subtitle}
             </CardDescription>
           </div>
           <div className="flex items-center gap-3 text-xs">
             {bars.map((b, idx) => (
-              <span key={idx} className="flex items-center gap-1.5 font-medium text-slate-300">
+              <span key={idx} className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: b.color }} />
                 {b.name}
               </span>
@@ -223,16 +223,16 @@ export function ComparisonBarChart({
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 pt-2 flex-1 w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700/50">
+      <CardContent className="p-0 pt-2 flex-1 w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-400/40 dark:scrollbar-thumb-slate-700/50">
         <div className="h-64" style={{ minWidth: minChartWidth, width: "100%" }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} barGap={6} margin={{ top: 10, right: 10, left: -15, bottom: isManyCategories ? 35 : 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
               <XAxis
                 dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                tick={{ fill: "#64748B", fontSize: 11 }}
                 interval={0}
                 angle={isManyCategories ? -25 : 0}
                 textAnchor={isManyCategories ? "end" : "middle"}
@@ -242,7 +242,7 @@ export function ComparisonBarChart({
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
+                tick={{ fill: "#64748B", fontSize: 11 }}
               />
               <Tooltip content={<CustomDarkTooltip />} />
               {bars.map((b, idx) => (

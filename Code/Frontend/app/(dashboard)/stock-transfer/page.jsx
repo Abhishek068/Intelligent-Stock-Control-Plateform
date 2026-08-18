@@ -49,16 +49,16 @@ const transferSchema = z
 
 function StatusBadge({ status }) {
   if (status === "draft") {
-    return <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20 shadow-inner px-2.5 py-1">Draft</Badge>;
+    return <Badge className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20 font-bold px-2.5 py-1">Draft</Badge>;
   }
   if (status === "in_transit") {
-    return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] px-2.5 py-1 animate-pulse">In Transit</Badge>;
+    return <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 px-2.5 py-1 font-bold animate-pulse">In Transit</Badge>;
   }
   if (status === "completed") {
-    return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-inner px-2.5 py-1">Completed</Badge>;
+    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 font-bold px-2.5 py-1">Completed</Badge>;
   }
   if (status === "cancelled") {
-    return <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-inner px-2.5 py-1">Cancelled</Badge>;
+    return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 font-bold px-2.5 py-1">Cancelled</Badge>;
   }
   return <Badge variant="outline">{status}</Badge>;
 }
@@ -235,34 +235,34 @@ function StockTransferPageContent() {
         
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-fuchsia-500/20 rounded-xl border border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.2)]">
+            <div className="p-2.5 bg-fuchsia-50 dark:bg-fuchsia-500/20 rounded-xl border border-fuchsia-200 dark:border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.15)]">
               <ArrowLeftRight className="h-6 w-6" />
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-50 via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-slate-50 dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Stock Transfer
             </h1>
           </div>
-          <p className="text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
+          <p className="text-slate-500 dark:text-slate-400 max-w-xl text-sm leading-relaxed ml-14">
             Draft → ship → complete between locations securely.
           </p>
         </div>
 
-        <Badge className="bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20 shadow-[0_0_15px_rgba(217,70,239,0.2)] px-4 py-1.5 text-sm">
+        <Badge className="bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20 px-4 py-1.5 text-sm font-semibold">
           <ArrowLeftRight className="mr-2 h-4 w-4" /> Transfers Active
         </Badge>
       </div>
 
       {step === 1 && canCreate && (
-        <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+        <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
           <div className="absolute top-0 right-0 w-96 h-96 bg-fuchsia-500/5 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col">
-            <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
-              <MapPin className="h-5 w-5 text-fuchsia-400" /> 
+          <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10 flex flex-col">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
+              <MapPin className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-400" /> 
               Step 1: Transfer Details
             </div>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Creates a draft; stock moves only when completed and verified.
             </p>
           </div>
@@ -273,58 +273,58 @@ function StockTransferPageContent() {
                 <div className="grid gap-6 md:grid-cols-2">
                   <FormField control={form.control} name="sourceLocationId" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold text-slate-300">Source Location <span className="text-rose-400">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Source Location <span className="text-rose-500">*</span></FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-fuchsia-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                          <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                             <SelectValue placeholder="Select source" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-fuchsia-500/20 focus:text-fuchsia-200 cursor-pointer">{l.name}</SelectItem>)}
+                        <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">{l.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <FormMessage className="text-rose-400 text-xs" />
+                      <FormMessage className="text-rose-500 text-xs" />
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name="destinationLocationId" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold text-slate-300">Destination Location <span className="text-rose-400">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Destination Location <span className="text-rose-500">*</span></FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-slate-950/50 border-white/10 focus:border-fuchsia-500/50 text-slate-200 rounded-xl h-11 font-medium">
+                          <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
                             <SelectValue placeholder="Select destination" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-slate-900 border-white/10 shadow-2xl rounded-xl text-slate-200">
-                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="focus:bg-fuchsia-500/20 focus:text-fuchsia-200 cursor-pointer">{l.name}</SelectItem>)}
+                        <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
+                          {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">{l.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <FormMessage className="text-rose-400 text-xs" />
+                      <FormMessage className="text-rose-500 text-xs" />
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name="productId" render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-sm font-semibold text-slate-300">Product <span className="text-rose-400">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="justify-between bg-slate-950/50 border-white/10 hover:bg-white/5 text-slate-200 rounded-xl h-11 font-medium">
+                          <Button variant="outline" className="justify-between bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium cursor-pointer">
                             {field.value ? products.find((p) => String(p.id) === field.value)?.name : "Select product..."}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0 bg-slate-900 border-white/10 shadow-2xl rounded-xl">
-                          <Command className="bg-transparent text-slate-200">
-                            <CommandInput placeholder="Search products..." className="border-b border-white/10 h-11" />
-                            <CommandEmpty className="py-6 text-center text-sm text-slate-400">No product found.</CommandEmpty>
+                        <PopoverContent className="w-[400px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
+                          <Command className="bg-transparent text-slate-800 dark:text-slate-200">
+                            <CommandInput placeholder="Search products..." className="border-b border-slate-200 dark:border-white/10 h-11" />
+                            <CommandEmpty className="py-6 text-center text-sm text-slate-500">No product found.</CommandEmpty>
                             <CommandGroup className="max-h-[300px] overflow-auto">
                               {products.map((p) => (
                                 <CommandItem 
                                   key={p.id} 
                                   value={String(p.id)} 
                                   onSelect={() => field.onChange(String(p.id))}
-                                  className="aria-selected:bg-fuchsia-500/20 aria-selected:text-fuchsia-200 cursor-pointer text-slate-300 py-3"
+                                  className="cursor-pointer text-slate-800 dark:text-slate-300 py-3"
                                 >
                                   {p.name}
                                 </CommandItem>
@@ -333,17 +333,17 @@ function StockTransferPageContent() {
                           </Command>
                         </PopoverContent>
                       </Popover>
-                      <FormMessage className="text-rose-400 text-xs" />
+                      <FormMessage className="text-rose-500 text-xs" />
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name="quantity" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold text-slate-300 flex justify-between">
-                        <span>Quantity <span className="text-rose-400">*</span></span>
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
+                        <span>Quantity <span className="text-rose-500">*</span></span>
                         {sourceId && productId && (
-                          <span className="text-xs text-slate-400 font-normal">
-                            Source Avail: <strong className="text-fuchsia-400 font-mono">{sourceStock}</strong>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">
+                            Source Avail: <strong className="text-fuchsia-600 dark:text-fuchsia-400 font-mono font-bold">{sourceStock}</strong>
                           </span>
                         )}
                       </FormLabel>
@@ -353,21 +353,21 @@ function StockTransferPageContent() {
                           min="1" 
                           {...field} 
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          className={`bg-slate-950/80 border-white/10 focus:ring-1 text-slate-100 font-bold rounded-xl h-11 ${isOverTransfer ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/30' : 'focus:border-fuchsia-500/50 focus:ring-fuchsia-500/30'}`}
+                          className={`bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-bold rounded-xl h-11 ${isOverTransfer ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30' : 'focus:border-fuchsia-500/50 focus:ring-fuchsia-500/30'}`}
                         />
                       </FormControl>
-                      <FormMessage className="text-rose-400 text-xs" />
+                      <FormMessage className="text-rose-500 text-xs" />
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name="notes" render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel className="text-sm font-semibold text-slate-300">Notes</FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Optional transfer notes..." 
                           {...field} 
-                          className="bg-slate-950/80 border-white/10 focus:border-fuchsia-500/50 focus:ring-1 focus:ring-fuchsia-500/30 text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-500"
+                          className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 focus:border-fuchsia-500/50 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                       </FormControl>
                     </FormItem>
@@ -375,19 +375,19 @@ function StockTransferPageContent() {
                 </div>
 
                 {sourceId && destId && productId && (
-                  <div className="flex items-start gap-4 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-5 shadow-[0_0_20px_rgba(217,70,239,0.1)] relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-fuchsia-500/5 group-hover:bg-fuchsia-500/10 transition-colors" />
-                    <Layers className="h-6 w-6 shrink-0 text-fuchsia-400 relative z-10" />
+                  <div className="flex items-start gap-4 rounded-xl border border-fuchsia-200 dark:border-fuchsia-500/30 bg-fuchsia-50/70 dark:bg-fuchsia-500/10 p-5 shadow-sm relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-fuchsia-500/5 group-hover:bg-fuchsia-500/10 transition-colors pointer-events-none" />
+                    <Layers className="h-6 w-6 shrink-0 text-fuchsia-600 dark:text-fuchsia-400 relative z-10" />
                     <div className="relative z-10 w-full">
-                      <h5 className="font-bold text-fuchsia-100 text-base">Location Stock Overview</h5>
-                      <div className="mt-3 grid grid-cols-2 gap-4 text-sm bg-slate-950/50 rounded-lg p-3 border border-white/5">
+                      <h5 className="font-bold text-slate-900 dark:text-fuchsia-100 text-base">Location Stock Overview</h5>
+                      <div className="mt-3 grid grid-cols-2 gap-4 text-sm bg-white dark:bg-slate-950/50 rounded-xl p-3 border border-slate-200 dark:border-white/5">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-300 truncate">{sourceLoc?.name}</span>
-                          <span className="text-slate-400 mt-1">Current Stock: <strong className="text-white font-mono">{sourceStock}</strong></span>
+                          <span className="font-bold text-slate-800 dark:text-slate-300 truncate">{sourceLoc?.name}</span>
+                          <span className="text-slate-500 dark:text-slate-400 mt-1">Current Stock: <strong className="text-slate-900 dark:text-white font-mono">{sourceStock}</strong></span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-300 truncate">{destLoc?.name}</span>
-                          <span className="text-slate-400 mt-1">Current Stock: <strong className="text-white font-mono">{destStock}</strong></span>
+                          <span className="font-bold text-slate-800 dark:text-slate-300 truncate">{destLoc?.name}</span>
+                          <span className="text-slate-500 dark:text-slate-400 mt-1">Current Stock: <strong className="text-slate-900 dark:text-white font-mono">{destStock}</strong></span>
                         </div>
                       </div>
                     </div>
@@ -395,24 +395,24 @@ function StockTransferPageContent() {
                 )}
 
                 {isOverTransfer && (
-                  <div className="flex items-start gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-5 shadow-[0_0_20px_rgba(244,63,94,0.1)] relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors" />
-                    <AlertCircle className="h-6 w-6 shrink-0 text-rose-400 relative z-10 animate-pulse" />
+                  <div className="flex items-start gap-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-5 shadow-sm relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors pointer-events-none" />
+                    <AlertCircle className="h-6 w-6 shrink-0 text-rose-600 dark:text-rose-400 relative z-10 animate-pulse" />
                     <div className="relative z-10">
-                      <h5 className="font-bold text-rose-100 text-base">Insufficient Stock</h5>
-                      <p className="text-sm text-rose-200 mt-1">
-                        Only <strong className="text-white font-mono bg-rose-500/20 px-1.5 py-0.5 rounded">{sourceStock}</strong> available at source location.
+                      <h5 className="font-bold text-rose-800 dark:text-rose-100 text-base">Insufficient Stock</h5>
+                      <p className="text-sm text-rose-700 dark:text-rose-200 mt-1">
+                        Only <strong className="text-rose-900 dark:text-white font-mono bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 rounded">{sourceStock}</strong> available at source location.
                       </p>
                     </div>
                   </div>
                 )}
 
-                <div className="flex justify-end pt-4 border-t border-white/5">
+                <div className="flex justify-end pt-4 border-t border-slate-200/80 dark:border-white/5">
                   <Button 
                     type="button" 
                     onClick={goToConfirm} 
                     disabled={isOverTransfer}
-                    className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-fuchsia-500/20 rounded-xl h-11 px-8 border border-fuchsia-500/50 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                    className="bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-semibold shadow-md rounded-xl h-11 px-8 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -424,39 +424,39 @@ function StockTransferPageContent() {
       )}
 
       {step === 2 && (
-        <Card className="border border-fuchsia-500/30 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
-          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10 flex flex-col">
-            <div className="flex items-center gap-2 text-fuchsia-300 font-bold text-xl">
-              <CheckCircle className="h-6 w-6 text-fuchsia-400" /> 
+        <Card className="border border-fuchsia-200 dark:border-fuchsia-500/30 bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10 flex flex-col">
+            <div className="flex items-center gap-2 text-fuchsia-700 dark:text-fuchsia-300 font-bold text-xl">
+              <CheckCircle className="h-6 w-6 text-fuchsia-600 dark:text-fuchsia-400" /> 
               Step 2: Confirm Draft
             </div>
           </div>
           <CardContent className="p-8">
-            <div className="rounded-xl bg-slate-950/80 p-6 border border-white/5">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 p-6 border border-slate-200 dark:border-white/5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-400 mb-1">Source Location</span>
-                  <span className="text-slate-100 font-semibold text-base">{sourceLoc?.name}</span>
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Source Location</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-bold text-base">{sourceLoc?.name}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-400 mb-1">Destination Location</span>
-                  <span className="text-slate-100 font-semibold text-base">{destLoc?.name}</span>
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Destination Location</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-bold text-base">{destLoc?.name}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-400 mb-1">Product</span>
-                  <span className="text-slate-100 font-semibold text-base">{selectedProduct?.name}</span>
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Product</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-bold text-base">{selectedProduct?.name}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-400 mb-1">Transfer Quantity</span>
-                  <span className="text-white font-mono bg-fuchsia-500/20 px-2 py-1 rounded w-fit">{quantity}</span>
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Transfer Quantity</span>
+                  <span className="text-fuchsia-700 dark:text-white font-mono font-bold bg-fuchsia-100 dark:bg-fuchsia-500/20 px-2.5 py-1 rounded-md w-fit">{quantity}</span>
                 </div>
               </div>
             </div>
             
-            <div className="mt-6 flex items-start gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 relative">
+            <div className="mt-6 flex items-start gap-4 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-5 relative">
               <div className="relative z-10">
-                <h5 className="font-bold text-amber-100 text-sm flex items-center gap-2 mb-1"><AlertCircle className="h-4 w-4 text-amber-400" /> Draft only</h5>
-                <p className="text-sm text-amber-200/80">
+                <h5 className="font-bold text-amber-800 dark:text-amber-100 text-sm flex items-center gap-2 mb-1"><AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Draft only</h5>
+                <p className="text-sm text-amber-700 dark:text-amber-200/80">
                   Stock is not moved until someone with approve permission ships and completes the transfer.
                 </p>
               </div>
@@ -466,14 +466,14 @@ function StockTransferPageContent() {
               <Button 
                 variant="outline" 
                 onClick={() => setStep(1)}
-                className="hover:bg-white/5 text-slate-300 hover:text-white rounded-xl h-11 px-6 bg-transparent border-white/10"
+                className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl h-11 px-6 bg-white dark:bg-transparent border-slate-200 dark:border-white/10 cursor-pointer"
               >
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button 
                 onClick={handleSubmit} 
                 disabled={isSubmitting}
-                className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-semibold rounded-xl h-11 px-8 shadow-lg shadow-fuchsia-500/20"
+                className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-semibold rounded-xl h-11 px-8 shadow-md cursor-pointer"
               >
                 {isSubmitting ? "Creating..." : "Create Draft"}
               </Button>
@@ -483,22 +483,22 @@ function StockTransferPageContent() {
       )}
 
       {step === 3 && createdDraft && (
-        <Card className="border border-emerald-500/30 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
-          <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl">
+        <Card className="border border-emerald-200 dark:border-emerald-500/30 bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+          <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xl">
               <CheckCircle className="h-6 w-6" /> 
               Draft Created Successfully
             </div>
           </div>
           <CardContent className="p-8">
-            <p className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-5 text-sm text-emerald-200">
-              Transfer <strong className="text-white font-mono mx-1 px-1 bg-emerald-500/20 rounded">#{createdDraft.id}</strong> created for <strong className="text-white">{quantity}</strong> × <strong className="text-white">{selectedProduct?.name}</strong>. Use the open transfers table below to ship and complete.
+            <p className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-5 text-sm text-emerald-800 dark:text-emerald-200 font-medium">
+              Transfer <strong className="text-emerald-900 dark:text-white font-mono mx-1 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 rounded">#{createdDraft.id}</strong> created for <strong className="text-emerald-900 dark:text-white">{quantity}</strong> × <strong className="text-emerald-900 dark:text-white">{selectedProduct?.name}</strong>. Use the open transfers table below to ship and complete.
             </p>
             <div className="mt-6 flex justify-end">
               <Button 
                 variant="outline" 
                 onClick={resetForm}
-                className="bg-slate-950/50 border-white/10 text-slate-200 hover:bg-white/10 hover:text-white rounded-xl h-11 px-6"
+                className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl h-11 px-6 cursor-pointer"
               >
                 Start New Transfer
               </Button>
@@ -507,15 +507,15 @@ function StockTransferPageContent() {
         </Card>
       )}
 
-      <Card className="border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
+      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
         <div className="absolute -top-10 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 relative z-10">
-          <div className="flex items-center gap-2 text-slate-200 font-semibold text-lg">
-            <Package className="h-5 w-5 text-indigo-400" /> 
+        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10">
+          <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
+            <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> 
             Open Transfers
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Ship, complete, or cancel draft / in-transit transfers
           </p>
         </div>
@@ -523,44 +523,44 @@ function StockTransferPageContent() {
         <CardContent className="p-0">
           <div className="overflow-x-auto relative z-10">
             <Table>
-              <TableHeader className="bg-slate-950/40 border-b border-white/5">
+              <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="py-4 pl-8 font-semibold text-slate-300">ID</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">Product</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">From → To</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">Qty</TableHead>
-                  <TableHead className="py-4 font-semibold text-slate-300">Status</TableHead>
-                  <TableHead className="py-4 pr-8 text-right font-semibold text-slate-300">Actions</TableHead>
+                  <TableHead className="py-4 pl-8 font-bold text-slate-700 dark:text-slate-300">ID</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Product</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">From → To</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Qty</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                  <TableHead className="py-4 pr-8 text-right font-bold text-slate-700 dark:text-slate-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {openTransfers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-slate-400 py-12">
+                    <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400 py-12">
                       <div className="flex flex-col items-center justify-center">
-                        <ArrowLeftRight className="h-10 w-10 text-slate-600 mb-3" />
+                        <ArrowLeftRight className="h-10 w-10 text-slate-400 mb-3" />
                         <p>No open transfers</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 )}
                 {openTransfers.map((t) => (
-                  <TableRow key={t.id} className="hover:bg-slate-800/40 transition-colors border-b border-white/5 group">
+                  <TableRow key={t.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-200/60 dark:border-white/5 group">
                     <TableCell className="pl-8 py-5">
-                      <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-sm font-semibold shadow-inner">
+                      <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-300 font-mono text-sm font-bold shadow-xs">
                         #{t.id}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-slate-200">{t.product_name}</div>
+                      <div className="font-bold text-slate-900 dark:text-slate-200">{t.product_name}</div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-slate-300">{t.source_location_name}</span>
-                      <span className="text-slate-500 mx-2">→</span>
-                      <span className="text-slate-300">{t.destination_location_name}</span>
+                      <span className="text-slate-800 dark:text-slate-300 font-medium">{t.source_location_name}</span>
+                      <span className="text-slate-400 mx-2">→</span>
+                      <span className="text-slate-800 dark:text-slate-300 font-medium">{t.destination_location_name}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-slate-100 font-bold">{t.quantity}</span>
+                      <span className="text-slate-900 dark:text-slate-100 font-bold font-mono">{t.quantity}</span>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={t.status} />
@@ -570,7 +570,7 @@ function StockTransferPageContent() {
                         {canApprove && t.status === "draft" && (
                           <Button
                             size="sm"
-                            className="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/30"
+                            className="bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/40 dark:text-indigo-300 dark:border-indigo-500/30 font-semibold cursor-pointer"
                             disabled={actionId === t.id}
                             onClick={() => handleActionClick(t, "ship")}
                           >
@@ -580,7 +580,7 @@ function StockTransferPageContent() {
                         {canApprove && ["draft", "in_transit"].includes(t.status) && (
                           <Button
                             size="sm"
-                            className="bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/30"
+                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/40 dark:text-emerald-300 dark:border-emerald-500/30 font-semibold cursor-pointer"
                             disabled={actionId === t.id}
                             onClick={() => handleActionClick(t, "complete")}
                           >
@@ -591,7 +591,7 @@ function StockTransferPageContent() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            className="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/30"
+                            className="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-500/20 dark:hover:bg-rose-500/40 dark:text-rose-300 dark:border-rose-500/30 font-semibold cursor-pointer"
                             disabled={actionId === t.id}
                             onClick={() => runAction(t.id, "cancel")}
                           >
@@ -612,25 +612,25 @@ function StockTransferPageContent() {
       </Card>
 
       <Dialog open={scanOpen} onOpenChange={setScanOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-[#0F172A] border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.15)] rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-[#0F172A] border-slate-200 dark:border-indigo-500/30 shadow-2xl rounded-2xl p-0 overflow-hidden text-slate-900 dark:text-white">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-fuchsia-500" />
           
           <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-white">
-              <Layers className="h-6 w-6 text-indigo-400" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
+              <Layers className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               Scan Verification
             </DialogTitle>
-            <DialogDescription className="text-slate-400 text-sm mt-2">
+            <DialogDescription className="text-slate-500 dark:text-slate-400 text-sm mt-2">
               To confirm this stock transfer, scan or input the barcode/SKU for:
-              <strong className="block mt-2 text-indigo-300 bg-indigo-500/10 px-3 py-2 rounded-lg border border-indigo-500/20">
-                {scanTransfer?.product_name} <span className="text-slate-400 font-mono text-xs">({scanTransfer?.product_sku})</span>
+              <strong className="block mt-2 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-500/20">
+                {scanTransfer?.product_name} <span className="text-slate-500 dark:text-slate-400 font-mono text-xs">({scanTransfer?.product_sku})</span>
               </strong>
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleVerifyScan} className="px-6 pb-6">
             <div className="space-y-3">
-              <Label htmlFor="barcode-scan" className="text-sm font-semibold text-slate-300">Scan Barcode / SKU</Label>
+              <Label htmlFor="barcode-scan" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Scan Barcode / SKU</Label>
               <Input
                 id="barcode-scan"
                 placeholder="Scan or type here..."
@@ -640,10 +640,10 @@ function StockTransferPageContent() {
                   setScanError("");
                 }}
                 autoFocus
-                className="w-full font-mono bg-slate-900 border-white/10 text-white placeholder:text-slate-600 focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 h-12 rounded-xl"
+                className="w-full font-mono bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-12 rounded-xl"
               />
               {scanError && (
-                <p className="text-xs text-rose-400 flex items-center gap-1.5 mt-2 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg">
+                <p className="text-xs text-rose-700 dark:text-rose-400 flex items-center gap-1.5 mt-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 px-3 py-2 rounded-lg font-semibold">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {scanError}
                 </p>
@@ -655,13 +655,13 @@ function StockTransferPageContent() {
                 type="button" 
                 variant="ghost" 
                 onClick={() => setScanOpen(false)}
-                className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl px-5"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl px-5 cursor-pointer"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl px-6 shadow-lg shadow-indigo-500/25"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl px-6 shadow-md cursor-pointer"
               >
                 Verify & Confirm
               </Button>

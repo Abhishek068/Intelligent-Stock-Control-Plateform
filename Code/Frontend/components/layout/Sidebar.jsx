@@ -116,13 +116,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-slate-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col transition-all duration-300 shadow-xl shadow-black/50",
+        "fixed left-0 top-0 z-40 h-screen bg-white/95 dark:bg-slate-950/80 backdrop-blur-2xl border-r border-slate-200/80 dark:border-white/5 flex flex-col transition-all duration-300 shadow-xl shadow-slate-200/40 dark:shadow-black/50 text-slate-800 dark:text-slate-200",
         sidebarCollapsed ? "w-16" : "w-64"
       )}
     >
       <div
         className={cn(
-          "flex h-16 items-center border-b border-white/5 transition-all duration-300 relative overflow-hidden",
+          "flex h-16 items-center border-b border-slate-200/80 dark:border-white/5 transition-all duration-300 relative overflow-hidden",
           sidebarCollapsed ? "justify-center px-1" : "justify-between px-4"
         )}
       >
@@ -130,10 +130,10 @@ export function Sidebar() {
         
         {sidebarCollapsed ? (
           <div className="flex items-center gap-1 z-10">
-            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0 shadow-lg shadow-black/20 border border-white/10" />
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0 shadow-lg shadow-black/10 dark:shadow-black/20 border border-slate-200 dark:border-white/10" />
             <button
               onClick={toggleSidebar}
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors shrink-0"
+              className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors shrink-0 cursor-pointer"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -141,17 +141,17 @@ export function Sidebar() {
         ) : (
           <>
             <div className="flex items-center gap-3 z-10">
-              <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-black/20 border border-white/10" />
+              <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-black/10 dark:shadow-black/20 border border-slate-200 dark:border-white/10" />
               <div className="flex flex-col">
                 <span className="text-[15px] font-bold text-gradient leading-tight tracking-wide">StockSense</span>
-                <span className="text-[10px] font-semibold tracking-widest text-indigo-400 uppercase leading-none mt-0.5">
+                <span className="text-[10px] font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase leading-none mt-0.5">
                   Operations
                 </span>
               </div>
             </div>
             <button
               onClick={toggleSidebar}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors z-10"
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-colors z-10 cursor-pointer"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -169,9 +169,9 @@ export function Sidebar() {
           {navGroups.map((group, idx) => (
             <div key={idx} className="relative">
               {!sidebarCollapsed && (
-                <h4 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                <h4 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
                   {group.label}
-                  <div className="h-px bg-white/5 flex-1" />
+                  <div className="h-px bg-slate-200/80 dark:bg-white/5 flex-1" />
                 </h4>
               )}
               <nav className="space-y-1.5">
@@ -186,8 +186,8 @@ export function Sidebar() {
                         "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 overflow-hidden",
                         sidebarCollapsed ? "justify-center px-0 mx-auto w-11 h-11" : "gap-3 px-3",
                         isActive
-                          ? "bg-indigo-500/10 text-indigo-300 shadow-[inset_3px_0_0_0_rgba(99,102,241,1)]"
-                          : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
+                          ? "bg-indigo-50 text-indigo-700 shadow-[inset_3px_0_0_0_rgba(99,102,241,1)] dark:bg-indigo-500/10 dark:text-indigo-300"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-slate-200"
                       )}
                     >
                       {isActive && (
@@ -196,7 +196,9 @@ export function Sidebar() {
                       <item.icon
                         className={cn(
                           "h-[18px] w-[18px] shrink-0 relative z-10 transition-colors",
-                          isActive ? "text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" : "text-slate-400 group-hover:text-slate-300"
+                          isActive
+                            ? "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]"
+                            : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400 dark:group-hover:text-slate-300"
                         )}
                       />
                       {!sidebarCollapsed && <span className="relative z-10 truncate">{item.name}</span>}
@@ -209,13 +211,13 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className={cn("border-t border-white/5 bg-slate-950/50", sidebarCollapsed ? "p-3" : "p-5")}>
+      <div className={cn("border-t border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-slate-950/50", sidebarCollapsed ? "p-3" : "p-5")}>
         <button
           onClick={handleLogout}
           className={cn(
-            "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 w-full",
+            "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 w-full cursor-pointer",
             sidebarCollapsed ? "justify-center px-0 h-11" : "gap-3 px-3",
-            "text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:shadow-[inset_3px_0_0_0_rgba(244,63,94,1)]"
+            "text-slate-600 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 hover:shadow-[inset_3px_0_0_0_rgba(244,63,94,1)]"
           )}
         >
           <LogOut className="h-[18px] w-[18px] shrink-0 transition-colors group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" />

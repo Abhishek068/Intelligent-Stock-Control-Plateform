@@ -93,35 +93,26 @@
   * {
     @apply border-border outline-ring/50;
     scrollbar-width: thin;
-    scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
+    scrollbar-color: rgba(51, 65, 85, 0.3) transparent;
   }
   body {
     @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  /* Prevent browser autofill white background */
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  input:-webkit-autofill:active,
-  textarea:-webkit-autofill,
-  textarea:-webkit-autofill:hover,
-  textarea:-webkit-autofill:focus,
-  select:-webkit-autofill,
-  select:-webkit-autofill:hover,
-  select:-webkit-autofill:focus {
+  /* Prevent browser autofill dark background in light mode */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark input:-webkit-autofill:active,
+  .dark textarea:-webkit-autofill,
+  .dark textarea:-webkit-autofill:hover,
+  .dark textarea:-webkit-autofill:focus,
+  .dark select:-webkit-autofill,
+  .dark select:-webkit-autofill:hover,
+  .dark select:-webkit-autofill:focus {
     -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
     -webkit-text-fill-color: #f8fafc !important;
     caret-color: #f8fafc !important;
-    color: #f8fafc !important;
-    transition: background-color 5000s ease-in-out 0s;
-  }
-
-  input:autofill,
-  textarea:autofill,
-  select:autofill {
-    box-shadow: 0 0 0px 1000px #0f172a inset !important;
-    -webkit-text-fill-color: #f8fafc !important;
     color: #f8fafc !important;
     transition: background-color 5000s ease-in-out 0s;
   }
@@ -129,13 +120,13 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/90 backdrop-blur-xl border border-white/10 shadow-xl shadow-black/20 rounded-2xl transition-all duration-300;
+    @apply bg-white/85 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-900/60 dark:to-slate-950/90 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 rounded-2xl transition-all duration-300;
   }
   .glass-panel {
-    @apply bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-slate-950/70 backdrop-blur-lg border border-white/10 rounded-xl shadow-lg;
+    @apply bg-white/75 dark:bg-gradient-to-br dark:from-slate-900/70 dark:via-slate-900/40 dark:to-slate-950/70 backdrop-blur-lg border border-slate-200/70 dark:border-white/10 rounded-xl shadow-lg shadow-slate-200/40 dark:shadow-black/20;
   }
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400;
   }
   ::-webkit-scrollbar {
     width: 4px;
@@ -145,10 +136,10 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700/50 rounded-full;
+    @apply bg-slate-400/40 dark:bg-slate-700/50 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600 rounded-full;
+    @apply bg-slate-400/70 dark:bg-slate-600 rounded-full;
   }
   
   .custom-scrollbar::-webkit-scrollbar {
@@ -159,11 +150,76 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-700/50 rounded-full;
+    @apply bg-slate-400/40 dark:bg-slate-700/50 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600 rounded-full;
+    @apply bg-slate-400/70 dark:bg-slate-600 rounded-full;
   }
+}
+
+/* Light mode typography & contrast enhancements */
+html:not(.dark) {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+html:not(.dark) h1.text-white,
+html:not(.dark) h2.text-white,
+html:not(.dark) h3.text-white,
+html:not(.dark) h4.text-white,
+html:not(.dark) h1.text-slate-100,
+html:not(.dark) h2.text-slate-100,
+html:not(.dark) h3.text-slate-100,
+html:not(.dark) h4.text-slate-100 {
+  color: #0f172a;
+}
+
+html:not(.dark) p.text-slate-400,
+html:not(.dark) span.text-slate-400 {
+  color: #64748b;
+}
+
+html:not(.dark) .text-slate-300,
+html:not(.dark) .text-slate-200 {
+  color: #334155;
+}
+
+html:not(.dark) .text-slate-100 {
+  color: #0f172a;
+}
+
+html:not(.dark) .bg-slate-950,
+html:not(.dark) .bg-slate-950\/80,
+html:not(.dark) .bg-slate-950\/50,
+html:not(.dark) .bg-slate-950\/40,
+html:not(.dark) .bg-slate-900,
+html:not(.dark) .bg-slate-900\/90,
+html:not(.dark) .bg-slate-900\/80,
+html:not(.dark) .bg-slate-900\/70,
+html:not(.dark) .bg-slate-900\/60,
+html:not(.dark) .bg-slate-900\/50,
+html:not(.dark) .bg-slate-900\/40,
+html:not(.dark) .bg-slate-900\/30 {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(226, 232, 240, 0.9);
+}
+
+html:not(.dark) .bg-slate-800,
+html:not(.dark) .bg-slate-800\/80,
+html:not(.dark) .bg-slate-800\/60,
+html:not(.dark) .bg-slate-800\/50,
+html:not(.dark) .bg-slate-800\/40,
+html:not(.dark) .bg-white\/5,
+html:not(.dark) .bg-white\/10 {
+  background-color: #f1f5f9;
+  border-color: rgba(226, 232, 240, 0.9);
+}
+
+html:not(.dark) .border-white\/5,
+html:not(.dark) .border-white\/10,
+html:not(.dark) .border-white\/15,
+html:not(.dark) .border-white\/20 {
+  border-color: rgba(226, 232, 240, 0.85);
 }
 
 /* Hide Next.js Dev Mode Overlay & Rendering Indicator */

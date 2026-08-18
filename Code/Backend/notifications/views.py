@@ -48,12 +48,26 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def mark_all_read(self, request):
-        updated = self.get_queryset().filter(is_read=False).update(is_read=True)
+        user = request.user
+        org = getattr(user, "organization", None)
+        qs = Notification.objects.filter(is_read=False)
+        if org:
+            qs = qs.filter(organization=org)
+        qs = qs.filter(Q(user=user) | Q(user__isnull=True))
+        updated = qs.update(is_read=True)
         return Response({"success": True, "data": {"updated": updated}})
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):
-        count = self.get_queryset().filter(is_read=False).count()
+        user = request.user
+        org = getattr(user, "organization", None)
+        qs = Notification.objects.filter(is_read=False)
+        if org:
+            qs = qs.filter(organization=org)
+        qs = qs.filter(Q(user=user) | Q(user__isnull=True))
+        if request.query_params.get("include_expired") != "1":
+            qs = qs.filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+        count = qs.count()
         return Response({"success": True, "data": {"count": count}})
 
     def create(self, request, *args, **kwargs):

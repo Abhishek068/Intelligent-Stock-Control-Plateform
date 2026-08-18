@@ -346,7 +346,7 @@ export default function ProductDetailPage() {
                   <p className="font-medium text-amber-900">Reorder Recommendation</p>
                   <p className="text-sm text-amber-800">
                     Order {recommendation.suggested_quantity} units — priority{" "}
-                    {recommendation.priority}. Predicted demand: {recommendation.predicted_demand}
+                    {recommendation.priority}. Predicted demand: {Math.round(Number(recommendation.predicted_demand))} units
                   </p>
                 </div>
               </CardContent>

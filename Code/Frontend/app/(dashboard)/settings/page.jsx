@@ -23,18 +23,18 @@ import { cn } from "@/lib/utils";
 
 function SettingsCard({ title, description, icon: Icon, children }) {
   return (
-    <Card className="glass-card relative overflow-hidden group border-indigo-500/10 hover:border-indigo-500/30 transition-all duration-500">
+    <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl rounded-2xl relative overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      <CardHeader className="border-b border-white/5 pb-4 bg-slate-900/40">
+      <CardHeader className="border-b border-slate-200/80 dark:border-white/5 pb-4 bg-slate-50/50 dark:bg-slate-900/40">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className="p-2 bg-indigo-500/10 rounded-xl">
-              <Icon className="h-5 w-5 text-indigo-400" />
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/20">
+              <Icon className="h-5 w-5" />
             </div>
           )}
           <div>
-            <CardTitle className="text-base font-semibold text-slate-100">{title}</CardTitle>
-            {description && <CardDescription className="text-xs mt-1 text-slate-400">{description}</CardDescription>}
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</CardTitle>
+            {description && <CardDescription className="text-xs mt-1 text-slate-500 dark:text-slate-400">{description}</CardDescription>}
           </div>
         </div>
       </CardHeader>
@@ -70,11 +70,11 @@ export default function SettingsPage() {
   if (!isSuperAdmin && !isAdmin) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <div className="p-4 bg-rose-500/10 rounded-full">
-          <Shield className="h-16 w-16 text-rose-500" />
+        <div className="p-4 bg-rose-50 dark:bg-rose-500/10 rounded-full border border-rose-200 dark:border-rose-500/20">
+          <Shield className="h-16 w-16 text-rose-600 dark:text-rose-500" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-100">Access Denied</h2>
-        <p className="text-slate-400">System settings are only available to Super Admins.</p>
+        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">Access Denied</h2>
+        <p className="text-slate-500 dark:text-slate-400">System settings are only available to Super Admins.</p>
       </div>
     );
   }
@@ -131,8 +131,8 @@ export default function SettingsPage() {
     return (
       <div className="flex h-[40vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="h-8 w-8 animate-spin text-indigo-500" />
-          <p className="text-slate-400 animate-pulse">Loading system settings...</p>
+          <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-500" />
+          <p className="text-slate-500 dark:text-slate-400 font-semibold animate-pulse">Loading system settings...</p>
         </div>
       </div>
     );
@@ -141,17 +141,16 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-10">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 glass-card border-indigo-500/20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl rounded-2xl">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-xl relative group">
-            <div className="absolute inset-0 bg-indigo-500/20 rounded-xl blur-md group-hover:blur-xl transition-all duration-500" />
-            <SlidersHorizontal className="h-8 w-8 text-indigo-400 relative z-10" />
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-500/20 rounded-xl border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 relative group">
+            <SlidersHorizontal className="h-8 w-8 relative z-10" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-indigo-400 dark:to-cyan-400">
               System Settings
             </h1>
-            <p className="text-slate-400 mt-1 text-sm">
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
               Configure global parameters, security, and authentication
             </p>
           </div>
@@ -160,7 +159,7 @@ export default function SettingsPage() {
         <Button 
           onClick={handleSave} 
           disabled={isSaving}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 px-6 py-5 rounded-xl text-md font-semibold transition-all duration-300 group"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md px-6 py-5 rounded-xl text-md font-bold transition-all duration-300 group cursor-pointer"
         >
           {isSaving ? (
             <>
@@ -190,9 +189,9 @@ export default function SettingsPage() {
               key={tab.id}
               value={tab.id}
               className={cn(
-                "data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-300 data-[state=active]:border-indigo-500/30",
-                "border border-white/5 bg-slate-900/50 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200",
-                "px-5 py-2.5 rounded-full transition-all duration-300 font-medium text-sm flex items-center gap-2"
+                "data-[state=active]:bg-indigo-600 data-[state=active]:text-white dark:data-[state=active]:bg-indigo-500/20 dark:data-[state=active]:text-indigo-300 dark:data-[state=active]:border-indigo-500/30",
+                "border border-slate-200/80 dark:border-white/5 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200 shadow-xs",
+                "px-5 py-2.5 rounded-full transition-all duration-300 font-bold text-sm flex items-center gap-2 cursor-pointer"
               )}
             >
               <tab.icon className="h-4 w-4" />
@@ -206,23 +205,23 @@ export default function SettingsPage() {
           <SettingsCard title="Company Profile" icon={Building} description="Basic organizational information and global defaults.">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-slate-300">Company name</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Company name</Label>
                 <Input
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.company_name || ""}
                   onChange={(e) => updateField("company_name", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Inventory valuation method</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Inventory valuation method</Label>
                 <Select
                   value={settings.valuation_method || "fifo"}
                   onValueChange={(v) => updateField("valuation_method", v)}
                 >
-                  <SelectTrigger className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50">
+                  <SelectTrigger className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200">
                     <SelectItem value="fifo">FIFO</SelectItem>
                     <SelectItem value="lifo">LIFO</SelectItem>
                     <SelectItem value="weighted_average">Weighted average</SelectItem>
@@ -230,35 +229,35 @@ export default function SettingsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Currency Code</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Currency Code</Label>
                 <Input
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.currency_code || "GBP"}
                   onChange={(e) => updateField("currency_code", e.target.value)}
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label className="text-slate-300">Registered Address</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Registered Address</Label>
                 <Input
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.company_address || ""}
                   onChange={(e) => updateField("company_address", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Default minimum level (Global fallback)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Default minimum level (Global fallback)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.default_minimum_level ?? 10}
                   onChange={(e) => updateField("default_minimum_level", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Default reorder level (Global fallback)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Default reorder level (Global fallback)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.default_reorder_level ?? 20}
                   onChange={(e) => updateField("default_reorder_level", Number(e.target.value))}
                 />
@@ -272,37 +271,37 @@ export default function SettingsPage() {
           <SettingsCard title="Session & JWT Tokens" icon={Lock} description="Configure session timeouts and token lifespans for API access.">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-slate-300 flex items-center gap-2"><Globe className="w-4 h-4 text-slate-500" /> Session timeout (minutes)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2"><Globe className="w-4 h-4 text-slate-400" /> Session timeout (minutes)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.session_timeout_minutes ?? 60}
                   onChange={(e) => updateField("session_timeout_minutes", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300 flex items-center gap-2"><KeyRound className="w-4 h-4 text-slate-500" /> JWT access (minutes)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2"><KeyRound className="w-4 h-4 text-slate-400" /> JWT access (minutes)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.jwt_access_minutes ?? 60}
                   onChange={(e) => updateField("jwt_access_minutes", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300 flex items-center gap-2"><HardDrive className="w-4 h-4 text-slate-500" /> JWT refresh (days)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2"><HardDrive className="w-4 h-4 text-slate-400" /> JWT refresh (days)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.jwt_refresh_days ?? 7}
                   onChange={(e) => updateField("jwt_refresh_days", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300 flex items-center gap-2"><Cpu className="w-4 h-4 text-slate-500" /> Remember me (days)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2"><Cpu className="w-4 h-4 text-slate-400" /> Remember me (days)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.remember_me_days ?? 30}
                   onChange={(e) => updateField("remember_me_days", Number(e.target.value))}
                 />
@@ -316,36 +315,36 @@ export default function SettingsPage() {
           <SettingsCard title="Password Policy & Lockout" icon={Shield}>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-slate-300">Min password length</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Min password length</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.password_min_length ?? 8}
                   onChange={(e) => updateField("password_min_length", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Max login attempts</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Max login attempts</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.max_login_attempts ?? 5}
                   onChange={(e) => updateField("max_login_attempts", Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Lockout duration (minutes)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Lockout duration (minutes)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.lockout_duration_minutes ?? 30}
                   onChange={(e) => updateField("lockout_duration_minutes", Number(e.target.value))}
                 />
               </div>
               
-              <div className="md:col-span-2 grid gap-4 md:grid-cols-2 mt-4 p-4 rounded-xl bg-slate-900/30 border border-white/5">
+              <div className="md:col-span-2 grid gap-4 md:grid-cols-2 mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-300 cursor-pointer" htmlFor="req-upper">Require uppercase</Label>
+                  <Label className="text-slate-800 dark:text-slate-300 font-semibold cursor-pointer" htmlFor="req-upper">Require uppercase</Label>
                   <Switch
                     id="req-upper"
                     checked={!!settings.password_require_uppercase}
@@ -353,7 +352,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-300 cursor-pointer" htmlFor="req-lower">Require lowercase</Label>
+                  <Label className="text-slate-800 dark:text-slate-300 font-semibold cursor-pointer" htmlFor="req-lower">Require lowercase</Label>
                   <Switch
                     id="req-lower"
                     checked={!!settings.password_require_lowercase}
@@ -361,7 +360,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-300 cursor-pointer" htmlFor="req-number">Require number</Label>
+                  <Label className="text-slate-800 dark:text-slate-300 font-semibold cursor-pointer" htmlFor="req-number">Require number</Label>
                   <Switch
                     id="req-number"
                     checked={!!settings.password_require_number}
@@ -369,7 +368,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-300 cursor-pointer" htmlFor="req-special">Require special character</Label>
+                  <Label className="text-slate-800 dark:text-slate-300 font-semibold cursor-pointer" htmlFor="req-special">Require special character</Label>
                   <Switch
                     id="req-special"
                     checked={!!settings.password_require_special}
@@ -385,11 +384,11 @@ export default function SettingsPage() {
         <TabsContent value="notifications" className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <SettingsCard title="Notification Channels" icon={Bell}>
             <div className="space-y-6">
-              <div className="grid gap-4 p-4 rounded-xl bg-slate-900/30 border border-white/5">
+              <div className="grid gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-200 text-base cursor-pointer" htmlFor="pred-alerts">Predictive Alerts</Label>
-                    <p className="text-xs text-slate-400 mt-1">Enable AI-driven alerts for stock shortages</p>
+                    <Label className="text-slate-900 dark:text-slate-200 text-base font-bold cursor-pointer" htmlFor="pred-alerts">Predictive Alerts</Label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enable AI-driven alerts for stock shortages</p>
                   </div>
                   <Switch
                     id="pred-alerts"
@@ -397,11 +396,11 @@ export default function SettingsPage() {
                     onCheckedChange={(v) => updateField("enable_predictive_alerts", v)}
                   />
                 </div>
-                <div className="h-px bg-white/5 w-full my-2" />
+                <div className="h-px bg-slate-200 dark:bg-white/5 w-full my-2" />
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-200 text-base cursor-pointer" htmlFor="email-notif">Email Notifications</Label>
-                    <p className="text-xs text-slate-400 mt-1">Send critical updates via email</p>
+                    <Label className="text-slate-900 dark:text-slate-200 text-base font-bold cursor-pointer" htmlFor="email-notif">Email Notifications</Label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Send critical updates via email</p>
                   </div>
                   <Switch
                     id="email-notif"
@@ -409,11 +408,11 @@ export default function SettingsPage() {
                     onCheckedChange={(v) => updateField("enable_email_notifications", v)}
                   />
                 </div>
-                <div className="h-px bg-white/5 w-full my-2" />
+                <div className="h-px bg-slate-200 dark:bg-white/5 w-full my-2" />
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-200 text-base cursor-pointer" htmlFor="push-notif">Push Notifications</Label>
-                    <p className="text-xs text-slate-400 mt-1">Enable browser push notifications</p>
+                    <Label className="text-slate-900 dark:text-slate-200 text-base font-bold cursor-pointer" htmlFor="push-notif">Push Notifications</Label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enable browser push notifications</p>
                   </div>
                   <Switch
                     id="push-notif"
@@ -424,9 +423,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300">Expiry-alert email recipients</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Expiry-alert email recipients</Label>
                 <Input
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   placeholder="buyer@example.com, manager@example.com"
                   value={(settings.expiry_alert_emails || []).join(", ")}
                   onChange={(e) =>
@@ -447,15 +446,15 @@ export default function SettingsPage() {
           <SettingsCard title="Forecast Engine Defaults" icon={TrendingUp}>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-slate-300">Algorithm Model</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Algorithm Model</Label>
                 <Select
                   value={settings.forecast_model || "exponential_smoothing"}
                   onValueChange={(v) => updateField("forecast_model", v)}
                 >
-                  <SelectTrigger className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50">
+                  <SelectTrigger className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200">
                     <SelectItem value="exponential_smoothing">Exponential Smoothing</SelectItem>
                     <SelectItem value="moving_average">Moving Average</SelectItem>
                     <SelectItem value="linear_regression">Linear Regression</SelectItem>
@@ -463,10 +462,10 @@ export default function SettingsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Default Horizon (days)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-bold">Default Horizon (days)</Label>
                 <Input
                   type="number"
-                  className="bg-slate-900/50 border-white/10 focus:border-indigo-500/50"
+                  className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl"
                   value={settings.forecast_horizon_days ?? 30}
                   onChange={(e) => updateField("forecast_horizon_days", Number(e.target.value))}
                 />
@@ -480,20 +479,20 @@ export default function SettingsPage() {
           <SettingsCard title="Scheduled Reports Overview" icon={FileText} description="Configure delivery from Reports module; listed here for overview.">
             <div className="space-y-3">
               {schedules.map((s) => (
-                <div key={s.id} className="flex justify-between items-center bg-slate-900/40 p-4 rounded-xl border border-white/5 hover:border-indigo-500/30 transition-colors">
+                <div key={s.id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-white/5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-colors">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-indigo-400" />
-                    <span className="font-medium text-slate-200">{s.name}</span>
+                    <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="font-bold text-slate-900 dark:text-slate-200">{s.name}</span>
                   </div>
-                  <Badge className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30">
+                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 font-bold">
                     {s.frequency} · {s.report_type}
                   </Badge>
                 </div>
               ))}
               {schedules.length === 0 && (
-                <div className="text-center py-8 text-slate-500 border border-dashed border-white/10 rounded-xl bg-slate-900/20">
-                  <FileText className="h-8 w-8 mx-auto mb-3 opacity-20" />
-                  <p>No scheduled reports configured yet</p>
+                <div className="text-center py-8 text-slate-500 border border-dashed border-slate-200 dark:border-white/10 rounded-xl bg-slate-50/50 dark:bg-slate-900/20">
+                  <FileText className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No scheduled reports configured yet</p>
                 </div>
               )}
             </div>
@@ -503,25 +502,25 @@ export default function SettingsPage() {
         {/* Locations Tab */}
         <TabsContent value="locations" className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <SettingsCard title="Registered Locations" icon={Warehouse}>
-            <div className="rounded-xl border border-white/5 overflow-hidden">
+            <div className="rounded-xl border border-slate-200/80 dark:border-white/5 overflow-hidden">
               <Table>
-                <TableHeader className="bg-slate-900/80">
-                  <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-slate-400 font-medium">Location Name</TableHead>
-                    <TableHead className="text-slate-400 font-medium">Type</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-right">Status</TableHead>
+                <TableHeader className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-white/5">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-slate-700 dark:text-slate-400 font-bold">Location Name</TableHead>
+                    <TableHead className="text-slate-700 dark:text-slate-400 font-bold">Type</TableHead>
+                    <TableHead className="text-slate-700 dark:text-slate-400 font-bold text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {locations.map((loc) => (
-                    <TableRow key={loc.id} className="border-white/5 hover:bg-slate-800/30">
-                      <TableCell className="font-medium text-slate-200">{loc.name}</TableCell>
-                      <TableCell className="text-slate-400 capitalize">{loc.location_type}</TableCell>
+                    <TableRow key={loc.id} className="border-b border-slate-200/60 dark:border-white/5 hover:bg-slate-50/80 dark:hover:bg-slate-800/30">
+                      <TableCell className="font-bold text-slate-900 dark:text-slate-200">{loc.name}</TableCell>
+                      <TableCell className="text-slate-600 dark:text-slate-400 capitalize font-medium">{loc.location_type}</TableCell>
                       <TableCell className="text-right">
                         {loc.is_active ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20">Active</Badge>
+                          <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 font-bold">Active</Badge>
                         ) : (
-                          <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20">Inactive</Badge>
+                          <Badge className="bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 font-bold">Inactive</Badge>
                         )}
                       </TableCell>
                     </TableRow>

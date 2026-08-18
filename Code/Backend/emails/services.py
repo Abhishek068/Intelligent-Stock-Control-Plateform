@@ -134,26 +134,32 @@ def queue_email(
 def _send_via_brevo(config: EmailProviderConfig, item: EmailQueue) -> tuple[bool, str]:
     try:
         import urllib.request
+        import urllib.error
         import json
+
+        sender_email = getattr(config, "sender_email", "") or ""
+        default_email = getattr(settings, "DEFAULT_FROM_EMAIL", "abhipatel5114@gmail.com")
+        if not sender_email or "@stocksense" in sender_email or ".local" in sender_email:
+            sender_email = default_email
 
         payload = {
             "sender": {
-                "name": config.sender_name or "StockSense",
-                "email": config.sender_email or settings.DEFAULT_FROM_EMAIL,
+                "name": getattr(config, "sender_name", None) or "StockSense",
+                "email": sender_email,
             },
             "to": [{"email": item.recipient}],
             "subject": item.subject,
             "htmlContent": item.body_html,
             "textContent": item.body_text or item.subject,
         }
-        if config.reply_to:
+        if getattr(config, "reply_to", None):
             payload["replyTo"] = {"email": config.reply_to}
 
         req = urllib.request.Request(
             "https://api.brevo.com/v3/smtp/email",
             data=json.dumps(payload).encode("utf-8"),
             headers={
-                "api-key": config.api_key,
+                "api-key": config.api_key.strip(),
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
@@ -162,6 +168,10 @@ def _send_via_brevo(config: EmailProviderConfig, item: EmailQueue) -> tuple[bool
         with urllib.request.urlopen(req, timeout=30) as resp:
             body = resp.read().decode("utf-8")
             return True, body
+    except urllib.error.HTTPError as exc:
+        err_body = exc.read().decode("utf-8", errors="replace")
+        logger.exception("Brevo send HTTPError %d: %s", exc.code, err_body)
+        return False, f"Brevo HTTP {exc.code}: {err_body}"
     except Exception as exc:
         logger.exception("Brevo send failed")
         return False, str(exc)
@@ -172,7 +182,7 @@ def _send_via_console(item: EmailQueue) -> tuple[bool, str]:
         send_mail(
             subject=item.subject,
             message=item.body_text or item.subject,
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@stocksense.local"),
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "abhipatel5114@gmail.com"),
             recipient_list=[item.recipient],
             html_message=item.body_html,
             fail_silently=False,
@@ -193,20 +203,24 @@ def process_queue_item(item: EmailQueue) -> bool:
         config = EmailProviderConfig.objects.filter(
             organization=item.organization, is_active=True
         ).first()
+    if not config:
+        config = EmailProviderConfig.objects.filter(is_active=True).first()
 
-    api_key = (config.api_key if config else "") or getattr(settings, "BREVO_API_KEY", "")
+    api_key = (config.api_key if config and config.api_key else "") or getattr(settings, "BREVO_API_KEY", "")
     if api_key:
         from emails.models import EmailProviderConfig as EPC
 
         effective = config or EPC(
             provider="brevo",
             api_key=api_key,
-            sender_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@stocksense.local"),
+            sender_email=getattr(settings, "DEFAULT_FROM_EMAIL", "abhipatel5114@gmail.com"),
             sender_name="StockSense",
             is_active=True,
         )
         if not getattr(effective, "api_key", None):
             effective.api_key = api_key
+        if not getattr(effective, "sender_email", None) or "@stocksense" in str(getattr(effective, "sender_email", "")):
+            effective.sender_email = getattr(settings, "DEFAULT_FROM_EMAIL", "abhipatel5114@gmail.com")
         ok, response = _send_via_brevo(effective, item)
     else:
         ok, response = _send_via_console(item)

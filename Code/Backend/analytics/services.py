@@ -467,9 +467,7 @@ class ForecastingService:
                 
                 total_pred = float(forecast_record.predicted_demand) if forecast_record else 60.0
                 raw_daily = total_pred / 30.0
-                daily_pred = max(1.0, round(raw_daily, 1))
-                if daily_pred == int(daily_pred):
-                    daily_pred = int(daily_pred)
+                daily_pred = int(round(max(1.0, raw_daily)))
                 forecast_points = [{"date": (today + timedelta(days=i)).strftime("%Y-%m-%d"), "predicted": daily_pred} for i in range(1, 31)]
 
                 from analytics.demand_pattern_service import DemandPatternClassificationService
@@ -517,10 +515,7 @@ class ForecastingService:
                     holiday_mult = 1.35 if ((d.month == 8 and 27 <= day_of_month <= 31) or (d.month == 9 and day_of_month <= 2)) else (1.15 if (25 <= day_of_month <= 30 or day_of_month <= 2) else 1.0)
                     organic_wave = 1.0 + (math.sin(i * 0.75) * 0.10)
 
-                    point_pred = max(1.0, round(total_daily_pred * dow_mult * holiday_mult * organic_wave, 1))
-                    if point_pred == int(point_pred):
-                        point_pred = int(point_pred)
-
+                    point_pred = int(round(max(1.0, total_daily_pred * dow_mult * holiday_mult * organic_wave)))
                     forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": point_pred})
                 metrics = {"model_name": "aggregate_multi_product_model"}
                 return {"history": history, "forecast": forecast_points, "metrics": metrics}
@@ -605,10 +600,7 @@ class ForecastingService:
                     organic_wave = 1.0 + (math.sin(i * 0.85 + prod_hash_offset) * 0.14)
 
                     daily_factor = dow_mult * holiday_mult * weather_mult * organic_wave
-                    point_pred = max(1.0, round(daily_base * daily_factor, 1))
-                    if point_pred == int(point_pred):
-                        point_pred = int(point_pred)
-
+                    point_pred = int(round(max(1.0, daily_base * daily_factor)))
                     forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": point_pred})
 
             from analytics.demand_pattern_service import DemandPatternClassificationService
@@ -662,10 +654,7 @@ class ForecastingService:
                 # 3. Aggregate organic fluctuation wave
                 organic_wave = 1.0 + (math.sin(i * 0.75) * 0.10)
 
-                point_pred = max(1.0, round(total_daily_pred * dow_mult * holiday_mult * organic_wave, 1))
-                if point_pred == int(point_pred):
-                    point_pred = int(point_pred)
-
+                point_pred = int(round(max(1.0, total_daily_pred * dow_mult * holiday_mult * organic_wave)))
                 forecast_points.append({"date": d.strftime("%Y-%m-%d"), "predicted": point_pred})
             metrics = {"model_name": "aggregate_multi_product_model"}
 

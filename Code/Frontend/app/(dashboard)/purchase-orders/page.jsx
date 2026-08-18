@@ -436,7 +436,7 @@ function PurchaseOrdersPageContent() {
         ]}
       />
 
-      <Card className="glass-card">
+      <Card className="glass-card border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl">
         <CardContent className="p-4 space-y-4">
           <FilterBar>
             <SearchInput
@@ -445,10 +445,10 @@ function PurchaseOrdersPageContent() {
               placeholder="Search PO or supplier..."
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl text-slate-800 dark:text-slate-200">
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
@@ -458,10 +458,10 @@ function PurchaseOrdersPageContent() {
               </SelectContent>
             </Select>
             <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl">
                 <SelectValue placeholder="Supplier" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl text-slate-800 dark:text-slate-200">
                 <SelectItem value="all">All suppliers</SelectItem>
                 {suppliers.map((s) => (
                   <SelectItem key={s.id} value={String(s.id)}>
@@ -473,36 +473,36 @@ function PurchaseOrdersPageContent() {
           </FilterBar>
 
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>PO #</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>AI Risk Level</TableHead>
-                <TableHead>Expected</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+            <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-4 pl-4 font-bold text-slate-700 dark:text-slate-300">PO #</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Supplier</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">AI Risk Level</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Expected</TableHead>
+                <TableHead className="text-right py-4 font-bold text-slate-700 dark:text-slate-300">Total</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400">
-                    Loading...
+                  <TableCell colSpan={7} className="text-center text-slate-500 dark:text-slate-400 py-12">
+                    <div className="animate-pulse">Loading purchase orders...</div>
                   </TableCell>
                 </TableRow>
               )}
               {!loading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-400">
-                    No purchase orders
+                  <TableCell colSpan={7} className="text-center text-slate-500 dark:text-slate-400 py-12">
+                    No purchase orders found matching filters.
                   </TableCell>
                 </TableRow>
               )}
               {filtered.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-mono text-sm">{order.po_number}</TableCell>
-                  <TableCell>{order.supplier_name}</TableCell>
+                <TableRow key={order.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-200/60 dark:border-white/5">
+                  <TableCell className="font-mono text-sm font-bold text-slate-900 dark:text-slate-200 pl-4">{order.po_number}</TableCell>
+                  <TableCell className="font-semibold text-slate-800 dark:text-slate-200">{order.supplier_name}</TableCell>
                   <TableCell>
                     <StatusBadge
                       status={order.status}
@@ -510,49 +510,51 @@ function PurchaseOrdersPageContent() {
                     />
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-mono font-medium ${
-                      order.risk_level === "critical" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                      order.risk_level === "high" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
-                      order.risk_level === "medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                      "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-mono font-bold ${
+                      order.risk_level === "critical" ? "bg-rose-50 border-rose-200 text-rose-700 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30" :
+                      order.risk_level === "high" ? "bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400 dark:border-orange-500/30" :
+                      order.risk_level === "medium" ? "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30" :
+                      "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30"
                     }`}>
                       {order.risk_level || "low"} ({Number(order.delay_probability || 0).toFixed(1)}%)
                     </span>
                   </TableCell>
-                  <TableCell>{order.expected_delivery || "—"}</TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-slate-600 dark:text-slate-400 font-medium">{order.expected_delivery || "—"}</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-slate-900 dark:text-slate-200">
                     £{Number(order.total_amount || 0).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-xl rounded-xl">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() => router.push(`/purchase-orders/${order.id}`)}
+                          className="cursor-pointer"
                         >
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
                         {canApprove && order.status === "draft" && (
-                          <DropdownMenuItem onClick={() => runAction(order.id, "submit")}>
-                            <Send className="mr-2 h-4 w-4" /> Submit
+                          <DropdownMenuItem onClick={() => runAction(order.id, "submit")} className="cursor-pointer">
+                            <Send className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Submit
                           </DropdownMenuItem>
                         )}
                         {canApprove &&
                           ["sent", "partial"].includes(order.status) && (
                             <DropdownMenuItem
                               onClick={() => runAction(order.id, "receive")}
+                              className="cursor-pointer text-emerald-600 dark:text-emerald-400 font-semibold"
                             >
                               <PackageCheck className="mr-2 h-4 w-4" /> Receive all
                             </DropdownMenuItem>
                           )}
                         {canDelete && order.status === "draft" && (
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
                             onClick={() => runAction(order.id, "delete")}
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
