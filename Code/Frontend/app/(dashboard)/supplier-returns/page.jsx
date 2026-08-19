@@ -387,14 +387,25 @@ function SupplierReturnsPageContent() {
                         <span className="truncate block text-slate-600 dark:text-slate-400 text-sm font-medium">{r.reason}</span>
                       </TableCell>
                       <TableCell className="text-right pr-8">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          asChild
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/20 font-semibold cursor-pointer"
-                        >
-                          <Link href={`/supplier-returns/${r.id}`}>Open Detail</Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => stockApi.downloadSupplierReturnSlip(r)}
+                            className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 font-semibold cursor-pointer text-xs"
+                            title="Print / Download Official Supplier Return Slip"
+                          >
+                            <Undo2 className="mr-1.5 h-3.5 w-3.5 text-rose-500" /> Return Slip
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            asChild
+                            className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/20 font-semibold cursor-pointer text-xs"
+                          >
+                            <Link href={`/supplier-returns/${r.id}`}>Open Detail</Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

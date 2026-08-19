@@ -41,7 +41,7 @@ export const NAV_GROUPS = [
     items: [
       { label: "Stock In", href: "/stock-in", icon: ArrowDownToLine, module: "stock_in" },
       { label: "Stock Out", href: "/stock-out", icon: ArrowUpFromLine, module: "stock_out" },
-      { label: "Stock Transfer", href: "/stock-transfer", icon: ArrowLeftRight, module: "transfers" },
+      { label: "Store / Branch Transfers", href: "/stock-transfer", icon: ArrowLeftRight, module: "transfers" },
       { label: "Stock Adjustment", href: "/stock-adjustment", icon: ClipboardCheck, module: "adjustments" },
     ],
   },
@@ -50,7 +50,6 @@ export const NAV_GROUPS = [
     items: [
       { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart, module: "reports" },
       { label: "Suppliers", href: "/suppliers", icon: Users, module: "suppliers" },
-      { label: "Invoices", href: "/invoices", icon: Receipt, module: "reports" },
     ],
   },
   {

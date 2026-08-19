@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, Ship, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Ship, XCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,13 @@ function SupplierReturnDetailContent() {
           <Badge className="ml-2 capitalize">{ret.status}</Badge>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="cursor-pointer border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200"
+            onClick={() => stockApi.downloadSupplierReturnSlip(ret)}
+          >
+            <FileText className="mr-2 h-4 w-4 text-rose-500" /> Print Return Slip
+          </Button>
           {ret.status === "draft" && (
             <>
               <Button
