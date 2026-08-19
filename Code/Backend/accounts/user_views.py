@@ -48,7 +48,6 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering_fields = ["email", "date_joined", "last_login", "status"]
 
     def get_queryset(self):
-        User.objects.filter(email="staff@stocksense.com").delete()
         qs = User.objects.prefetch_related("roles").filter(is_superuser=False).exclude(email="staff@stocksense.com")
         user = self.request.user
         if user.is_superuser:
