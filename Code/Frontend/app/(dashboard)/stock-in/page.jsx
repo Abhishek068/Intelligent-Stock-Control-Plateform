@@ -396,7 +396,7 @@ function StockInPageContent() {
               Recently Stocked In Products History
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Live audit history of received inventory transactions across warehouses
+              Live audit history of received inventory transactions for Central Warehouse
             </p>
           </div>
           <div className="relative w-full sm:w-64">

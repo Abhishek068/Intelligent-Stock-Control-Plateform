@@ -153,6 +153,12 @@ export default function AdminDashboard() {
         { name: "Peripherals", stockIn: 390, stockOut: 310 },
       ];
 
+  const liveInventoryValue = productsList.reduce((sum, p) => {
+    const qty = Number(p.stock ?? p.quantity_on_hand ?? p.stock_level ?? 0);
+    const price = Number(p.unit_price ?? p.cost_price ?? 0);
+    return sum + (qty * price);
+  }, 0);
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/5 pb-6">
@@ -215,15 +221,17 @@ export default function AdminDashboard() {
             <StatCardWithSparkline
               title="Inventory Value"
               value={
-                inv.inventory_value != null
-                  ? `£${Number(inv.inventory_value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                  : stats
-                    ? `£${Number(stats.total_inventory_value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                    : "£65,800"
+                liveInventoryValue > 0
+                  ? `£${liveInventoryValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  : inv.inventory_value != null
+                    ? `£${Number(inv.inventory_value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                    : stats
+                      ? `£${Number(stats.total_inventory_value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                      : "£65,800"
               }
               change="+24.2%"
               changeType="up"
-              subtitle="Across all warehouses"
+              subtitle="Central Warehouse Stock"
               colorScheme="emerald"
               icon={DollarSign}
               sparklineData={admin?.sparklines?.inventory_value || [

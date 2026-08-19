@@ -108,7 +108,7 @@ export function StatCardWithSparkline({
             </div>
           )}
           <span
-            className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate"
+            className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
             title={title}
           >
             {title}
@@ -131,21 +131,21 @@ export function StatCardWithSparkline({
         )}
       </div>
 
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <div className="min-w-0 flex-1 pr-1">
+      <div className="mt-4 flex items-end justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div
-            className={`font-extrabold tracking-tight text-slate-900 dark:text-white truncate ${
+            className={`font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap ${
               isExtraLong
-                ? "text-lg xl:text-xl"
+                ? "text-base xl:text-lg"
                 : isLong
-                  ? "text-xl xl:text-2xl"
-                  : "text-2xl sm:text-3xl"
+                  ? "text-lg xl:text-xl"
+                  : "text-xl sm:text-2xl xl:text-3xl"
             }`}
             title={valStr}
           >
             {valStr}
           </div>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400 truncate" title={subtitle}>
+          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap" title={subtitle}>
             {subtitle}
           </p>
         </div>
