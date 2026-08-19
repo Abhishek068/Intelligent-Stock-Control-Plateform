@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, Package, Truck, User, Sun, Moon } from "lucide-react";
+import { Search, Bell, Package, Truck, User, Sun, Moon, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,13 +12,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { authApi, searchApi } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNotificationStore } from "@/stores/notification.store";
-import { searchApi } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export function Topbar() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
   const unread = useNotificationStore((s) => s.unreadCount);
   const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
@@ -27,6 +39,51 @@ export function Topbar() {
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isDark, setIsDark] = useState(true);
+
+  // Change Password Modal State
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!user?.must_change_password && !currentPassword) {
+      toast.error("Please enter your current password");
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const res = await authApi.changePassword(
+        user?.must_change_password ? "" : currentPassword,
+        newPassword
+      );
+      if (res?.data?.user) setUser(res.data.user);
+      toast.success("Password changed successfully!");
+      setChangePasswordModalOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : (err.message || "Failed to change password"));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -252,7 +309,7 @@ export function Topbar() {
             )}
             <DropdownMenuItem
               className="hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-              onClick={() => router.push("/change-password")}
+              onClick={() => setChangePasswordModalOpen(true)}
             >
               Change password
             </DropdownMenuItem>
@@ -265,6 +322,93 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Change Password Dialog Modal */}
+      <Dialog open={changePasswordModalOpen} onOpenChange={setChangePasswordModalOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              {user?.must_change_password ? "Set New Password" : "Change Password"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Update your account password for <strong className="text-slate-700 dark:text-slate-300 font-mono">{user?.email}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleChangePasswordSubmit} className="space-y-4 py-2">
+            {!user?.must_change_password && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Current Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showCurrent ? "text" : "password"}
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl text-xs h-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Password</Label>
+              <div className="relative">
+                <Input
+                  type={showNew ? "text" : "password"}
+                  placeholder="At least 8 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl text-xs h-10 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                >
+                  {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-xl text-xs h-10 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 pt-3">
+              <Button type="button" variant="outline" onClick={() => setChangePasswordModalOpen(false)} className="rounded-xl">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={savingPassword} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl">
+                {savingPassword ? "Updating..." : "Update Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
