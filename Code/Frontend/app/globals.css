@@ -34,21 +34,21 @@
 .dark {
   --background: #0b0f1a;
   --foreground: #f8fafc;
-  --card: #1e293b;
+  --card: #0d1322;
   --card-foreground: #f8fafc;
-  --popover: #1e293b;
+  --popover: #0f172a;
   --popover-foreground: #f8fafc;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: #111827;
   --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
+  --muted: #0f172a;
   --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --accent: #0f172a;
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.1);
   --ring: #6366f1;
   --chart-1: #6366f1;
@@ -120,10 +120,10 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-white/85 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-900/60 dark:to-slate-950/90 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/20 rounded-2xl transition-all duration-300;
+    @apply bg-white/85 dark:bg-slate-900/40 dark:bg-gradient-to-br dark:from-slate-900/50 dark:via-slate-900/30 dark:to-slate-950/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/40 rounded-2xl transition-all duration-300;
   }
   .glass-panel {
-    @apply bg-white/75 dark:bg-gradient-to-br dark:from-slate-900/70 dark:via-slate-900/40 dark:to-slate-950/70 backdrop-blur-lg border border-slate-200/70 dark:border-white/10 rounded-xl shadow-lg shadow-slate-200/40 dark:shadow-black/20;
+    @apply bg-white/75 dark:bg-slate-900/30 dark:bg-gradient-to-br dark:from-slate-900/40 dark:via-slate-900/20 dark:to-slate-950/40 backdrop-blur-lg border border-slate-200/70 dark:border-white/10 rounded-xl shadow-lg shadow-slate-200/40 dark:shadow-black/30;
   }
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, MoreHorizontal, Eye, Trash2, Send, PackageCheck, Sparkles, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Plus, MoreHorizontal, Eye, Trash2, Send, PackageCheck, Sparkles, AlertTriangle, ShieldAlert, CheckCircle2, Download, Package, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -427,6 +427,43 @@ function PurchaseOrdersPageContent() {
         }
       />
 
+      {products.filter((p) => (p.quantity_on_hand ?? p.stock_level ?? 0) <= (p.reorder_level || p.minimum_level || 10)).length > 0 && (
+        <Card className="border border-amber-500/30 bg-amber-500/5 backdrop-blur-xl shadow-lg rounded-2xl overflow-hidden mb-2">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500 border border-amber-500/20 shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  AI Reorder Suggestions
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    {products.filter((p) => (p.quantity_on_hand ?? p.stock_level ?? 0) <= (p.reorder_level || p.minimum_level || 10)).length} low stock items
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Suggested products to reorder:{" "}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {products
+                      .filter((p) => (p.quantity_on_hand ?? p.stock_level ?? 0) <= (p.reorder_level || p.minimum_level || 10))
+                      .slice(0, 3)
+                      .map((p) => `${p.name} (${p.stock_level ?? p.quantity_on_hand ?? 0} left)`)
+                      .join(", ")}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => router.push("/reorder-recommendations")}
+              className="bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl text-xs h-9 px-4 shrink-0 cursor-pointer shadow-md"
+            >
+              <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> View AI Reorder Advice
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <StatsGrid
         stats={[
           { label: "Total", value: stats.total, color: "blue" },
@@ -475,13 +512,13 @@ function PurchaseOrdersPageContent() {
           <Table>
             <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="py-4 pl-4 font-bold text-slate-700 dark:text-slate-300">PO #</TableHead>
-                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Supplier</TableHead>
-                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
-                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">AI Risk Level</TableHead>
-                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Expected</TableHead>
-                <TableHead className="text-right py-4 font-bold text-slate-700 dark:text-slate-300">Total</TableHead>
-                <TableHead className="w-12" />
+                <TableHead className="py-4 pl-4 font-bold text-slate-700 dark:text-slate-300 w-[140px]">PO #</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300 max-w-[300px]">Supplier & Products</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300 w-[110px]">Status</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300 w-[140px]">AI Risk Level</TableHead>
+                <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300 w-[120px]">Expected</TableHead>
+                <TableHead className="text-right py-4 font-bold text-slate-700 dark:text-slate-300 w-[110px]">Total</TableHead>
+                <TableHead className="w-10 pr-4" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -501,8 +538,23 @@ function PurchaseOrdersPageContent() {
               )}
               {filtered.map((order) => (
                 <TableRow key={order.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-200/60 dark:border-white/5">
-                  <TableCell className="font-mono text-sm font-bold text-slate-900 dark:text-slate-200 pl-4">{order.po_number}</TableCell>
-                  <TableCell className="font-semibold text-slate-800 dark:text-slate-200">{order.supplier_name}</TableCell>
+                  <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200 pl-4 w-[140px] truncate">{order.po_number}</TableCell>
+                  <TableCell className="py-2.5 max-w-[300px]">
+                    <div className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{order.supplier_name}</div>
+                    {order.lines && order.lines.length > 0 ? (
+                      <div 
+                        className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5 flex items-center gap-1.5 truncate max-w-[280px]"
+                        title={order.lines.map((l) => `${l.product_name || "Product"} (${l.quantity_ordered || 1}x)`).join(", ")}
+                      >
+                        <Package className="h-3 w-3 text-indigo-500 shrink-0 inline" />
+                        <span className="truncate">
+                          {order.lines.map((l) => `${l.product_name || "Product"} (${l.quantity_ordered || 1}x)`).join(", ")}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">No line items</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge
                       status={order.status}
@@ -537,6 +589,20 @@ function PurchaseOrdersPageContent() {
                           className="cursor-pointer"
                         >
                           <Eye className="mr-2 h-4 w-4" /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            try {
+                              toast.info("Generating Purchase Order PDF...");
+                              await purchaseOrdersApi.downloadPdf(order.id, order.po_number);
+                              toast.success("PDF Downloaded");
+                            } catch {
+                              toast.error("Failed to download PDF");
+                            }
+                          }}
+                          className="cursor-pointer text-teal-600 dark:text-teal-400 font-medium"
+                        >
+                          <Download className="mr-2 h-4 w-4" /> Download PDF
                         </DropdownMenuItem>
                         {canApprove && order.status === "draft" && (
                           <DropdownMenuItem onClick={() => runAction(order.id, "submit")} className="cursor-pointer">

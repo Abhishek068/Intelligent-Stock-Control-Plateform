@@ -89,7 +89,10 @@ class ForecastViewSet(viewsets.ViewSet):
 
 
 
-        chart = ForecastingService.get_chart_data(product)
+        days_param = request.query_params.get("days")
+        days_num = int(days_param) if days_param and days_param.isdigit() else 90
+
+        chart = ForecastingService.get_chart_data(product=product, org=org, days=days_num)
 
         latest = DemandForecast.objects.filter(product=product).order_by("-generated_at").first()
 

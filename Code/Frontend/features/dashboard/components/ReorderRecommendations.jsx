@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sparkles, HelpCircle } from "lucide-react";
+import { Sparkles, HelpCircle, CheckCircle2 } from "lucide-react";
 
 function mapItem(item) {
   const explanation = item.explanation || item.explanation_json || {};
@@ -48,7 +48,13 @@ export function ReorderRecommendations({
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-between gap-3 p-0 pt-1">
         {mapped.length === 0 && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">No recommendations yet</p>
+          <div className="flex flex-col items-center justify-center p-8 text-center my-auto">
+            <div className="p-3 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 mb-3">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Stock Levels Optimal</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[200px]">No automated purchase orders needed at this time.</p>
+          </div>
         )}
         {mapped.map((item, idx) => {
           const ex = item.explanation || {};

@@ -72,6 +72,60 @@ class LocationViewSet(OrganizationScopedViewSet):
 
     search_fields = ["name"]
 
+    def list(self, request, *args, **kwargs):
+        try:
+            org = getattr(request.user, "organization", None) if hasattr(request, "user") else None
+            if org:
+                from inventory.models import Location, InventoryBalance
+                from stock.models import StockInTransaction, StockOutTransaction, Batch, StockAdjustment
+                from procurement.models import PurchaseOrder
+
+                main_loc = (
+                    Location.objects.filter(organization=org, name__icontains="Central").first()
+                    or Location.objects.filter(organization=org, name__icontains="Main").first()
+                    or Location.objects.filter(organization=org).first()
+                )
+                if not main_loc:
+                    main_loc = Location.objects.create(
+                        organization=org,
+                        name="Central Warehouse",
+                        location_type=Location.LocationType.WAREHOUSE,
+                        is_active=True
+                    )
+                else:
+                    if main_loc.name != "Central Warehouse" or not main_loc.is_active:
+                        main_loc.name = "Central Warehouse"
+                        main_loc.is_active = True
+                        main_loc.save()
+
+                other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
+                if other_locs.exists():
+                    for loc in other_locs:
+                        for bal in InventoryBalance.objects.filter(location=loc):
+                            mb, _ = InventoryBalance.objects.get_or_create(
+                                organization=org,
+                                location=main_loc,
+                                product=bal.product,
+                                defaults={"quantity_on_hand": 0, "allocated_quantity": 0}
+                            )
+                            mb.quantity_on_hand += bal.quantity_on_hand
+                            mb.allocated_quantity += bal.allocated_quantity
+                            mb.save()
+                            bal.delete()
+
+                        StockInTransaction.objects.filter(location=loc).update(location=main_loc)
+                        StockOutTransaction.objects.filter(location=loc).update(location=main_loc)
+                        Batch.objects.filter(location=loc).update(location=main_loc)
+                        StockAdjustment.objects.filter(location=loc).update(location=main_loc)
+                        PurchaseOrder.objects.filter(location=loc).update(location=main_loc)
+
+                        loc.is_active = False
+                        loc.save()
+        except Exception:
+            pass
+
+        return super().list(request, *args, **kwargs)
+
     @action(detail=False, methods=["get"], url_path="comparison")
     def comparison(self, request):
         org = request.user.organization
@@ -102,6 +156,58 @@ class LocationViewSet(OrganizationScopedViewSet):
             })
 
         return Response({"success": True, "data": res})
+
+    @action(detail=False, methods=["get", "post"], url_path="consolidate-main-warehouse")
+    def consolidate_main_warehouse(self, request):
+        from inventory.models import InventoryBalance
+        from stock.models import StockInTransaction, StockOutTransaction, Batch, StockAdjustment
+        from procurement.models import PurchaseOrder
+
+        org = request.user.organization
+        if not org:
+            return Response({"error": "No organization found"}, status=400)
+
+        # 1. Get or create the single "Main Warehouse"
+        main_loc, _ = Location.objects.get_or_create(
+            organization=org,
+            name="Main Warehouse",
+            defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True}
+        )
+        main_loc.is_active = True
+        main_loc.name = "Main Warehouse"
+        main_loc.save()
+
+        # 2. Reassign all existing balances, transactions, batches, orders to Main Warehouse
+        other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
+        other_count = other_locs.count()
+
+        for loc in other_locs:
+            for bal in InventoryBalance.objects.filter(location=loc):
+                mb, _ = InventoryBalance.objects.get_or_create(
+                    organization=org,
+                    location=main_loc,
+                    product=bal.product,
+                    defaults={"quantity_on_hand": 0, "allocated_quantity": 0}
+                )
+                mb.quantity_on_hand += bal.quantity_on_hand
+                mb.allocated_quantity += bal.allocated_quantity
+                mb.save()
+                bal.delete()
+
+            StockInTransaction.objects.filter(location=loc).update(location=main_loc)
+            StockOutTransaction.objects.filter(location=loc).update(location=main_loc)
+            Batch.objects.filter(location=loc).update(location=main_loc)
+            StockAdjustment.objects.filter(location=loc).update(location=main_loc)
+            PurchaseOrder.objects.filter(location=loc).update(location=main_loc)
+
+            loc.is_active = False
+            loc.save()
+
+        return Response({
+            "success": True,
+            "message": f"Consolidated all inventory to '{main_loc.name}' (ID: {main_loc.id}). Deactivated {other_count} extra locations.",
+            "main_location": {"id": main_loc.id, "name": main_loc.name}
+        })
 
 
 

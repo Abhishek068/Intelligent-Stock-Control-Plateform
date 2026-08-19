@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowUpFromLine, Barcode, AlertTriangle, CheckCircle, PackageMinus, Box } from "lucide-react";
+import { ArrowUpFromLine, Barcode, AlertTriangle, CheckCircle, PackageMinus, Box, History, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { productsApi, locationsApi, stockApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/stores/auth.store";
@@ -23,7 +24,7 @@ import { ModuleGate } from "@/components/shared/ModuleGate";
 
 const stockOutSchema = z.object({
   productId: z.string().min(1, "Select a product"),
-  locationId: z.string().min(1, "Select a location"),
+  locationId: z.string().optional(),
   quantity: z.coerce.number().int().positive("Quantity must be positive"),
   issuedTo: z.string().min(1, "Select destination"),
   batchId: z.string().optional(),
@@ -45,19 +46,40 @@ function StockOutPageContent() {
   const [batches, setBatches] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [searchFilter, setSearchFilter] = useState("");
 
   const form = useForm({
     resolver: zodResolver(stockOutSchema),
     defaultValues: { quantity: 1, batchId: "", reference: "", notes: "" }
   });
 
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const data = await stockApi.listStockOut();
+      setHistoryLogs(data);
+    } catch {
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    Promise.all([productsApi.list(), locationsApi.list()]).then(([p, l]) => {
-      setProducts(p);
-      setLocations(l);
-      if (l.length === 1) form.setValue("locationId", String(l[0].id));
-    });
-  }, [form]);
+    const loadInitialData = async () => {
+      try {
+        const pRes = await productsApi.list().catch(() => []);
+        const pList = Array.isArray(pRes) ? pRes : (pRes?.results || pRes?.data || []);
+        setProducts(pList);
+      } catch (err) {
+        console.error("Failed to load products", err);
+      }
+    };
+    loadInitialData();
+    loadHistory();
+  }, [loadHistory]);
 
   const productId = form.watch("productId");
   const locationId = form.watch("locationId");
@@ -106,6 +128,7 @@ function StockOutPageContent() {
       const refreshed = await productsApi.list();
       setProducts(refreshed);
       form.reset({ quantity: 1, batchId: "", reference: "", notes: "" });
+      await loadHistory();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Stock out failed");
     } finally {
@@ -204,47 +227,21 @@ function StockOutPageContent() {
                 <FormField control={form.control} name="productId" render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-between bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium cursor-pointer">
-                          {field.value ? products.find((p) => String(p.id) === field.value)?.name : "Select product..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl">
-                        <Command className="bg-transparent text-slate-800 dark:text-slate-200">
-                          <CommandInput placeholder="Search products..." className="border-b border-slate-200 dark:border-white/10 h-11" />
-                          <CommandEmpty className="py-6 text-center text-sm text-slate-500">No product found.</CommandEmpty>
-                          <CommandGroup className="max-h-[300px] overflow-auto">
-                            {products.map((p) => (
-                              <CommandItem 
-                                key={p.id} 
-                                value={String(p.id)} 
-                                onSelect={() => field.onChange(String(p.id))}
-                                className="cursor-pointer text-slate-800 dark:text-slate-300 py-3 flex items-center justify-between"
-                              >
-                                <span>{p.name}</span>
-                                <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">Stock: {p.stock}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage className="text-rose-500 text-xs" />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="locationId" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Location <span className="text-rose-500">*</span></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
                       <FormControl>
                         <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
-                          <SelectValue placeholder="Select location" />
+                          <SelectValue placeholder="Select product..." />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
-                        {locations.map((l) => <SelectItem key={l.id} value={String(l.id)} className="cursor-pointer">{l.name}</SelectItem>)}
+                      <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200 max-h-60">
+                        {products.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)} className="cursor-pointer">
+                            {p.name} {p.sku ? `(${p.sku})` : ""} — Stock: {p.stock ?? p.stock_level ?? p.quantity_on_hand ?? 0}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage className="text-rose-500 text-xs" />
@@ -439,6 +436,99 @@ function StockOutPageContent() {
               </div>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      {/* Recently Issued Products History */}
+      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full mt-8">
+        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold text-lg">
+              <History className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              Recently Issued Products (Stock Out History)
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Live audit history of issued and dispatched inventory transactions across warehouses
+            </p>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Filter by product or location..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="pl-9 bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-xs rounded-xl h-9"
+            />
+          </div>
+        </div>
+
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/80 dark:border-white/5">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-3.5 pl-6 font-bold text-slate-700 dark:text-slate-300">Date & Time</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300">Product</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300">Location / Warehouse</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300">Issued To</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300 text-right">Quantity Issued</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300">Batch #</TableHead>
+                  <TableHead className="py-3.5 font-bold text-slate-700 dark:text-slate-300 pr-6">Reference</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {historyLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-slate-400">Loading stock out history...</TableCell>
+                  </TableRow>
+                )}
+                {!historyLoading && historyLogs.filter((i) => 
+                  !searchFilter || 
+                  (i.product_name || "").toLowerCase().includes(searchFilter.toLowerCase()) || 
+                  (i.location_name || "").toLowerCase().includes(searchFilter.toLowerCase()) ||
+                  (i.issued_to || "").toLowerCase().includes(searchFilter.toLowerCase())
+                ).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-slate-400">No stock out transactions found.</TableCell>
+                  </TableRow>
+                )}
+                {!historyLoading && historyLogs.filter((i) => 
+                  !searchFilter || 
+                  (i.product_name || "").toLowerCase().includes(searchFilter.toLowerCase()) || 
+                  (i.location_name || "").toLowerCase().includes(searchFilter.toLowerCase()) ||
+                  (i.issued_to || "").toLowerCase().includes(searchFilter.toLowerCase())
+                ).map((item) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 border-b border-slate-200/60 dark:border-white/5 text-xs">
+                    <TableCell className="pl-6 font-mono text-slate-600 dark:text-slate-400 py-3">
+                      {item.created_at || item.issued_at ? new Date(item.created_at || item.issued_at).toLocaleString() : "—"}
+                    </TableCell>
+                    <TableCell className="font-bold text-slate-900 dark:text-slate-200">
+                      {item.product_name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-medium">
+                        {item.location_name}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-600 dark:text-slate-400 font-medium">
+                      {item.issued_to || "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
+                        -{item.quantity} units
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-slate-600 dark:text-slate-400">
+                      {item.batch_label || "FEFO Auto"}
+                    </TableCell>
+                    <TableCell className="text-slate-500 dark:text-slate-400 pr-6">
+                      {item.reference || item.notes || "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

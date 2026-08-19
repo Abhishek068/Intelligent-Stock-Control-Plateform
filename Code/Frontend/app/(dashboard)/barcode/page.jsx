@@ -496,7 +496,7 @@ export default function ScannerPage() {
         </div>
       </div>
 
-      <Card className="relative overflow-hidden bg-white/90 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-900/60 dark:to-indigo-950/40 border border-slate-200/80 dark:border-indigo-500/20 shadow-2xl rounded-3xl">
+      <Card className="relative overflow-hidden glass-card border border-slate-200/80 dark:border-white/10 shadow-2xl rounded-3xl">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
 
         <CardContent className="p-8">
@@ -506,7 +506,7 @@ export default function ScannerPage() {
                 onClick={() =>
                   showCamera ? stopCameraScan() : startCameraScan()
                 }
-                className="flex flex-col items-center justify-center rounded-2xl bg-purple-50 dark:bg-purple-500/20 p-5 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/30 hover:scale-105 transition-all duration-200 focus:outline-none cursor-pointer border border-purple-200 dark:border-purple-500/30 min-w-[130px] shadow-sm"
+                className="flex flex-col items-center justify-center rounded-2xl bg-purple-50/80 dark:bg-purple-500/10 p-5 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 hover:scale-105 transition-all duration-200 focus:outline-none cursor-pointer border border-purple-200 dark:border-purple-500/20 min-w-[130px] shadow-sm backdrop-blur-md"
                 title="Use Live Camera Scanner"
               >
                 <Camera className="h-8 w-8 mb-2 text-purple-600 dark:text-purple-400" />
@@ -517,7 +517,7 @@ export default function ScannerPage() {
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-500/20 p-5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 hover:scale-105 transition-all duration-200 focus:outline-none cursor-pointer border border-indigo-200 dark:border-indigo-500/30 min-w-[130px] shadow-sm"
+                className="flex flex-col items-center justify-center rounded-2xl bg-indigo-50/80 dark:bg-indigo-500/10 p-5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 hover:scale-105 transition-all duration-200 focus:outline-none cursor-pointer border border-indigo-200 dark:border-indigo-500/20 min-w-[130px] shadow-sm backdrop-blur-md"
                 title="Upload Barcode or QR Image"
               >
                 <ImageIcon className="h-8 w-8 mb-2 text-indigo-600 dark:text-indigo-400" />
@@ -540,7 +540,7 @@ export default function ScannerPage() {
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="pl-11 h-12 bg-white dark:bg-slate-950/70 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl text-base font-mono font-semibold"
+                  className="pl-11 h-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl text-base font-mono font-semibold"
                   autoFocus
                 />
               </div>
@@ -570,7 +570,7 @@ export default function ScannerPage() {
                     setBarcodeInput(sampleSku);
                     handleScanCode(sampleSku);
                   }}
-                  className="rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 hover:scale-105 transition-all font-mono font-bold cursor-pointer"
+                  className="rounded-full border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/80 dark:bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 hover:scale-105 transition-all font-mono font-bold cursor-pointer"
                 >
                   {sampleSku}
                 </button>
@@ -581,7 +581,7 @@ export default function ScannerPage() {
       </Card>
 
       {showCamera && (
-        <Card className="border-slate-200 dark:border-indigo-500/30 bg-white dark:bg-slate-900/90 p-6 shadow-2xl rounded-2xl">
+        <Card className="border-slate-200/80 dark:border-white/10 glass-card p-6 shadow-2xl rounded-2xl">
           <CardContent className="flex flex-col items-center justify-center p-0 relative">
             <div className="flex w-full items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-2">

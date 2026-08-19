@@ -314,21 +314,6 @@ function BatchesPageContent() {
                   className="pl-10 bg-white dark:bg-slate-950/60 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl h-10 w-full"
                 />
               </div>
-
-              
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-slate-950/60 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-10">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={String(l.id)}>
-                      {l.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
            
@@ -365,8 +350,7 @@ function BatchesPageContent() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="py-4 pl-6 font-bold text-slate-700 dark:text-slate-300">Batch Number</TableHead>
                   <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Product / SKU</TableHead>
-                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Location</TableHead>
-                  <TableHead className="py-4 text-right font-bold text-slate-700 dark:text-slate-300 pr-6">Qty on Hand</TableHead>
+                  <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Qty on Hand</TableHead>
                   <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Expiry Date</TableHead>
                   <TableHead className="py-4 font-bold text-slate-700 dark:text-slate-300">Status & Priority</TableHead>
                   <TableHead className="py-4 text-center font-bold text-slate-700 dark:text-slate-300 pr-6">Action</TableHead>
@@ -375,7 +359,7 @@ function BatchesPageContent() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-slate-500 dark:text-slate-400 py-16">
+                    <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400 py-16">
                       <div className="animate-pulse flex items-center justify-center gap-3">
                         <RefreshCw className="h-5 w-5 animate-spin text-indigo-500 dark:text-indigo-400" />
                         <span className="font-bold">Loading batch inventory...</span>
@@ -384,7 +368,7 @@ function BatchesPageContent() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-slate-500 dark:text-slate-400 py-16">
+                    <TableCell colSpan={6} className="text-center text-slate-500 dark:text-slate-400 py-16">
                       <div className="flex flex-col items-center justify-center">
                         <Archive className="h-12 w-12 text-slate-400 mb-3" />
                         <p className="text-base font-bold text-slate-700 dark:text-slate-300">No matching batches found.</p>
@@ -417,23 +401,14 @@ function BatchesPageContent() {
                         <div className="font-bold text-slate-900 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">{b.product_name}</div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5">{b.product_sku}</div>
                       </TableCell>
- 
-                      <TableCell>
-                        <span className="text-slate-800 dark:text-slate-300 flex items-center gap-1.5 text-sm font-medium">
-                          <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                          {b.location_name}
-                        </span>
+
+                      <TableCell className="font-bold text-slate-900 dark:text-slate-100 font-mono text-base">
+                        {b.quantity_on_hand?.toLocaleString()}
                       </TableCell>
  
-                      <TableCell className="text-right pr-6">
-                        <span className="text-lg font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                          {b.quantity_on_hand?.toLocaleString()}
-                        </span>
-                      </TableCell>
- 
-                      <TableCell>
-                        <span className="text-slate-800 dark:text-slate-300 flex items-center gap-1.5 text-sm font-medium">
-                          <Clock className="h-3.5 w-3.5 text-slate-400" />
+                      <TableCell className="whitespace-nowrap">
+                        <span className="text-slate-800 dark:text-slate-300 flex items-center gap-1.5 text-sm font-medium whitespace-nowrap">
+                          <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           {b.expiry_date || "No Expiry"}
                         </span>
                       </TableCell>
@@ -490,10 +465,6 @@ function BatchesPageContent() {
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Product</span>
                   <p className="font-bold text-slate-900 dark:text-slate-200 mt-0.5">{selectedBatch.product_name}</p>
                   <p className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">{selectedBatch.product_sku}</p>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Location</span>
-                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedBatch.location_name}</p>
                 </div>
                 <div>
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Supplier</span>

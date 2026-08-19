@@ -87,6 +87,7 @@ export const useAuthStore = create()(
             sessionStorage.setItem("auth-store", raw);
             localStorage.removeItem("auth-store");
           }
+          document.cookie = `auth_token=${response.data.access}; path=/; SameSite=Lax${rememberMe ? '; max-age=604800' : ''}`;
         }
 
         return user;
@@ -112,6 +113,7 @@ export const useAuthStore = create()(
         if (typeof window !== "undefined") {
           localStorage.removeItem("auth-store");
           sessionStorage.removeItem("auth-store");
+          document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
         }
       },
 

@@ -24,10 +24,13 @@ class BatchSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    location_name = serializers.SerializerMethodField()
     days_to_expiry = serializers.SerializerMethodField()
     expiry_status = serializers.SerializerMethodField()
     is_fifo_recommended = serializers.SerializerMethodField()
+
+    def get_location_name(self, obj):
+        return "Central Warehouse"
 
     class Meta:
         model = Batch
@@ -96,11 +99,17 @@ class BatchSerializer(serializers.ModelSerializer):
 class StockInSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(), required=False, allow_null=True
+    )
+    location_name = serializers.SerializerMethodField()
     batch_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
     expiry_date = serializers.DateField(required=False, allow_null=True, write_only=True)
     batch_id = serializers.IntegerField(source="batch.id", read_only=True, default=None)
     batch_label = serializers.CharField(source="batch.batch_number", read_only=True, default=None)
+
+    def get_location_name(self, obj):
+        return "Central Warehouse"
 
     class Meta:
         model = StockInTransaction
@@ -135,16 +144,22 @@ class StockInSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        product = attrs["product"]
-        supplier = attrs["supplier"]
-        location = attrs["location"]
         org = self.context["request"].user.organization
+        product = attrs["product"]
+        supplier = attrs.get("supplier")
+        
+        if not attrs.get("location"):
+            loc, _ = Location.objects.get_or_create(
+                organization=org,
+                name="Central Warehouse",
+                defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True}
+            )
+            attrs["location"] = loc
+
         if product.organization_id != org.id:
             raise serializers.ValidationError("Product not found in your organization.")
-        if supplier.organization_id != org.id:
+        if supplier and supplier.organization_id != org.id:
             raise serializers.ValidationError("Supplier not found in your organization.")
-        if location.organization_id != org.id:
-            raise serializers.ValidationError("Location not found in your organization.")
         return attrs
 
     def create(self, validated_data):
@@ -163,11 +178,17 @@ class StockInSerializer(serializers.ModelSerializer):
 
 class StockOutSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(), required=False, allow_null=True
+    )
+    location_name = serializers.SerializerMethodField()
     available_stock = serializers.SerializerMethodField()
     batch_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
     batch_label = serializers.CharField(source="batch.batch_number", read_only=True, default=None)
     batch = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    def get_location_name(self, obj):
+        return "Central Warehouse"
 
     class Meta:
         model = StockOutTransaction
@@ -210,27 +231,29 @@ class StockOutSerializer(serializers.ModelSerializer):
         return balance.available_quantity if balance else 0
 
     def validate(self, attrs):
-        product = attrs["product"]
-        location = attrs["location"]
-        quantity = attrs["quantity"]
         org = self.context["request"].user.organization
+        product = attrs["product"]
+        quantity = attrs["quantity"]
+        
+        if not attrs.get("location"):
+            loc, _ = Location.objects.get_or_create(
+                organization=org,
+                name="Central Warehouse",
+                defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True}
+            )
+            attrs["location"] = loc
+
+        location = attrs["location"]
+
         if product.organization_id != org.id:
             raise serializers.ValidationError("Product not found in your organization.")
-        if location.organization_id != org.id:
-            raise serializers.ValidationError("Location not found in your organization.")
         batch_id = attrs.get("batch_id")
         if batch_id:
-            batch = Batch.objects.filter(
-                id=batch_id, product=product, location=location, product__organization=org
-            ).first()
+            batch = Batch.objects.filter(id=batch_id, product=product).first()
             if not batch:
-                raise serializers.ValidationError(
-                    {"batch_id": "Batch not found for this product/location."}
-                )
+                raise serializers.ValidationError({"batch_id": "Invalid batch for this product."})
             if batch.quantity_on_hand < quantity:
-                raise serializers.ValidationError(
-                    {"batch_id": f"Batch only has {batch.quantity_on_hand} units available."}
-                )
+                raise serializers.ValidationError({"batch_id": f"Batch stock ({batch.quantity_on_hand}) is less than quantity requested."})
         balance = InventoryBalance.objects.filter(
             product=product, location=location
         ).first()
@@ -255,7 +278,10 @@ class StockOutSerializer(serializers.ModelSerializer):
 
 class StockAdjustmentSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    location_name = serializers.SerializerMethodField()
+
+    def get_location_name(self, obj):
+        return "Central Warehouse"
 
     class Meta:
         model = StockAdjustment

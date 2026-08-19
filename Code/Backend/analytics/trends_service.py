@@ -17,11 +17,9 @@ class TrendsService:
             return 1.0, {"error": "No product name provided"}
 
         try:
-            import time
             from pytrends.request import TrendReq
 
-            time.sleep(2)
-            pytrends = TrendReq(hl="en-GB", tz=0, timeout=(5, 10))
+            pytrends = TrendReq(hl="en-GB", tz=0, timeout=(3, 5))
 
             pytrends.build_payload(
                 [product_name], cat=0, timeframe="today 3-m", geo="GB", gprop=""

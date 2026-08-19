@@ -40,6 +40,11 @@ class PurchaseOrderService:
         expected_delivery=None,
         notes="",
     ):
+        if not expected_delivery:
+            from datetime import timedelta
+            lead_days = getattr(supplier, "lead_time_days", 7) or 7
+            expected_delivery = (timezone.now() + timedelta(days=lead_days)).date()
+
         po = PurchaseOrder.objects.create(
             organization=organization,
             po_number=cls.next_po_number(organization),
@@ -85,9 +90,15 @@ class PurchaseOrderService:
             raise ValueError("Only draft purchase orders can be submitted.")
         if not purchase_order.lines.exists():
             raise ValueError("Add at least one line before submitting.")
+        
+        if not purchase_order.expected_delivery:
+            from datetime import timedelta
+            lead_days = getattr(purchase_order.supplier, "lead_time_days", 7) or 7
+            purchase_order.expected_delivery = (timezone.now() + timedelta(days=lead_days)).date()
+
         purchase_order.status = PurchaseOrder.Status.SENT
         purchase_order.submitted_at = timezone.now()
-        purchase_order.save(update_fields=["status", "submitted_at", "updated_at"])
+        purchase_order.save(update_fields=["status", "submitted_at", "expected_delivery", "updated_at"])
         return purchase_order
 
     @classmethod

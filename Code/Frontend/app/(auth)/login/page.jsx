@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,8 +32,10 @@ function dashboardPath(user) {
   return "/staff";
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams ? searchParams.get("redirect") : null;
   const login = useAuthStore((s) => s.login);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +57,8 @@ export default function LoginPage() {
     try {
       const user = await login(data.email, data.password, remember);
       toast.success(`Signed in as ${user.primaryRole || user.role}`);
-      router.push(dashboardPath(user));
+      const target = redirectParam && redirectParam.startsWith("/") ? redirectParam : dashboardPath(user);
+      router.push(target);
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -188,5 +191,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
