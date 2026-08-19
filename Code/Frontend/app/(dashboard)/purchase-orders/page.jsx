@@ -145,7 +145,13 @@ function PurchaseOrdersPageContent() {
       !q ||
       String(order.po_number || "").toLowerCase().includes(q) ||
       String(order.supplier_name || "").toLowerCase().includes(q);
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+
+    let matchesStatus = true;
+    if (statusFilter === "draft") matchesStatus = order.status === "draft";
+    else if (statusFilter === "open" || statusFilter === "sent") matchesStatus = order.status === "sent" || order.status === "partial" || order.status === "approved";
+    else if (statusFilter === "received") matchesStatus = order.status === "received";
+    else if (statusFilter !== "all") matchesStatus = order.status === statusFilter;
+
     const matchesSupplier =
       supplierFilter === "all" || String(order.supplier) === supplierFilter;
     return matchesSearch && matchesStatus && matchesSupplier;
@@ -466,10 +472,46 @@ function PurchaseOrdersPageContent() {
 
       <StatsGrid
         stats={[
-          { label: "Total", value: stats.total, color: "blue" },
-          { label: "Draft", value: stats.draft, color: "slate" },
-          { label: "Open", value: stats.sent, color: "amber" },
-          { label: "Received", value: stats.received, color: "green" },
+          {
+            label: "Total",
+            value: stats.total,
+            color: "blue",
+            isActive: statusFilter === "all",
+            onClick: () => {
+              setStatusFilter("all");
+              toast.info("Showing all purchase orders");
+            },
+          },
+          {
+            label: "Draft",
+            value: stats.draft,
+            color: "slate",
+            isActive: statusFilter === "draft",
+            onClick: () => {
+              setStatusFilter("draft");
+              toast.info("Filtered to Draft purchase orders");
+            },
+          },
+          {
+            label: "Open",
+            value: stats.sent,
+            color: "amber",
+            isActive: statusFilter === "open" || statusFilter === "sent",
+            onClick: () => {
+              setStatusFilter("open");
+              toast.info("Filtered to Open (Sent) purchase orders");
+            },
+          },
+          {
+            label: "Received",
+            value: stats.received,
+            color: "green",
+            isActive: statusFilter === "received",
+            onClick: () => {
+              setStatusFilter("received");
+              toast.success("Filtered to Received purchase orders");
+            },
+          },
         ]}
       />
 

@@ -100,15 +100,15 @@ export function StatCardWithSparkline({
     <Card
       className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-lg shadow-slate-200/50 dark:shadow-none transition-all duration-300 ${theme.cardBg}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0 pr-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
           {Icon && (
-            <div className={`rounded-xl p-2.5 shrink-0 shadow-sm ${theme.iconBg}`}>
+            <div className={`rounded-xl p-2 shrink-0 shadow-sm ${theme.iconBg}`}>
               <Icon className="h-4 w-4" />
             </div>
           )}
           <span
-            className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
+            className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate"
             title={title}
           >
             {title}
@@ -134,7 +134,7 @@ export function StatCardWithSparkline({
       <div className="mt-4 flex items-end justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div
-            className={`font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap ${
+            className={`font-extrabold tracking-tight text-slate-900 dark:text-white truncate ${
               isExtraLong
                 ? "text-base xl:text-lg"
                 : isLong
@@ -145,12 +145,15 @@ export function StatCardWithSparkline({
           >
             {valStr}
           </div>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap" title={subtitle}>
+          <p
+            className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400 truncate"
+            title={subtitle}
+          >
             {subtitle}
           </p>
         </div>
 
-        <div className="h-11 w-24 shrink-0">
+        <div className="h-10 w-20 sm:w-24 shrink-0 ml-2">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={points}>
               <Area

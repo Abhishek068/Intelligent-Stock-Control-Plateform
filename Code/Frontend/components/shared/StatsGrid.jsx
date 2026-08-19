@@ -144,7 +144,12 @@ export function StatsGrid({ stats, columns = 4 }) {
         return (
           <Card
             key={stat.label || index}
-            className={`relative overflow-hidden group glass-card bg-white/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 ${colors.borderHover} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl rounded-2xl shadow-md`}
+            onClick={stat.onClick}
+            className={`relative overflow-hidden group glass-card bg-white/90 dark:bg-slate-900/60 border ${
+              stat.isActive
+                ? "ring-2 ring-indigo-500 border-indigo-500 shadow-indigo-500/10 scale-[1.02]"
+                : "border-slate-200/80 dark:border-white/10"
+            } ${stat.onClick ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : ""} ${colors.borderHover} transition-all duration-300 rounded-2xl shadow-md`}
           >
             {/* Subtle top glowing gradient bar */}
             <div

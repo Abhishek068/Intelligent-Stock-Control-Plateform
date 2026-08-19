@@ -487,37 +487,26 @@ class ReportViewSet(viewsets.ViewSet):
 
 
         if report_type == "inventory":
+            from inventory.models import Product
+            from django.db.models import Sum
+            from decimal import Decimal
 
-            from inventory.models import InventoryBalance
-            from stock.services import StockService
+            products = Product.objects.filter(
+                organization=org
+            ).select_related("category").prefetch_related("inventory_balances")
 
-
-
-            balances = InventoryBalance.objects.filter(
-
-                product__organization=org
-
-            ).select_related("product", "product__category", "location")
-
-            data = [
-
-                {
-
-                    "product": b.product.name,
-
-                    "sku": b.product.sku,
-
-                    "stock": b.quantity_on_hand,
-
-                    "value": float(StockService.inventory_value(b.product, b.location)),
-
-                    "category": b.product.category.name,
-
-                }
-
-                for b in balances
-
-            ]
+            data = []
+            for p in products:
+                total_stock = p.inventory_balances.aggregate(total=Sum("quantity_on_hand"))["total"] or 0
+                unit_price = Decimal(str(p.unit_price or 0))
+                total_val = float(unit_price * Decimal(total_stock))
+                data.append({
+                    "product": p.name,
+                    "sku": p.sku,
+                    "stock": total_stock,
+                    "value": round(total_val, 2),
+                    "category": p.category.name if p.category else "Uncategorized",
+                })
 
         elif report_type == "movements":
             from datetime import timedelta

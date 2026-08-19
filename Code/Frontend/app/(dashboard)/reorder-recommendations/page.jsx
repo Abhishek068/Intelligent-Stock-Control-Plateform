@@ -162,7 +162,18 @@ export default function ReorderRecommendationsPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border border-teal-200/80 dark:border-teal-500/30 bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group">
+        {/* Total Suggested Units Card */}
+        <Card
+          onClick={() => {
+            setPriorityFilter("all");
+            toast.info("Showing all reorder items");
+          }}
+          className={`border bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            priorityFilter === "all"
+              ? "ring-2 ring-teal-500 border-teal-500 shadow-teal-500/10"
+              : "border-teal-200/80 dark:border-teal-500/30 hover:border-teal-400"
+          }`}
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-emerald-500/5 group-hover:from-teal-500/10 group-hover:to-emerald-500/10 transition-colors pointer-events-none" />
           <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 mb-2">
@@ -174,8 +185,19 @@ export default function ReorderRecommendationsPage() {
             </p>
           </CardContent>
         </Card>
-        
-        <Card className="border border-rose-200/80 dark:border-rose-500/30 bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group">
+
+        {/* Critical Items Card */}
+        <Card
+          onClick={() => {
+            setPriorityFilter("critical");
+            toast.warning("Filtered to Critical priority items");
+          }}
+          className={`border bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            priorityFilter === "critical"
+              ? "ring-2 ring-rose-500 border-rose-500 shadow-rose-500/20"
+              : "border-rose-200/80 dark:border-rose-500/30 hover:border-rose-400"
+          }`}
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-pink-500/5 group-hover:from-rose-500/10 group-hover:to-pink-500/10 transition-colors pointer-events-none" />
           <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-2">
@@ -187,8 +209,19 @@ export default function ReorderRecommendationsPage() {
             </p>
           </CardContent>
         </Card>
-        
-        <Card className="border border-amber-200/80 dark:border-amber-500/30 bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group">
+
+        {/* High Priority Card */}
+        <Card
+          onClick={() => {
+            setPriorityFilter("high");
+            toast.info("Filtered to High priority items");
+          }}
+          className={`border bg-white/90 dark:bg-slate-900/40 backdrop-blur-2xl shadow-md overflow-hidden rounded-2xl relative group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            priorityFilter === "high"
+              ? "ring-2 ring-amber-500 border-amber-500 shadow-amber-500/20"
+              : "border-amber-200/80 dark:border-amber-500/30 hover:border-amber-400"
+          }`}
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 group-hover:from-amber-500/10 group-hover:to-orange-500/10 transition-colors pointer-events-none" />
           <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">

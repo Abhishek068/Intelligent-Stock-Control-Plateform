@@ -50,6 +50,7 @@ export const NAV_GROUPS = [
     items: [
       { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart, module: "reports" },
       { label: "Suppliers", href: "/suppliers", icon: Users, module: "suppliers" },
+      { label: "Supplier Inbox", href: "/supplier-inbox", icon: FileText, module: "suppliers" },
     ],
   },
   {

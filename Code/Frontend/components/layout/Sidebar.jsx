@@ -76,6 +76,7 @@ export function Sidebar() {
         { name: "Store / Branch Transfers", href: "/stock-transfer", icon: ArrowLeftRight, show: true },
         { name: "Adjustments", href: "/stock-adjustment", icon: AlertTriangle, show: can("adjustments") },
         { name: "Supplier Returns", href: "/supplier-returns", icon: Undo2, show: can("stock_out") },
+        { name: "Supplier Inbox & Issues", href: "/supplier-inbox", icon: Mail, show: true },
         { name: "Purchase Orders", href: "/purchase-orders", icon: FileText, show: can("purchase_orders") || can("reports") },
       ],
     },

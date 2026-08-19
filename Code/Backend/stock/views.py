@@ -365,6 +365,7 @@ class BatchViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BatchSerializer
     module_permission = "stock_in"
     permission_classes = [HasModulePermission]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["product", "location", "supplier"]
     http_method_names = ["get", "post", "head", "options"]
@@ -378,6 +379,21 @@ class BatchViewSet(viewsets.ReadOnlyModelViewSet):
         active_only = self.request.query_params.get("active_only", "true").lower()
         if active_only not in ("false", "0", "no"):
             qs = qs.filter(quantity_on_hand__gt=0)
+        
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            today = timezone.now().date()
+            if status_param == "expired":
+                qs = qs.filter(expiry_date__isnull=False, expiry_date__lt=today)
+            elif status_param == "critical":
+                qs = qs.filter(expiry_date__isnull=False, expiry_date__gte=today, expiry_date__lte=today + timedelta(days=7))
+            elif status_param == "warning":
+                qs = qs.filter(expiry_date__isnull=False, expiry_date__gt=today + timedelta(days=7), expiry_date__lte=today + timedelta(days=15))
+            elif status_param == "attention":
+                qs = qs.filter(expiry_date__isnull=False, expiry_date__gt=today + timedelta(days=15), expiry_date__lte=today + timedelta(days=30))
+            elif status_param == "healthy":
+                qs = qs.filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=today + timedelta(days=30)))
+
         expiring_within = self.request.query_params.get("expiring_within")
         if expiring_within is not None:
             try:

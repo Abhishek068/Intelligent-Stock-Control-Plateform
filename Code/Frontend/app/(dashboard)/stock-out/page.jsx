@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,17 +32,11 @@ const stockOutSchema = z.object({
   notes: z.string().optional()
 });
 
-const DESTINATIONS = [
-  { value: "Department A", label: "Department A" },
-  { value: "Department B", label: "Department B" },
-  { value: "Customer", label: "Customer" },
-  { value: "Internal use", label: "Internal use" }
-];
-
 function StockOutPageContent() {
   const user = useAuthStore((s) => s.user);
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [registeredStores, setRegisteredStores] = useState([]);
   const [batches, setBatches] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -70,16 +64,63 @@ function StockOutPageContent() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const pRes = await productsApi.list().catch(() => []);
+        const [pRes, lRes] = await Promise.all([
+          productsApi.list().catch(() => []),
+          locationsApi.list().catch(() => [])
+        ]);
         const pList = Array.isArray(pRes) ? pRes : (pRes?.results || pRes?.data || []);
+        const lList = Array.isArray(lRes) ? lRes : (lRes?.results || lRes?.data || []);
+
+        let savedStores = [];
+        try {
+          const stored = localStorage.getItem("registered_stores");
+          if (stored) savedStores = JSON.parse(stored);
+        } catch {}
+
         setProducts(pList);
+        setLocations(lList);
+        setRegisteredStores(savedStores);
       } catch (err) {
-        console.error("Failed to load products", err);
+        console.error("Failed to load initial data", err);
       }
     };
     loadInitialData();
     loadHistory();
   }, [loadHistory]);
+
+  const destinationOptions = useMemo(() => {
+    const opts = [];
+
+    // Registered Stores & Branches
+    registeredStores.forEach((st) => {
+      opts.push({ value: `Store: ${st.name}`, label: `🏬 ${st.name} (${st.type || "Retail Store"})` });
+    });
+
+    // Backend System Locations
+    locations.forEach((loc) => {
+      if (loc.name !== "Central Warehouse") {
+        opts.push({ value: `Location: ${loc.name}`, label: `📍 ${loc.name}` });
+      }
+    });
+
+    // Fallback store options if none registered yet
+    if (opts.length === 0) {
+      opts.push(
+        { value: "Retail Store 1 (Main Street)", label: "🏬 Retail Store 1 (Main Street)" },
+        { value: "Retail Branch 2 (West End)", label: "🏬 Retail Branch 2 (West End)" }
+      );
+    }
+
+    // Standard Dispatch Categories
+    opts.push(
+      { value: "Customer Sales Dispatch", label: "🛒 Customer Sales Dispatch" },
+      { value: "Internal Department Use", label: "🏢 Internal Department Use" },
+      { value: "Damaged / Expired Stock Removal", label: "⚠️ Damaged / Expired Stock Removal" },
+      { value: "Quality Control & Sample Testing", label: "🧪 Quality Control & Sample Testing" }
+    );
+
+    return opts;
+  }, [registeredStores, locations]);
 
   const productId = form.watch("productId");
   const locationId = form.watch("locationId");
@@ -349,7 +390,7 @@ function StockOutPageContent() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-2xl rounded-xl text-slate-800 dark:text-slate-200">
-                        {DESTINATIONS.map((d) => <SelectItem key={d.value} value={d.value} className="cursor-pointer">{d.label}</SelectItem>)}
+                        {destinationOptions.map((d) => <SelectItem key={d.value} value={d.value} className="cursor-pointer">{d.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage className="text-rose-500 text-xs" />
@@ -402,12 +443,20 @@ function StockOutPageContent() {
               {selectedProduct && !isOverIssuing && quantity > 0 && (
                 <div className="flex items-start gap-4 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-5 shadow-sm relative overflow-hidden group">
                   <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors pointer-events-none" />
-                  <CheckCircle className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400 relative z-10" />
-                  <div className="relative z-10">
-                    <h5 className="font-bold text-blue-900 dark:text-blue-100 text-base font-sans">Issue Summary</h5>
-                    <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                      Ready to issue <strong className="text-blue-950 dark:text-white font-extrabold text-base mx-1 bg-blue-100 dark:bg-blue-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-blue-950 dark:text-white font-bold">{selectedProduct.name}</strong> under <span className="italic">{form.watch("batchId") ? "specified lot" : "automatic FEFO (earliest expiry) rule"}</span>.
-                    </p>
+                  <CheckCircle className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400 relative z-10 mt-0.5" />
+                  <div className="relative z-10 w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h5 className="font-bold text-blue-900 dark:text-blue-100 text-base font-sans">Dispatch Valuation Summary</h5>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mt-0.5">
+                        Ready to issue <strong className="text-blue-950 dark:text-white font-extrabold text-base mx-1 bg-blue-100 dark:bg-blue-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-blue-950 dark:text-white font-bold">{selectedProduct.name}</strong> under <span className="italic">{form.watch("batchId") ? "specified lot" : "automatic FEFO (earliest expiry) rule"}</span>.
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 bg-white/80 dark:bg-slate-950/60 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-500/30">
+                      <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Total Dispatch Value</div>
+                      <div className="text-xl font-extrabold text-blue-900 dark:text-blue-100">
+                        £{((quantity || 0) * (selectedProduct.unit_price || selectedProduct.unit_cost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

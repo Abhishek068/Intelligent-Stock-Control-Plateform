@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { 
   Layers, 
   RefreshCw, 
@@ -147,6 +147,45 @@ function BatchesPageContent() {
     }
   };
 
+  const counts = useMemo(() => {
+    let expired = summary?.expired_count;
+    let critical = summary?.critical_count;
+    let warning = summary?.warning_count;
+    let attention = summary?.attention_count;
+    let healthy = summary?.healthy_count;
+    let total = summary?.total_batches ?? batches.length;
+    let value = summary?.total_value;
+
+    if (expired == null && batches.length > 0) {
+      expired = batches.filter((b) => b.days_to_expiry !== null && b.days_to_expiry !== undefined && b.days_to_expiry < 0).length;
+    }
+    if (critical == null && batches.length > 0) {
+      critical = batches.filter((b) => b.days_to_expiry !== null && b.days_to_expiry !== undefined && b.days_to_expiry >= 0 && b.days_to_expiry <= 7).length;
+    }
+    if (warning == null && batches.length > 0) {
+      warning = batches.filter((b) => b.days_to_expiry !== null && b.days_to_expiry !== undefined && b.days_to_expiry > 7 && b.days_to_expiry <= 15).length;
+    }
+    if (attention == null && batches.length > 0) {
+      attention = batches.filter((b) => b.days_to_expiry !== null && b.days_to_expiry !== undefined && b.days_to_expiry > 15 && b.days_to_expiry <= 30).length;
+    }
+    if (healthy == null && batches.length > 0) {
+      healthy = batches.filter((b) => b.days_to_expiry === null || b.days_to_expiry === undefined || b.days_to_expiry > 30).length;
+    }
+    if (value == null && batches.length > 0) {
+      value = batches.reduce((s, b) => s + (Number(b.unit_cost || 0) * Number(b.quantity_on_hand || 0)), 0);
+    }
+
+    return {
+      total: total || 0,
+      expired: expired || 0,
+      critical: critical || 0,
+      warning: warning || 0,
+      attention: attention || 0,
+      healthy: healthy || 0,
+      value: value || 0,
+    };
+  }, [summary, batches]);
+
   const filtered = batches.filter((b) => {
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -155,6 +194,16 @@ function BatchesPageContent() {
         (b.product_name || "").toLowerCase().includes(q) ||
         (b.product_sku || "").toLowerCase().includes(q);
       if (!matchSearch) return false;
+    }
+
+    if (statusTab === "all") return true;
+
+    if (b.expiry_status) {
+      if (statusTab === "expired") return b.expiry_status === "expired";
+      if (statusTab === "critical") return b.expiry_status === "critical";
+      if (statusTab === "warning") return b.expiry_status === "warning";
+      if (statusTab === "attention") return b.expiry_status === "attention";
+      if (statusTab === "healthy") return b.expiry_status === "healthy" || b.expiry_status === "no_expiry";
     }
 
     const days = b.days_to_expiry;
@@ -218,63 +267,123 @@ function BatchesPageContent() {
 
    
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      
-        <Card className="border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-900/50 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Total Lots Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("all");
+            toast.info("Showing all stock lots");
+          }}
+          className={`border bg-white/90 dark:bg-slate-900/50 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "all"
+              ? "ring-2 ring-indigo-500 border-indigo-500 shadow-indigo-500/10"
+              : "border-slate-200/80 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/40"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">
             <span>Total Lots</span>
             <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-slate-100">{summary?.total_batches ?? batches.length}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium">Valued at £{summary?.total_value?.toLocaleString() ?? "0"}</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-slate-100">{counts.total.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium">Valued at £{Number(counts.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </Card>
 
-        
-        <Card className="border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Expired Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("expired");
+            toast.warning("Filtered to Expired lots (Blocked from issuance)");
+          }}
+          className={`border bg-rose-50 dark:bg-rose-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "expired"
+              ? "ring-2 ring-rose-500 border-rose-500 shadow-rose-500/20"
+              : "border-rose-200 dark:border-rose-500/30 hover:border-rose-400"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-rose-700 dark:text-rose-300 font-bold mb-1">
             <span>Expired</span>
             <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400 animate-pulse" />
           </div>
-          <div className="text-2xl font-black text-rose-900 dark:text-rose-200">{summary?.expired_count ?? 0}</div>
+          <div className="text-2xl font-black text-rose-900 dark:text-rose-200">{counts.expired.toLocaleString()}</div>
           <div className="text-[11px] text-rose-700/80 dark:text-rose-400/80 mt-1 font-semibold">Blocked from issuance</div>
         </Card>
 
-      
-        <Card className="border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Critical ≤7d Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("critical");
+            toast.warning("Filtered to Critical lots (≤7 days expiry)");
+          }}
+          className={`border bg-red-50 dark:bg-red-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "critical"
+              ? "ring-2 ring-red-500 border-red-500 shadow-red-500/20"
+              : "border-red-200 dark:border-red-500/30 hover:border-red-400"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-red-700 dark:text-red-300 font-bold mb-1">
             <span>Critical ≤7d</span>
             <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
           </div>
-          <div className="text-2xl font-black text-red-900 dark:text-red-200">{summary?.critical_count ?? 0}</div>
+          <div className="text-2xl font-black text-red-900 dark:text-red-200">{counts.critical.toLocaleString()}</div>
           <div className="text-[11px] text-red-700/80 dark:text-red-400/80 mt-1 font-semibold">Priority dispatch</div>
         </Card>
 
-       
-        <Card className="border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Warning ≤15d Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("warning");
+            toast.info("Filtered to Warning lots (≤15 days expiry)");
+          }}
+          className={`border bg-amber-50 dark:bg-amber-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "warning"
+              ? "ring-2 ring-amber-500 border-amber-500 shadow-amber-500/20"
+              : "border-amber-200 dark:border-amber-500/30 hover:border-amber-400"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 font-bold mb-1">
             <span>Warning ≤15d</span>
             <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </div>
-          <div className="text-2xl font-black text-amber-900 dark:text-amber-200">{summary?.warning_count ?? 0}</div>
+          <div className="text-2xl font-black text-amber-900 dark:text-amber-200">{counts.warning.toLocaleString()}</div>
           <div className="text-[11px] text-amber-800/80 dark:text-amber-400/80 mt-1 font-semibold">High priority</div>
         </Card>
 
-       
-        <Card className="border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Attention ≤30d Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("attention");
+            toast.info("Filtered to Attention lots (≤30 days expiry)");
+          }}
+          className={`border bg-blue-50 dark:bg-blue-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "attention"
+              ? "ring-2 ring-blue-500 border-blue-500 shadow-blue-500/20"
+              : "border-blue-200 dark:border-blue-500/30 hover:border-blue-400"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-blue-700 dark:text-blue-300 font-bold mb-1">
             <span>Attention ≤30d</span>
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="text-2xl font-black text-blue-900 dark:text-blue-200">{summary?.attention_count ?? 0}</div>
+          <div className="text-2xl font-black text-blue-900 dark:text-blue-200">{counts.attention.toLocaleString()}</div>
           <div className="text-[11px] text-blue-700/80 dark:text-blue-400/80 mt-1 font-semibold">Monitor window</div>
         </Card>
 
-      
-        <Card className="border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group">
+        {/* Healthy (>30d) Card */}
+        <Card
+          onClick={() => {
+            setStatusTab("healthy");
+            toast.success("Filtered to Healthy lots (>30 days expiry)");
+          }}
+          className={`border bg-emerald-50 dark:bg-emerald-500/10 backdrop-blur-xl p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-200 ${
+            statusTab === "healthy"
+              ? "ring-2 ring-emerald-500 border-emerald-500 shadow-emerald-500/20"
+              : "border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400"
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 font-bold mb-1">
             <span>Healthy (&gt;30d)</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-emerald-900 dark:text-emerald-200">{summary?.healthy_count ?? 0}</div>
+          <div className="text-2xl font-black text-emerald-900 dark:text-emerald-200">{counts.healthy.toLocaleString()}</div>
           <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-1 font-semibold">Normal shelf life</div>
         </Card>
       </div>

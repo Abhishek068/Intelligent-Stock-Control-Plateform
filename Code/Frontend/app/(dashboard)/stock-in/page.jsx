@@ -125,6 +125,25 @@ function StockInPageContent() {
     }
   };
 
+  const handleAutoGenerateBatch = () => {
+    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const code = `LOT-${todayStr}-${rand}`;
+    form.setValue("batchNumber", code);
+    toast.info(`Auto-generated batch: ${code}`);
+  };
+
+  const handleSetExpiryPreset = (monthsToAdd) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + monthsToAdd);
+    const isoDate = d.toISOString().slice(0, 10);
+    form.setValue("expiryDate", isoDate);
+    toast.info(`Expiry date set to ${isoDate} (+${monthsToAdd}m)`);
+  };
+
+  const unitCost = form.watch("unitCost") || 0;
+  const totalValuation = (quantity || 0) * (unitCost || 0);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
       {/* Header Section */}
@@ -185,18 +204,17 @@ function StockInPageContent() {
       </Card>
 
       {/* Main Receiving Form */}
-      <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative w-full">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10">
-          <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
-            <Box className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> 
-            Receive Stock
+      <Card className="border border-slate-200/80 dark:border-white/10 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-2xl overflow-hidden rounded-2xl relative w-full">
+        <div className="px-8 py-6 border-b border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-200 font-bold text-lg">
+              <Box className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> 
+              Receive Stock Form
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Live audit logging with automatic FIFO batch creation & inventory valuation
+            </p>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Transaction is persisted via API with audit logging
-          </p>
         </div>
 
         <CardContent className="p-8 relative z-10">
@@ -204,8 +222,15 @@ function StockInPageContent() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div className="grid gap-6 md:grid-cols-2">
                 <FormField control={form.control} name="productId" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
+                  <FormItem className="col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product <span className="text-rose-500">*</span></FormLabel>
+                      {selectedProduct && (
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          On Hand: {selectedProduct.stock ?? 0} units
+                        </span>
+                      )}
+                    </div>
                     <Select
                       value={field.value || ""}
                       onValueChange={(val) => {
@@ -291,10 +316,19 @@ function StockInPageContent() {
 
                 <FormField control={form.control} name="batchNumber" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Batch / Lot Number</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Batch / Lot Number</FormLabel>
+                      <button
+                        type="button"
+                        onClick={handleAutoGenerateBatch}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        ⚡ Auto-Generate
+                      </button>
+                    </div>
                     <FormControl>
                       <Input 
-                        placeholder="Leave blank to auto-generate" 
+                        placeholder="Leave blank or click Auto-Generate" 
                         {...field} 
                         className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 font-medium rounded-xl h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       />
@@ -305,7 +339,39 @@ function StockInPageContent() {
 
                 <FormField control={form.control} name="expiryDate" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Expiry Date</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Expiry Date</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSetExpiryPreset(3)}
+                          className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          +3m
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExpiryPreset(6)}
+                          className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          +6m
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExpiryPreset(12)}
+                          className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          +1yr
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExpiryPreset(24)}
+                          className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          +2yr
+                        </button>
+                      </div>
+                    </div>
                     <FormControl>
                       <Input 
                         type="date" 
@@ -348,14 +414,22 @@ function StockInPageContent() {
               )} />
 
               {selectedProduct && quantity > 0 && (
-                <div className="flex items-start gap-4 rounded-xl border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 p-5 shadow-sm relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-teal-500/5 group-hover:bg-teal-500/10 transition-colors pointer-events-none" />
-                  <CheckCircle className="h-6 w-6 shrink-0 text-teal-600 dark:text-teal-400 relative z-10" />
-                  <div className="relative z-10">
-                    <h5 className="font-bold text-teal-900 dark:text-teal-100 text-base">Receipt Summary</h5>
-                    <p className="text-sm text-teal-800 dark:text-teal-200 mt-1">
-                      Ready to receive <strong className="text-teal-950 dark:text-white font-extrabold text-base mx-1 bg-teal-100 dark:bg-teal-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-teal-950 dark:text-white font-bold">{selectedProduct.name}</strong> as <span className="italic">{user?.role}</span>.
-                    </p>
+                <div className="flex items-start gap-4 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-5 shadow-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
+                  <CheckCircle className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400 relative z-10 mt-0.5" />
+                  <div className="relative z-10 w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h5 className="font-bold text-emerald-900 dark:text-emerald-100 text-base">Receipt Valuation Summary</h5>
+                      <p className="text-sm text-emerald-800 dark:text-emerald-200 mt-0.5">
+                        Receiving <strong className="text-emerald-950 dark:text-white font-extrabold text-base mx-1 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded">{quantity}</strong> units of <strong className="text-emerald-950 dark:text-white font-bold">{selectedProduct.name}</strong> into Central Warehouse.
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 bg-white/80 dark:bg-slate-950/60 px-4 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30">
+                      <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Total Receipt Value</div>
+                      <div className="text-xl font-extrabold text-emerald-900 dark:text-emerald-100">
+                        £{totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
