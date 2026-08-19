@@ -55,6 +55,64 @@ class CategoryViewSet(OrganizationScopedViewSet):
 
 
 
+def consolidate_central_warehouse_inventory(org):
+    if not org:
+        return
+    try:
+        from inventory.models import Location, InventoryBalance, Product
+        from stock.models import StockInTransaction, StockOutTransaction, Batch, StockAdjustment
+        from procurement.models import PurchaseOrder
+
+        main_loc = (
+            Location.objects.filter(organization=org, name__icontains="Central").first()
+            or Location.objects.filter(organization=org, name__icontains="Main").first()
+            or Location.objects.filter(organization=org).first()
+        )
+        if not main_loc:
+            main_loc = Location.objects.create(
+                organization=org,
+                name="Central Warehouse",
+                location_type=Location.LocationType.WAREHOUSE,
+                is_active=True
+            )
+        else:
+            if main_loc.name != "Central Warehouse" or not main_loc.is_active:
+                main_loc.name = "Central Warehouse"
+                main_loc.is_active = True
+                main_loc.save()
+
+        other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
+        if other_locs.exists():
+            for loc in list(other_locs):
+                StockInTransaction.objects.filter(location=loc).update(location=main_loc)
+                StockOutTransaction.objects.filter(location=loc).update(location=main_loc)
+                Batch.objects.filter(location=loc).update(location=main_loc)
+                StockAdjustment.objects.filter(location=loc).update(location=main_loc)
+                PurchaseOrder.objects.filter(location=loc).update(location=main_loc)
+                loc.delete()
+
+        for product in Product.objects.filter(organization=org):
+            balances = InventoryBalance.objects.filter(product=product)
+            if balances.exists():
+                total_on_hand = sum(b.quantity_on_hand for b in balances)
+                total_allocated = sum(b.allocated_quantity for b in balances)
+                
+                main_bal, _ = InventoryBalance.objects.get_or_create(
+                    organization=org,
+                    location=main_loc,
+                    product=product,
+                    defaults={"quantity_on_hand": total_on_hand, "allocated_quantity": total_allocated}
+                )
+                if main_bal.quantity_on_hand != total_on_hand or main_bal.allocated_quantity != total_allocated:
+                    main_bal.quantity_on_hand = total_on_hand
+                    main_bal.allocated_quantity = total_allocated
+                    main_bal.save()
+
+                InventoryBalance.objects.filter(product=product).exclude(id=main_bal.id).delete()
+    except Exception:
+        pass
+
+
 class LocationViewSet(OrganizationScopedViewSet):
 
     queryset = Location.objects.all()
@@ -77,56 +135,9 @@ class LocationViewSet(OrganizationScopedViewSet):
         return qs.filter(name="Central Warehouse")
 
     def list(self, request, *args, **kwargs):
-        try:
-            org = getattr(request.user, "organization", None) if hasattr(request, "user") else None
-            if org:
-                from inventory.models import Location, InventoryBalance
-                from stock.models import StockInTransaction, StockOutTransaction, Batch, StockAdjustment
-                from procurement.models import PurchaseOrder
-
-                main_loc = (
-                    Location.objects.filter(organization=org, name__icontains="Central").first()
-                    or Location.objects.filter(organization=org, name__icontains="Main").first()
-                    or Location.objects.filter(organization=org).first()
-                )
-                if not main_loc:
-                    main_loc = Location.objects.create(
-                        organization=org,
-                        name="Central Warehouse",
-                        location_type=Location.LocationType.WAREHOUSE,
-                        is_active=True
-                    )
-                else:
-                    if main_loc.name != "Central Warehouse" or not main_loc.is_active:
-                        main_loc.name = "Central Warehouse"
-                        main_loc.is_active = True
-                        main_loc.save()
-
-                other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
-                if other_locs.exists():
-                    for loc in list(other_locs):
-                        for bal in InventoryBalance.objects.filter(location=loc):
-                            mb, _ = InventoryBalance.objects.get_or_create(
-                                organization=org,
-                                location=main_loc,
-                                product=bal.product,
-                                defaults={"quantity_on_hand": 0, "allocated_quantity": 0}
-                            )
-                            mb.quantity_on_hand += bal.quantity_on_hand
-                            mb.allocated_quantity += bal.allocated_quantity
-                            mb.save()
-                            bal.delete()
-
-                        StockInTransaction.objects.filter(location=loc).update(location=main_loc)
-                        StockOutTransaction.objects.filter(location=loc).update(location=main_loc)
-                        Batch.objects.filter(location=loc).update(location=main_loc)
-                        StockAdjustment.objects.filter(location=loc).update(location=main_loc)
-                        PurchaseOrder.objects.filter(location=loc).update(location=main_loc)
-
-                        loc.delete()
-        except Exception:
-            pass
-
+        org = getattr(request.user, "organization", None) if hasattr(request, "user") else None
+        if org:
+            consolidate_central_warehouse_inventory(org)
         return super().list(request, *args, **kwargs)
 
     @action(detail=False, methods=["get"], url_path="comparison")
@@ -233,6 +244,12 @@ class ProductViewSet(OrganizationScopedViewSet):
     search_fields = ["sku", "name", "barcode"]
 
     ordering_fields = ["name", "sku", "unit_price", "created_at"]
+
+    def list(self, request, *args, **kwargs):
+        org = getattr(request.user, "organization", None) if hasattr(request, "user") else None
+        if org:
+            consolidate_central_warehouse_inventory(org)
+        return super().list(request, *args, **kwargs)
 
 
 

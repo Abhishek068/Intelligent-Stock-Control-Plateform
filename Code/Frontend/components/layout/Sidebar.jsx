@@ -62,7 +62,6 @@ export function Sidebar() {
         { name: "Products", href: "/products", icon: Package, show: can("products") },
         { name: "Categories", href: "/categories", icon: Users, show: can("categories") },
         { name: "Suppliers", href: "/suppliers", icon: Users, show: can("suppliers") },
-        { name: "Warehouse", href: "/warehouse", icon: Warehouse, show: can("settings") },
         { name: "Barcode Scanner", href: "/barcode", icon: ScanBarcode, show: can("products", "edit") || can("stock_take") },
         { name: "Batches & Lots", href: "/batches", icon: Layers, show: can("stock_in") },
         { name: "Stock-take", href: "/stock-take", icon: Calendar, show: can("stock_take") },

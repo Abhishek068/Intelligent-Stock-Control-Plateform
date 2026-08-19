@@ -44,13 +44,17 @@ import { locationsApi, inventoryBalancesApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
+import { useRouter } from "next/navigation";
+
 export default function WarehousesPage() {
-  const { canEdit, isSuperAdmin, hasPermission } = useRoleAccess();
-  const canManage =
-    isSuperAdmin ||
-    hasPermission("products", "create") ||
-    hasPermission("products", "edit") ||
-    canEdit;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/products");
+  }, [router]);
+
+  return null;
+}
 
   const [warehouses, setWarehouses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");

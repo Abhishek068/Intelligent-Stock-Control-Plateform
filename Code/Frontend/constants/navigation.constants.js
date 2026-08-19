@@ -33,7 +33,6 @@ export const NAV_GROUPS = [
       { label: "Products", href: "/products", icon: Package, module: "products" },
       { label: "Categories", href: "/categories", icon: Layers, module: "categories" },
       { label: "Barcode / SKU", href: "/barcode", icon: ScanBarcode, module: "products" },
-      { label: "Warehouse", href: "/warehouse", icon: Warehouse, module: "settings" },
       { label: "Stock-take", href: "/stock-take", icon: ClipboardCheck, module: "products" },
     ],
   },
