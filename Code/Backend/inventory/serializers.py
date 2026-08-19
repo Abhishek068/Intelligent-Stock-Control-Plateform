@@ -247,25 +247,17 @@ class ProductDetailSerializer(ProductSerializer):
 
 
     def get_inventory_by_location(self, obj):
-
-        balances = InventoryBalance.objects.filter(product=obj).select_related("location")
+        balances = InventoryBalance.objects.filter(product=obj)
+        total_on_hand = sum(b.quantity_on_hand for b in balances)
+        total_available = sum(b.available_quantity for b in balances)
 
         return [
-
             {
-
-                "location_id": b.location_id,
-
+                "location_id": 1,
                 "location_name": "Central Warehouse",
-
-                "quantity_on_hand": b.quantity_on_hand,
-
-                "available": b.available_quantity,
-
+                "quantity_on_hand": total_on_hand,
+                "available": total_available,
             }
-
-            for b in balances
-
         ]
 
 

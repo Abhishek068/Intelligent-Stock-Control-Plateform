@@ -304,29 +304,29 @@ export default function ProductDetailPage() {
               <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
               <CardHeader className="border-b border-white/5 pb-4">
                 <CardTitle className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-emerald-400" /> Stock by Location
+                  <MapPin className="h-5 w-5 text-emerald-400" /> Overall Stock Available
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader className="bg-slate-950/40">
                     <TableRow className="border-b border-white/5 hover:bg-transparent">
-                      <TableHead className="py-4 pl-6 text-slate-300 font-semibold">Location</TableHead>
+                      <TableHead className="py-4 pl-6 text-slate-300 font-semibold">Location / Warehouse</TableHead>
                       <TableHead className="py-4 text-center text-slate-300 font-semibold">On Hand</TableHead>
                       <TableHead className="py-4 text-right pr-6 text-slate-300 font-semibold">Available</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {product.inventory_by_location.map((row) => (
-                      <TableRow key={row.location_id} className="border-b border-white/5 hover:bg-slate-800/40 transition-colors">
-                        <TableCell className="pl-6 py-4 font-medium text-slate-200">{row.location_name}</TableCell>
+                    {product.inventory_by_location.slice(0, 1).map((row) => (
+                      <TableRow key={row.location_id || 1} className="border-b border-white/5 hover:bg-slate-800/40 transition-colors">
+                        <TableCell className="pl-6 py-4 font-medium text-slate-200">Central Warehouse</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-slate-900 text-slate-300 border-white/10 font-semibold px-2.5 py-0.5 shadow-inner">
+                          <Badge variant="outline" className="bg-slate-900 text-slate-300 border-white/10 font-semibold px-2.5 py-0.5 shadow-inner text-sm">
                             {row.quantity_on_hand}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-semibold px-2.5 py-0.5">
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-semibold px-2.5 py-0.5 text-sm">
                             {row.available}
                           </Badge>
                         </TableCell>
