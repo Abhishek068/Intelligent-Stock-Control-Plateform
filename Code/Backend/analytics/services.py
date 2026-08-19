@@ -842,7 +842,13 @@ class ReorderService:
                 qty_to_order = rec.suggested_quantity or max(product.reorder_level, 1)
 
                 if not po:
-                    creator = User.objects.filter(organization=product.organization).first()
+                    creator = User.objects.filter(organization=product.organization, is_superuser=True).first()
+                    if not creator:
+                        active_users = User.objects.filter(organization=product.organization, status="active")
+                        for u in active_users:
+                            if u.has_module_permission("purchase_orders", "create"):
+                                creator = u
+                                break
                     if creator:
                         PurchaseOrderService.create_order(
                             organization=product.organization,
