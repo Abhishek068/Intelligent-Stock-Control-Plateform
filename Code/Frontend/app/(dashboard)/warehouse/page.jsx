@@ -98,7 +98,10 @@ export default function WarehousesPage() {
   const load = useCallback(async () => {
     try {
       const locations = await locationsApi.list();
-      setWarehouses(locations.map(mapLocation));
+      const centralOnly = (locations || []).filter((l) =>
+        l.name?.toLowerCase().includes("central")
+      );
+      setWarehouses(centralOnly.map(mapLocation));
     } catch {
       setWarehouses([]);
     }

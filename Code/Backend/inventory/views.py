@@ -72,6 +72,10 @@ class LocationViewSet(OrganizationScopedViewSet):
 
     search_fields = ["name"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(name="Central Warehouse")
+
     def list(self, request, *args, **kwargs):
         try:
             org = getattr(request.user, "organization", None) if hasattr(request, "user") else None
@@ -100,7 +104,7 @@ class LocationViewSet(OrganizationScopedViewSet):
 
                 other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
                 if other_locs.exists():
-                    for loc in other_locs:
+                    for loc in list(other_locs):
                         for bal in InventoryBalance.objects.filter(location=loc):
                             mb, _ = InventoryBalance.objects.get_or_create(
                                 organization=org,
@@ -119,8 +123,7 @@ class LocationViewSet(OrganizationScopedViewSet):
                         StockAdjustment.objects.filter(location=loc).update(location=main_loc)
                         PurchaseOrder.objects.filter(location=loc).update(location=main_loc)
 
-                        loc.is_active = False
-                        loc.save()
+                        loc.delete()
         except Exception:
             pass
 
