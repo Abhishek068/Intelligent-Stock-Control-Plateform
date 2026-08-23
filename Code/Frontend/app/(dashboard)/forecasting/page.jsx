@@ -24,7 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatModelName, formatMetric } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { productsApi, analyticsApi } from "@/lib/api";
 import { ApiError } from "@/lib/api/client";
@@ -528,21 +528,21 @@ export default function ForecastingPage() {
                   <div>
                     <div className="flex justify-between text-sm font-medium">
                       <span className="text-slate-500 dark:text-slate-400">MAE</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{metrics.mae ?? "—"}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{formatMetric(metrics.mae, 2)}</span>
                     </div>
                     <Progress value={metrics.mae ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm font-medium">
                       <span className="text-slate-500 dark:text-slate-400">RMSE</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{metrics.rmse ?? "—"}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{formatMetric(metrics.rmse, 2)}</span>
                     </div>
                     <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm mt-4 pt-2 border-t border-slate-200 dark:border-slate-800 font-medium">
                       <span className="text-slate-500 dark:text-slate-400 font-bold">Model</span>
-                      <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-300 break-all">{metrics.model_name ?? "—"}</span>
+                      <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-300 break-all">{formatModelName(metrics.model_name)}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package, AlertTriangle, TrendingUp, Box, MapPin, Tag, BarChart3 } from "lucide-react";
+import { ArrowLeft, Package, AlertTriangle, TrendingUp, Box, MapPin, Tag, BarChart3, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   LineChart,
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { productsApi, analyticsApi, stockApi } from "@/lib/api";
 import { ExternalFactorsPanel } from "@/features/dashboard/components";
+import { formatModelName, formatMetric } from "@/lib/utils";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -389,50 +390,75 @@ export default function ProductDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="forecast">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-600" /> Demand Forecast
-              </CardTitle>
+        <TabsContent value="forecast" className="space-y-6">
+          <Card className="glass-card border border-slate-200/80 dark:border-white/10 shadow-xl overflow-hidden rounded-2xl">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/10">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                  <TrendingUp className="h-5 w-5 text-indigo-500" /> Demand Forecast
+                </CardTitle>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Empirical demand trajectory & AI predictive model projections
+                </p>
+              </div>
+              {forecast?.chart?.metrics?.model_name && (
+                <Badge variant="outline" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30 font-semibold px-3 py-1 text-xs flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                  {formatModelName(forecast.chart.metrics.model_name)}
+                </Badge>
+              )}
             </CardHeader>
-            <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+            <CardContent className="p-6 space-y-6">
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="label" fontSize={11} />
-                    <YAxis fontSize={11} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="label" fontSize={11} tick={{ fill: "#94A3B8" }} />
+                    <YAxis fontSize={11} tick={{ fill: "#94A3B8" }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        borderColor: "rgba(255, 255, 255, 0.1)",
+                        borderRadius: "12px",
+                        color: "#F8FAFC"
+                      }}
+                    />
+                    <Line type="monotone" dataKey="actual" name="Actual Demand" stroke="#0D9488" strokeWidth={2.5} dot={false} />
                     <Line
-                    type="monotone"
-                    dataKey="predicted"
-                    stroke="#8B5CF6"
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={false} />
-                  
+                      type="monotone"
+                      dataKey="predicted"
+                      name="Predicted Demand"
+                      stroke="#8B5CF6"
+                      strokeWidth={2.5}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
-              {forecast?.chart?.metrics &&
-              <div className="mt-4 flex gap-6 text-sm">
-                  {forecast.chart.metrics.mae != null &&
-                <span>
-                      MAE: <strong>{forecast.chart.metrics.mae}</strong>
+              </div>
+
+              {forecast?.chart?.metrics && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-200/80 dark:border-white/10">
+                  <div className="rounded-xl bg-slate-900/50 p-4 border border-white/5 flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">MAE (Mean Absolute Error)</span>
+                    <span className="text-2xl font-extrabold font-mono text-emerald-400 mt-1">
+                      {formatMetric(forecast.chart.metrics.mae, 2)}
                     </span>
-                }
-                  {forecast.chart.metrics.rmse != null &&
-                <span>
-                      RMSE: <strong>{forecast.chart.metrics.rmse}</strong>
+                  </div>
+                  <div className="rounded-xl bg-slate-900/50 p-4 border border-white/5 flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">RMSE (Root Mean Sq Error)</span>
+                    <span className="text-2xl font-extrabold font-mono text-purple-400 mt-1">
+                      {formatMetric(forecast.chart.metrics.rmse, 2)}
                     </span>
-                }
-                  {forecast.chart.metrics.model_name &&
-                <span>
-                      Model: <strong>{forecast.chart.metrics.model_name}</strong>
+                  </div>
+                  <div className="rounded-xl bg-slate-900/50 p-4 border border-white/5 flex flex-col justify-between">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active AI Model</span>
+                    <span className="text-sm font-bold font-mono text-cyan-300 mt-1 truncate" title={formatModelName(forecast.chart.metrics.model_name)}>
+                      {formatModelName(forecast.chart.metrics.model_name)}
                     </span>
-                }
+                  </div>
                 </div>
-              }
+              )}
             </CardContent>
           </Card>
 
