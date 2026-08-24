@@ -33,8 +33,10 @@ export const auditApi = {
 };
 
 export const analyticsApi = {
-  getForecast(productId) {
-    return apiClient.get(`/forecasts/?product=${productId}`).catch(() => ({ success: false, data: null }));
+  getForecast(productId, days) {
+    const params = [`product=${productId}`];
+    if (days) params.push(`days=${days}`);
+    return apiClient.get(`/forecasts/?${params.join("&")}`).catch(() => ({ success: false, data: null }));
   },
 
   async listForecasts(params) {

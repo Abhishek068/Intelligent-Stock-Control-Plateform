@@ -823,12 +823,12 @@ export default function ScannerPage() {
                     </Button>
                   </Link>
 
-                  <Link href="/stock-in">
+                  <Link href={`/stock-in?productId=${scannedProduct.id}`}>
                     <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl cursor-pointer">
                       Stock In
                     </Button>
                   </Link>
-                  <Link href="/stock-out">
+                  <Link href={`/stock-out?productId=${scannedProduct.id}`}>
                     <Button
                       size="sm"
                       className="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cursor-pointer"

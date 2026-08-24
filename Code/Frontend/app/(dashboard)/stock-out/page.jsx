@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,6 +35,8 @@ const stockOutSchema = z.object({
 
 function StockOutPageContent() {
   const user = useAuthStore((s) => s.user);
+  const searchParams = useSearchParams();
+  const preselectedProductId = searchParams.get("productId");
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [registeredStores, setRegisteredStores] = useState([]);
@@ -87,6 +90,16 @@ function StockOutPageContent() {
     loadInitialData();
     loadHistory();
   }, [loadHistory]);
+
+  // Auto-select product when navigating from barcode scanner with ?productId=
+  useEffect(() => {
+    if (!preselectedProductId || products.length === 0) return;
+
+    const pid = String(preselectedProductId);
+    requestAnimationFrame(() => {
+      form.setValue("productId", pid, { shouldValidate: true, shouldDirty: true });
+    });
+  }, [preselectedProductId, products, form]);
 
   const destinationOptions = useMemo(() => {
     const opts = [];

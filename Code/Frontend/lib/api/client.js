@@ -84,7 +84,8 @@ retry = true)
     throw new ApiError(0, err?.message || "Network error: Unable to connect to server");
   }
 
-  if (response.status === 401 && retry) {
+  const isAuthPath = path === "/auth/login/" || path === "/auth/token/refresh/";
+  if (response.status === 401 && retry && !isAuthPath) {
     let newToken = null;
     try {
       newToken = await refreshAccessToken();

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowDownToLine, Barcode, CheckCircle, PackagePlus, Box, History, Search } from "lucide-react";
+import { ArrowDownToLine, Barcode, CheckCircle, PackagePlus, Box, History, Search, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,6 +39,8 @@ const stockInSchema = z.object({
 
 function StockInPageContent() {
   const user = useAuthStore((s) => s.user);
+  const searchParams = useSearchParams();
+  const preselectedProductId = searchParams.get("productId");
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -44,6 +49,9 @@ function StockInPageContent() {
   const [historyLogs, setHistoryLogs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
+  const [addSupplierOpen, setAddSupplierOpen] = useState(false);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({ name: "", contact_name: "", email: "", phone: "" });
 
   const form = useForm({
     resolver: zodResolver(stockInSchema),
@@ -81,6 +89,31 @@ function StockInPageContent() {
     loadInitialData();
     loadHistory();
   }, [loadHistory]);
+
+  // Auto-select product when navigating from barcode scanner with ?productId=
+  useEffect(() => {
+    if (!preselectedProductId || products.length === 0 || suppliers.length === 0) return;
+
+    const pid = String(preselectedProductId);
+    // Use requestAnimationFrame to ensure Select options are rendered
+    requestAnimationFrame(() => {
+      form.setValue("productId", pid, { shouldValidate: true, shouldDirty: true });
+
+      const selected = products.find((p) => String(p.id) === pid);
+      if (selected) {
+        const suppId = selected.supplier || selected.supplier_id || selected.supplierId || selected.primary_supplier;
+        if (suppId) {
+          form.setValue("supplierId", String(suppId), { shouldValidate: true, shouldDirty: true });
+        } else if (suppliers.length > 0) {
+          form.setValue("supplierId", String(suppliers[0].id), { shouldValidate: true, shouldDirty: true });
+        }
+        const cost = selected.unit_price || selected.cost_price || selected.unit_cost || 0;
+        if (cost) {
+          form.setValue("unitCost", Number(cost), { shouldDirty: true });
+        }
+      }
+    });
+  }, [preselectedProductId, products, suppliers, form]);
 
   const selectedProductId = form.watch("productId");
   const selectedProduct = products.find((p) => String(p.id) === selectedProductId);
@@ -269,7 +302,16 @@ function StockInPageContent() {
 
                 <FormField control={form.control} name="supplierId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Supplier <span className="text-rose-500">*</span></FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-sm font-semibold text-slate-700 dark:text-slate-300">Supplier <span className="text-rose-500">*</span></FormLabel>
+                      <button
+                        type="button"
+                        onClick={() => setAddSupplierOpen(true)}
+                        className="flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline cursor-pointer transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add New
+                      </button>
+                    </div>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger className="bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-xl h-11 font-medium">
@@ -551,6 +593,122 @@ function StockInPageContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add New Supplier Modal */}
+      <Dialog open={addSupplierOpen} onOpenChange={setAddSupplierOpen}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#0F172A] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Plus className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Add New Supplier
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-slate-400">
+              Quickly add a new supplier to your inventory system.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Supplier Name <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                placeholder="e.g., Acme Supplies Ltd"
+                value={newSupplier.name}
+                onChange={(e) => setNewSupplier((prev) => ({ ...prev, name: e.target.value }))}
+                className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl h-11 font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Name</Label>
+              <Input
+                placeholder="e.g., John Smith"
+                value={newSupplier.contact_name}
+                onChange={(e) => setNewSupplier((prev) => ({ ...prev, contact_name: e.target.value }))}
+                className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl h-11 font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email</Label>
+                <Input
+                  type="email"
+                  placeholder="supplier@email.com"
+                  value={newSupplier.email}
+                  onChange={(e) => setNewSupplier((prev) => ({ ...prev, email: e.target.value }))}
+                  className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl h-11 font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone</Label>
+                <Input
+                  placeholder="+44 123 456 7890"
+                  value={newSupplier.phone}
+                  onChange={(e) => setNewSupplier((prev) => ({ ...prev, phone: e.target.value }))}
+                  className="bg-white dark:bg-slate-950/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-xl h-11 font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 sm:justify-end pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddSupplierOpen(false);
+                setNewSupplier({ name: "", contact_name: "", email: "", phone: "" });
+              }}
+              className="rounded-xl cursor-pointer border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!newSupplier.name.trim() || isCreatingSupplier}
+              onClick={async () => {
+                setIsCreatingSupplier(true);
+                try {
+                  const created = await suppliersApi.create({
+                    name: newSupplier.name.trim(),
+                    contact_name: newSupplier.contact_name.trim(),
+                    email: newSupplier.email.trim(),
+                    phone: newSupplier.phone.trim(),
+                  });
+                  const createdSupplier = created?.data || created;
+                  // Refresh suppliers list
+                  const sRes = await suppliersApi.list().catch(() => []);
+                  const sList = Array.isArray(sRes) ? sRes : (sRes?.results || sRes?.data || []);
+                  setSuppliers(sList);
+                  // Auto-select the newly created supplier
+                  if (createdSupplier?.id) {
+                    requestAnimationFrame(() => {
+                      form.setValue("supplierId", String(createdSupplier.id), { shouldValidate: true, shouldDirty: true });
+                    });
+                  }
+                  toast.success(`Supplier "${createdSupplier?.name || newSupplier.name}" added successfully!`);
+                  setAddSupplierOpen(false);
+                  setNewSupplier({ name: "", contact_name: "", email: "", phone: "" });
+                } catch (error) {
+                  toast.error(error instanceof ApiError ? error.message : "Failed to create supplier");
+                } finally {
+                  setIsCreatingSupplier(false);
+                }
+              }}
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl cursor-pointer shadow-md"
+            >
+              {isCreatingSupplier ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Creating...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Add Supplier
+                </span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

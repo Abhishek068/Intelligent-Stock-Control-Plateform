@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { TrendingUp, Package, RefreshCw, BarChart2, Calendar, Target, ShoppingCart, Activity, LineChart } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { TrendingUp, Package, RefreshCw, BarChart2, Calendar, Target, ShoppingCart, Activity, LineChart, Clock, Bot, Sparkles } from "lucide-react";
 import {
   Line,
   Bar,
@@ -37,6 +37,7 @@ export default function ForecastingPage() {
   const [chartPayload, setChartPayload] = useState(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [forecastDays, setForecastDays] = useState(90);
 
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -48,11 +49,11 @@ export default function ForecastingPage() {
     });
   }, []);
 
-  const loadForecast = useCallback(async (productId) => {
+  const loadForecast = useCallback(async (productId, days) => {
     if (!productId) return;
     setLoading(true);
     try {
-      const res = await analyticsApi.getForecast(productId);
+      const res = await analyticsApi.getForecast(productId, days);
       if (res.success && res.data) setChartPayload(res.data);
     } catch {
       setChartPayload(null);
@@ -76,14 +77,182 @@ export default function ForecastingPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedProductId) loadForecast(selectedProductId);
-  }, [selectedProductId, loadForecast]);
+    if (selectedProductId) loadForecast(selectedProductId, forecastDays);
+  }, [selectedProductId, forecastDays, loadForecast]);
 
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
 
   const selectedProduct = products.find((p) => String(p.id) === selectedProductId);
+  const metrics = chartPayload?.chart?.metrics || {};
+
+  // --- AI Insight Generator ---
+  const generateInsightMessage = useCallback((product, chart, mets) => {
+    if (!product) return "";
+    const lines = [];
+    const name = product.name || "this product";
+    const wCtx = mets?.weather_context || {};
+    const pattern = mets?.demand_pattern_info || wCtx?.demand_pattern_info || {};
+    const forecastPts = chart?.forecast || [];
+    const historyPts = chart?.history || [];
+
+    // Avg predicted demand
+    const avgPred = forecastPts.length > 0
+      ? Math.round(forecastPts.reduce((s, f) => s + (f.predicted || 0), 0) / forecastPts.length)
+      : null;
+    const totalPred = forecastPts.reduce((s, f) => s + (f.predicted || 0), 0);
+
+    // Recent actual avg
+    const recentActuals = historyPts.slice(-7).filter(h => h.actual != null);
+    const avgActual = recentActuals.length > 0
+      ? Math.round(recentActuals.reduce((s, h) => s + h.actual, 0) / recentActuals.length)
+      : null;
+
+    // Trend direction
+    if (avgPred && avgActual) {
+      const diff = avgPred - avgActual;
+      const pct = Math.round(Math.abs(diff) / Math.max(avgActual, 1) * 100);
+      if (diff > 2) {
+        lines.push(`Demand for **${name}** is expected to **increase by ~${pct}%** over the next few weeks (from ~${avgActual} to ~${avgPred} units/day).`);
+      } else if (diff < -2) {
+        lines.push(`Demand for **${name}** is predicted to **decrease by ~${pct}%** in the coming period (from ~${avgActual} to ~${avgPred} units/day).`);
+      } else {
+        lines.push(`Demand for **${name}** is expected to **remain steady** at around **${avgPred} units/day**.`);
+      }
+    } else if (avgPred) {
+      lines.push(`Based on available data, **${name}** is forecasted at approximately **${avgPred} units/day** over the next 30 days.`);
+    }
+
+    // Pattern insight
+    if (pattern.label) {
+      const patternMap = {
+        "Smooth Demand": "This product has a **regular, consistent** sales pattern — making predictions highly reliable.",
+        "Erratic Demand": "This product sells **regularly but in variable quantities** — the forecast accounts for this volatility.",
+        "Intermittent Demand": "This product sells **infrequently** but in consistent amounts — a specialized Croston model is used for accuracy.",
+        "Lumpy Demand": "This product has **irregular and unpredictable** sales — forecasts carry higher uncertainty."
+      };
+      lines.push(`${patternMap[pattern.label] || `Classified as **${pattern.label}**.`}`);
+    }
+
+    // Model used
+    if (mets?.model_name) {
+      const modelMap = {
+        exponential_smoothing: "Exponential Smoothing (Holt-Winters)",
+        exponential_smoothing_seasonal: "Seasonal Exponential Smoothing",
+        arima: "ARIMA statistical model",
+        simple_moving_average: "Simple Moving Average",
+        croston_sba: "Croston-SBA (for intermittent demand)",
+        naive_baseline: "Naive Baseline",
+        cold_start_baseline: "Cold Start Estimation",
+      };
+      const baseModel = mets.model_name.split("_adjusted")[0].split("_seasonal_")[0].split("_weather_")[0].split("_holiday_")[0].split("_events_")[0].split("_trends_")[0];
+      const friendlyModel = modelMap[baseModel] || baseModel;
+      lines.push(`The AI selected **${friendlyModel}** as the best-performing model for this product.`);
+    }
+
+    // Accuracy
+    if (mets?.mae != null) {
+      const maeVal = Number(mets.mae);
+      if (maeVal < 3) {
+        lines.push(`Prediction accuracy is **excellent** — the model is off by only ~${maeVal.toFixed(1)} units on average per day.`);
+      } else if (maeVal < 8) {
+        lines.push(`Prediction accuracy is **good** — average daily error is about ${maeVal.toFixed(1)} units.`);
+      } else {
+        lines.push(`Prediction accuracy is **moderate** — average daily error is ${maeVal.toFixed(1)} units. More sales history will improve this.`);
+      }
+    }
+
+    // Weather
+    const weatherMult = wCtx.category_weather_mult;
+    if (weatherMult && weatherMult !== 1.0) {
+      const temp = wCtx.avg_temp_c != null ? `${Math.round(wCtx.avg_temp_c)}°C` : null;
+      if (weatherMult > 1.1) {
+        lines.push(`Current weather conditions ${temp ? `(${temp})` : ""} are **boosting** demand for this product by ~${Math.round((weatherMult - 1) * 100)}%.`);
+      } else if (weatherMult < 0.9) {
+        lines.push(`Current weather ${temp ? `(${temp})` : ""} is **reducing** demand for this product by ~${Math.round((1 - weatherMult) * 100)}%.`);
+      }
+    }
+
+    // Holiday
+    const holidayMult = wCtx.category_holiday_mult;
+    const holidays = wCtx.holiday_event?.upcoming_holidays;
+    if (holidayMult && holidayMult > 1.05 && holidays?.length > 0) {
+      const holidayNames = holidays.slice(0, 2).map(h => h.name || h).join(", ");
+      lines.push(`Upcoming holiday (**${holidayNames}**) is expected to **boost demand by ~${Math.round((holidayMult - 1) * 100)}%** during that period.`);
+    }
+
+    // Events
+    const eventsMult = wCtx.category_events_mult;
+    const events = wCtx.local_events;
+    if (eventsMult && eventsMult > 1.05 && events) {
+      const eventCount = events.total_events_found || 0;
+      lines.push(`**${eventCount} local event${eventCount > 1 ? "s" : ""}** in the area could drive additional demand (+~${Math.round((eventsMult - 1) * 100)}%).`);
+    }
+
+    // Trends
+    const trendInfo = wCtx.google_trends;
+    if (trendInfo?.trend_ratio && trendInfo.trend_ratio > 1.1) {
+      lines.push(`This product is currently **trending online** — search interest is ${Math.round((trendInfo.trend_ratio - 1) * 100)}% above normal.`);
+    }
+
+    // Season
+    const seasonMult = wCtx.season_multiplier;
+    if (seasonMult && seasonMult > 1.5) {
+      lines.push(`This is **peak season** for this type of product — seasonal demand is ${Math.round((seasonMult - 1) * 100)}% higher than average.`);
+    } else if (seasonMult && seasonMult < 0.5) {
+      lines.push(`This is the **off-season** for this product — demand is naturally ${Math.round((1 - seasonMult) * 100)}% lower than peak.`);
+    }
+
+    // Total summary
+    if (totalPred > 0) {
+      lines.push(`**Total projected demand** for the next 30 days: **~${Math.round(totalPred).toLocaleString()} units**.`);
+    }
+
+    return lines.join("\n\n");
+  }, []);
+
+  const [aiInsight, setAiInsight] = useState("");
+  const [aiThinking, setAiThinking] = useState(false);
+  const [aiTypedText, setAiTypedText] = useState("");
+  const [aiDone, setAiDone] = useState(false);
+  const typingRef = useRef(null);
+
+  // Trigger AI insight when chart data or product changes
+  useEffect(() => {
+    if (!selectedProduct || !chartPayload?.chart || loading) return;
+
+    // Reset
+    setAiTypedText("");
+    setAiDone(false);
+    setAiThinking(true);
+
+    if (typingRef.current) clearInterval(typingRef.current);
+
+    const thinkTimer = setTimeout(() => {
+      const message = generateInsightMessage(selectedProduct, chartPayload.chart, metrics);
+      setAiInsight(message);
+      setAiThinking(false);
+
+      // Start typewriter
+      let idx = 0;
+      setAiTypedText("");
+      typingRef.current = setInterval(() => {
+        idx++;
+        setAiTypedText(message.slice(0, idx));
+        if (idx >= message.length) {
+          clearInterval(typingRef.current);
+          typingRef.current = null;
+          setAiDone(true);
+        }
+      }, 12);
+    }, 2500);
+
+    return () => {
+      clearTimeout(thinkTimer);
+      if (typingRef.current) clearInterval(typingRef.current);
+    };
+  }, [selectedProduct, chartPayload, loading, generateInsightMessage]);
 
   const chartData = useMemo(() => {
     if (!chartPayload?.chart || (!chartPayload.chart.history?.length && !chartPayload.chart.forecast?.length)) {
@@ -140,8 +309,6 @@ export default function ForecastingPage() {
     return [...history, ...forecast];
   }, [chartPayload, selectedProduct]);
 
-  const metrics = chartPayload?.chart?.metrics || {};
-
   const handleGenerate = async () => {
     if (!selectedProductId) return;
     setGenerating(true);
@@ -175,8 +342,8 @@ export default function ForecastingPage() {
         <button
           onClick={() => setActiveTab("overview")}
           className={`pb-2 text-sm font-semibold transition-colors cursor-pointer ${activeTab === "overview"
-              ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+            : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
         >
           Organization Summary
@@ -184,8 +351,8 @@ export default function ForecastingPage() {
         <button
           onClick={() => setActiveTab("product")}
           className={`pb-2 text-sm font-semibold transition-colors cursor-pointer ${activeTab === "product"
-              ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+            ? "text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+            : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
         >
           Individual Product Forecast
@@ -405,13 +572,13 @@ export default function ForecastingPage() {
           <Card className="border border-slate-200/80 dark:border-white/5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-2xl shadow-xl overflow-hidden rounded-2xl relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
-            
+
             <CardContent className="flex flex-wrap items-center gap-4 p-6 relative z-10">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
                   <Package className="h-5 w-5" />
                 </div>
-                
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <div className="relative w-[300px] flex items-center group cursor-text">
@@ -454,19 +621,19 @@ export default function ForecastingPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              
+
               <div className="flex items-center gap-3 ml-auto">
-                <Button 
-                  variant="outline" 
-                  onClick={() => loadForecast(selectedProductId)} 
+                <Button
+                  variant="outline"
+                  onClick={() => loadForecast(selectedProductId, forecastDays)}
                   disabled={loading}
                   className="bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl font-bold cursor-pointer"
                 >
                   <RefreshCw className={`mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400 ${loading ? "animate-spin" : ""}`} /> Refresh
                 </Button>
-                <Button 
-                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-md border border-indigo-500/50 rounded-xl font-bold cursor-pointer" 
-                  onClick={handleGenerate} 
+                <Button
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-md border border-indigo-500/50 rounded-xl font-bold cursor-pointer"
+                  onClick={handleGenerate}
                   disabled={generating || !selectedProductId}
                 >
                   {generating ? "Generating..." : "Generate Forecast"}
@@ -475,48 +642,129 @@ export default function ForecastingPage() {
             </CardContent>
           </Card>
 
+          {/* Time Period Filter */}
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-slate-400" />
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">History Range:</span>
+            <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-xl p-1 shadow-xs">
+              {[
+                { label: "7d", value: 7 },
+                { label: "30d", value: 30 },
+                { label: "90d", value: 90 },
+                { label: "1yr", value: 365 },
+              ].map((period) => (
+                <button
+                  key={period.value}
+                  onClick={() => setForecastDays(period.value)}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all duration-200 ${forecastDays === period.value
+                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200"
+                    }`}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
-              <CardHeader>
-                <CardTitle className="text-slate-900 dark:text-slate-200 font-bold">Demand Forecast</CardTitle>
-                <CardDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                  {selectedProduct?.name || "—"} · Actual vs Predicted
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                {loading ? (
-                  <p className="flex h-full items-center justify-center text-slate-400 font-medium animate-pulse">
-                    Loading...
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
-                      <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
-                      <YAxis fontSize={11} stroke="#94a3b8" />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
-                        formatter={(value, name) => [
-                          typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
-                          name
-                        ]}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={{ r: 2 }} name="Actual" />
-                      <Line
-                        type="monotone"
-                        dataKey="predicted"
-                        stroke="#8B5CF6"
-                        strokeWidth={2}
-                        strokeDasharray="4 4"
-                        dot={{ r: 2 }}
-                        name="Predicted"
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/40 shadow-sm rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="text-slate-900 dark:text-slate-200 font-bold">Demand Forecast</CardTitle>
+                  <CardDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                    {selectedProduct?.name || "—"} · Actual vs Predicted
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {loading ? (
+                    <p className="flex h-full items-center justify-center text-slate-400 font-medium animate-pulse">
+                      Loading...
+                    </p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" />
+                        <XAxis dataKey="label" fontSize={11} stroke="#94a3b8" />
+                        <YAxis fontSize={11} stroke="#94a3b8" />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", color: "#fff" }}
+                          formatter={(value, name) => [
+                            typeof value === "number" ? `${Math.round(value).toLocaleString()} units` : value,
+                            name
+                          ]}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="actual" stroke="#0D9488" strokeWidth={2} dot={{ r: 2 }} name="Actual" />
+                        <Line
+                          type="monotone"
+                          dataKey="predicted"
+                          stroke="#8B5CF6"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={{ r: 2 }}
+                          name="Predicted"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Insight Panel - below chart */}
+              <Card className="border border-indigo-200/60 dark:border-indigo-500/20 bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 dark:from-slate-900/60 dark:via-indigo-950/20 dark:to-purple-950/10 backdrop-blur-2xl shadow-lg rounded-2xl overflow-hidden relative">
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-60" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/5 rounded-full blur-[60px] pointer-events-none" />
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-3">
+                    <div className={`shrink-0 p-2 rounded-xl border shadow-xs transition-all duration-500 ${aiThinking
+                        ? "bg-indigo-100 dark:bg-indigo-500/20 border-indigo-300 dark:border-indigo-500/30 animate-pulse"
+                        : "bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-500/10 dark:to-purple-500/10 border-indigo-200 dark:border-indigo-500/20"
+                      }`}>
+                      {aiThinking ? (
+                        <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-bounce" />
+                      ) : (
+                        <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-200">AI Forecast Insight</h4>
+                        {aiDone && (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 text-[10px] px-1.5 py-0 font-bold animate-in fade-in duration-500">
+                            Analysis Complete
+                          </Badge>
+                        )}
+                      </div>
+
+                      {aiThinking ? (
+                        <div className="flex items-center gap-1.5 py-3">
+                          <div className="flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="inline-block w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="inline-block w-2 h-2 bg-pink-500 dark:bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                          <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium ml-2 animate-pulse">
+                            Analyzing forecast data and external signals...
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                          {aiTypedText.split("**").map((part, i) =>
+                            i % 2 === 1
+                              ? <strong key={i} className="text-slate-900 dark:text-white font-bold">{part}</strong>
+                              : <span key={i}>{part}</span>
+                          )}
+                          {!aiDone && (
+                            <span className="inline-block w-0.5 h-4 bg-indigo-500 dark:bg-indigo-400 ml-0.5 animate-pulse align-middle" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             <div className="space-y-6">
               <Card className="bg-white/85 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 shadow-sm rounded-2xl">
