@@ -493,9 +493,9 @@ class ForecastingService:
                     w_ctx["demand_pattern_info"] = pattern_info
 
                 metrics = {
-                    "mae": float(forecast_record.mae) if forecast_record and forecast_record.mae else 1.2,
-                    "rmse": float(forecast_record.rmse) if forecast_record and forecast_record.rmse else 1.6,
-                    "mape": float(forecast_record.mape) if forecast_record and forecast_record.mape else 12.5,
+                    "mae": float(forecast_record.mae) if (forecast_record and forecast_record.mae is not None) else 1.2,
+                    "rmse": float(forecast_record.rmse) if (forecast_record and forecast_record.rmse is not None) else 1.6,
+                    "mape": float(forecast_record.mape) if (forecast_record and forecast_record.mape is not None) else 12.5,
                     "model_name": forecast_record.model_name if forecast_record else "cold_start_baseline",
                     "weather_context": w_ctx,
                     "demand_pattern_info": pattern_info,
@@ -561,7 +561,6 @@ class ForecastingService:
                 if raw_daily < 1.0:
                     daily_base = max(2.0, raw_daily * 3.5)
 
-                import math
                 p_name_lower = str(product.name).lower() if product and hasattr(product, "name") else ""
                 cat_name_lower = str(product.category.name).lower() if product and hasattr(product, "category") and product.category else ""
                 combined_name = f"{p_name_lower} {cat_name_lower}"
@@ -628,9 +627,9 @@ class ForecastingService:
                     w_ctx["demand_pattern_info"] = pattern_info
 
                 metrics = {
-                    "mae": float(forecast_record.mae) if forecast_record.mae else None,
-                    "rmse": float(forecast_record.rmse) if forecast_record.rmse else None,
-                    "mape": float(forecast_record.mape) if forecast_record.mape else None,
+                    "mae": float(forecast_record.mae) if forecast_record.mae is not None else None,
+                    "rmse": float(forecast_record.rmse) if forecast_record.rmse is not None else None,
+                    "mape": float(forecast_record.mape) if forecast_record.mape is not None else None,
                     "model_name": forecast_record.model_name,
                     "weather_context": w_ctx,
                     "demand_pattern_info": pattern_info,

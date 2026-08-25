@@ -68,6 +68,6 @@ export function formatModelName(modelName) {
 }
 
 export function formatMetric(value, decimals = 2) {
-  if (value == null || isNaN(Number(value))) return "—";
+  if (value == null || isNaN(Number(value)) || Number(value) < 0) return "—";
   return Number(value).toFixed(decimals);
 }

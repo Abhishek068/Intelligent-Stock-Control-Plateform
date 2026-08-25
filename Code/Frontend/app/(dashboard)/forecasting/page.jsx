@@ -778,14 +778,14 @@ export default function ForecastingPage() {
                       <span className="text-slate-500 dark:text-slate-400">MAE</span>
                       <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{formatMetric(metrics.mae, 2)}</span>
                     </div>
-                    <Progress value={metrics.mae ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
+                    <Progress value={metrics.mae != null ? Math.min(100, 100 - Number(metrics.mae)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm font-medium">
                       <span className="text-slate-500 dark:text-slate-400">RMSE</span>
                       <span className="font-mono font-bold text-slate-900 dark:text-slate-200">{formatMetric(metrics.rmse, 2)}</span>
                     </div>
-                    <Progress value={metrics.rmse ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
+                    <Progress value={metrics.rmse != null ? Math.min(100, 100 - Number(metrics.rmse)) : 0} className="mt-1 h-1.5 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm mt-4 pt-2 border-t border-slate-200 dark:border-slate-800 font-medium">
