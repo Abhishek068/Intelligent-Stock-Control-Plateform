@@ -488,7 +488,6 @@ class ReportViewSet(viewsets.ViewSet):
 
         if report_type == "inventory":
             from inventory.models import Product
-            from django.db.models import Sum
             from decimal import Decimal
 
             products = Product.objects.filter(

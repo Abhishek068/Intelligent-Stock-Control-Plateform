@@ -65,6 +65,25 @@ def _notify_stock_in(product, quantity, user):
         pass
 
 
+def _notify_stock_out(product, quantity, remaining_qty, user):
+    try:
+        from notifications.services import NotificationService
+
+        NotificationService.notify(
+            organization=product.organization,
+            user=user,
+            title=f"Stock issued: {product.name}",
+            message=f"Issued {quantity} units of {product.name} ({product.sku}). Remaining stock: {remaining_qty} units.",
+            notification_type="system",
+            severity="info",
+            priority="normal",
+            related_entity_type="Product",
+            related_entity_id=str(product.id),
+        )
+    except Exception:
+        pass
+
+
 class StockService:
     @staticmethod
     def inventory_value(product, location):
@@ -361,6 +380,7 @@ class StockService:
             AnomalyDetectionService.evaluate(txn)
         except Exception:
             pass
+        _notify_stock_out(product, quantity, balance.quantity_on_hand, user)
         _evaluate_alerts(product)
         return txn, balance
 

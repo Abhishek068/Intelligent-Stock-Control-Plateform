@@ -65,6 +65,45 @@ class StockValuationTests(TestCase):
     def test_weighted_average_costing(self):
         self.assertEqual(self._cost_for_method("weighted_average"), Decimal("22.50"))
 
+    def test_stock_out_notification(self):
+        from notifications.models import Notification
+        
+        # Initial stock in to have available stock
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location,
+            quantity=100,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+        )
+        
+        # Clear existing system notifications if any
+        Notification.objects.filter(
+            notification_type=Notification.NotificationType.SYSTEM
+        ).delete()
+        
+        # Perform stock out
+        StockService.stock_out(
+            product=self.product,
+            location=self.location,
+            quantity=30,
+            user=self.user,
+        )
+        
+        # Assert notification was created
+        notif = Notification.objects.filter(
+            notification_type=Notification.NotificationType.SYSTEM,
+            organization=self.organization
+        ).first()
+        
+        self.assertIsNotNone(notif)
+        self.assertEqual(notif.title, f"Stock issued: {self.product.name}")
+        self.assertEqual(
+            notif.message,
+            f"Issued 30 units of {self.product.name} ({self.product.sku}). Remaining stock: 70 units."
+        )
+
 
 class BatchExpiryAndFIFOTests(TestCase):
     def setUp(self):
