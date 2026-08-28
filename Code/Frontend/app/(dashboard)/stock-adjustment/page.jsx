@@ -187,9 +187,9 @@ function StockAdjustmentPageContent() {
     setIsSubmitting(true);
     try {
       await stockApi.adjust({
-        product_id: Number(data.productId),
-        location_id: Number(data.locationId),
-        new_quantity: data.adjustedStock,
+        product: Number(data.productId),
+        location: Number(data.locationId),
+        adjusted_qty: data.adjustedStock,
         reason: `${data.reason} - ${data.evidence}`,
       });
       toast.success("Stock adjustment applied successfully!");

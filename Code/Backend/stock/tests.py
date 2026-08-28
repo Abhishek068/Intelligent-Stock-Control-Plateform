@@ -233,6 +233,52 @@ class BatchExpiryAndFIFOTests(TestCase):
         self.assertTrue(expiry_notifs.filter(severity=Notification.Severity.INFO).exists())
 
 
+class StockAdjustmentAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.organization = Organization.objects.create(name="Adjustment Org", slug="adj-org")
+        self.settings = OrganizationSettings.objects.create(organization=self.organization)
+        self.user = User.objects.create_superuser(
+            email="admin@adjustment.test",
+            username="admin-adj",
+            password="AdminPassword123!",
+            organization=self.organization,
+            status=User.Status.ACTIVE,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.category = Category.objects.create(organization=self.organization, name="Electronics")
+        self.location = Location.objects.create(organization=self.organization, name="Main Warehouse")
+        self.supplier = Supplier.objects.create(organization=self.organization, name="TechSupplier Ltd")
+        self.product = Product.objects.create(
+            organization=self.organization,
+            category=self.category,
+            supplier=self.supplier,
+            sku="MOUSE-001",
+            name="Wireless Mouse",
+            unit_price=Decimal("25.00"),
+        )
+
+    def test_create_stock_adjustment_successful(self):
+        from stock.models import StockAdjustment
+        from rest_framework import status
+        payload = {
+            "product": self.product.id,
+            "location": self.location.id,
+            "adjusted_qty": 50,
+            "reason": "Initial inventory adjustment",
+        }
+        response = self.client.post("/api/v1/stock-adjustments/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(StockAdjustment.objects.count(), 1)
+        
+        adj = StockAdjustment.objects.first()
+        self.assertEqual(adj.adjusted_qty, 50)
+        self.assertEqual(adj.reason, "Initial inventory adjustment")
+        self.assertIsNotNone(adj.adjusted_at)
+
+
 
                          
 

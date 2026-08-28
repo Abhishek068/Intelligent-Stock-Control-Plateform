@@ -308,6 +308,9 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
         ]
+        extra_kwargs = {
+            "adjusted_at": {"required": False, "allow_null": True}
+        }
 
     def validate_reason(self, value):
         if not (value or "").strip():
