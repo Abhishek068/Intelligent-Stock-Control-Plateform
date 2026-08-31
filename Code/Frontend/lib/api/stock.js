@@ -5,8 +5,16 @@ export const stockApi = {
     return apiClient.post("/stock-in/", data);
   },
 
+  bulkStockIn(data) {
+    return apiClient.post("/stock-in/bulk-receive/", data);
+  },
+
   stockOut(data) {
     return apiClient.post("/stock-out/", data);
+  },
+
+  bulkStockOut(data) {
+    return apiClient.post("/stock-out/bulk-dispatch/", data);
   },
 
   adjust(data) {

@@ -109,7 +109,7 @@ class StockInSerializer(serializers.ModelSerializer):
     batch_label = serializers.CharField(source="batch.batch_number", read_only=True, default=None)
 
     def get_location_name(self, obj):
-        return "Central Warehouse"
+        return obj.location.name if obj.location else "Central Warehouse"
 
     class Meta:
         model = StockInTransaction
@@ -188,7 +188,7 @@ class StockOutSerializer(serializers.ModelSerializer):
     batch = serializers.PrimaryKeyRelatedField(read_only=True)
 
     def get_location_name(self, obj):
-        return "Central Warehouse"
+        return obj.location.name if obj.location else "Central Warehouse"
 
     class Meta:
         model = StockOutTransaction
@@ -234,33 +234,58 @@ class StockOutSerializer(serializers.ModelSerializer):
         org = self.context["request"].user.organization
         product = attrs["product"]
         quantity = attrs["quantity"]
-        
-        if not attrs.get("location"):
-            loc, _ = Location.objects.get_or_create(
-                organization=org,
-                name="Central Warehouse",
-                defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True}
-            )
-            attrs["location"] = loc
-
-        location = attrs["location"]
 
         if product.organization_id != org.id:
             raise serializers.ValidationError("Product not found in your organization.")
+
         batch_id = attrs.get("batch_id")
+        today = timezone.now().date()
         if batch_id:
             batch = Batch.objects.filter(id=batch_id, product=product).first()
             if not batch:
                 raise serializers.ValidationError({"batch_id": "Invalid batch for this product."})
+            if not attrs.get("location") and batch.location:
+                attrs["location"] = batch.location
             if batch.quantity_on_hand < quantity:
                 raise serializers.ValidationError({"batch_id": f"Batch stock ({batch.quantity_on_hand}) is less than quantity requested."})
+            if batch.expiry_date and batch.expiry_date < today:
+                raise serializers.ValidationError({"batch_id": f"Batch '{batch.batch_number}' expired on {batch.expiry_date} and cannot be issued."})
+
+        if not attrs.get("location"):
+            pos_balance = InventoryBalance.objects.filter(
+                product=product, location__organization=org, quantity_on_hand__gte=quantity
+            ).first()
+            if pos_balance:
+                attrs["location"] = pos_balance.location
+            else:
+                loc, _ = Location.objects.get_or_create(
+                    organization=org,
+                    name="Central Warehouse",
+                    defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True}
+                )
+                attrs["location"] = loc
+
+        location = attrs["location"]
+
+        if not batch_id:
+            valid_batches = Batch.objects.filter(
+                product=product, location=location, quantity_on_hand__gt=0
+            ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gte=today))
+            expired_count = Batch.objects.filter(
+                product=product, location=location, quantity_on_hand__gt=0, expiry_date__lt=today
+            ).count()
+            if not valid_batches.exists() and expired_count > 0:
+                raise serializers.ValidationError(
+                    "All available batches for this product have expired and cannot be issued. Please adjust or return expired stock."
+                )
+
         balance = InventoryBalance.objects.filter(
             product=product, location=location
         ).first()
         available = balance.available_quantity if balance else 0
         if quantity > available:
             raise serializers.ValidationError(
-                f"Cannot issue {quantity} units. Available stock: {available}."
+                f"Cannot issue {quantity} units. Available stock at {location.name}: {available}."
             )
         return attrs
 
@@ -281,7 +306,7 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
     location_name = serializers.SerializerMethodField()
 
     def get_location_name(self, obj):
-        return "Central Warehouse"
+        return obj.location.name if obj.location else "Central Warehouse"
 
     class Meta:
         model = StockAdjustment
@@ -333,7 +358,7 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
             adj, _ = StockService.adjust_stock(
                 user=request.user, request=request, **validated_data
             )
-        except ValueError as exc:
+        except (ValueError, InsufficientStockError) as exc:
             raise serializers.ValidationError(str(exc)) from exc
         return adj
 

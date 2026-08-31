@@ -29,30 +29,47 @@ async function parseResponse(response) {
   const body = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message =
-    typeof body === "object" && body !== null ?
-    body.error ?? JSON.stringify(body) :
-    String(body);
-    throw new ApiError(response.status, message);
+    let message = "Request failed";
+    if (typeof body === "object" && body !== null) {
+      if (body.error && typeof body.error === "string") {
+        message = body.error;
+      } else if (body.detail && typeof body.detail === "string") {
+        message = body.detail;
+      } else if (body.message && typeof body.message === "string") {
+        message = body.message;
+      } else if (Array.isArray(body.non_field_errors) && body.non_field_errors.length > 0) {
+        message = String(body.non_field_errors[0]);
+      } else if (Array.isArray(body) && body.length > 0) {
+        message = typeof body[0] === "string" ? body[0] : JSON.stringify(body[0]);
+      } else {
+        const firstKey = Object.keys(body)[0];
+        if (firstKey) {
+          const val = body[firstKey];
+          if (Array.isArray(val) && val.length > 0) {
+            message = typeof val[0] === "string" ? val[0] : `${firstKey}: ${JSON.stringify(val[0])}`;
+          } else if (typeof val === "string") {
+            message = val;
+          } else {
+            message = `${firstKey}: ${JSON.stringify(val)}`;
+          }
+        } else {
+          message = JSON.stringify(body);
+        }
+      }
+    } else if (typeof body === "string") {
+      message = body;
+    }
+    throw new ApiError(response.status, message, body);
   }
 
   return body;
 }
 
 export class ApiError extends Error {
-
-
-
-  constructor(status, details) {
-    const message =
-    typeof details === "string" ?
-    details :
-    typeof details === "object" && details !== null && "detail" in details ?
-    String(details.detail) :
-    "Request failed";
-    super(message);
+  constructor(status, message, rawDetails = null) {
+    super(typeof message === "string" ? message : "Request failed");
     this.status = status;
-    this.details = details;
+    this.details = rawDetails || message;
   }
 }
 

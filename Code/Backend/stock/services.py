@@ -398,7 +398,7 @@ class StockService:
         balance.save(update_fields=["quantity_on_hand", "updated_at"])
 
         if delta < 0:
-            cls._consume_batches(product, location, abs(delta))
+            cls._consume_batches(product, location, abs(delta), allow_expired=True)
             cls._consume_cost_layers(product, location, abs(delta))
         elif delta > 0:
             existing = StockInTransaction.objects.filter(
@@ -699,6 +699,7 @@ class SupplierReturnService:
                 supplier_return.location,
                 line.quantity,
                 batch_id=line.batch_id,
+                allow_expired=True,
             )
             StockService._consume_cost_layers(
                 line.product, supplier_return.location, line.quantity

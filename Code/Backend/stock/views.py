@@ -1,6 +1,7 @@
 from datetime import timedelta
+from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,6 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.permissions import HasModulePermission
+from inventory.models import Location, Product
+from suppliers.models import Supplier
 from stock.models import (
     Batch,
     StockAdjustment,
@@ -45,6 +48,118 @@ class StockInViewSet(viewsets.ModelViewSet):
             product__organization=self.request.user.organization
         ).select_related("product", "supplier", "location", "created_by", "batch")
 
+    @action(detail=False, methods=["post"], url_path="bulk-receive")
+    @transaction.atomic
+    def bulk_receive(self, request):
+        items = request.data.get("items", [])
+        if not items or not isinstance(items, list):
+            return Response(
+                {"success": False, "error": "No items provided in bulk receive payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        default_supplier_id = request.data.get("supplier")
+        default_location_id = request.data.get("location")
+        default_reference = request.data.get("reference", "")
+        default_notes = request.data.get("notes", "")
+
+        created_txns = []
+        total_quantity = 0
+        total_value = Decimal("0")
+
+        for idx, item in enumerate(items):
+            product_id = item.get("product")
+            if not product_id:
+                return Response(
+                    {"success": False, "error": f"Item #{idx + 1} is missing product ID."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                product = Product.objects.get(
+                    id=product_id, organization=request.user.organization
+                )
+            except Product.DoesNotExist:
+                return Response(
+                    {"success": False, "error": f"Product #{product_id} not found in your organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            supplier_id = item.get("supplier") or default_supplier_id
+            supplier = None
+            if supplier_id:
+                supplier = Supplier.objects.filter(
+                    id=supplier_id, organization=request.user.organization
+                ).first()
+            if not supplier:
+                supplier = product.supplier
+
+            location_id = item.get("location") or default_location_id
+            location = None
+            if location_id:
+                location = Location.objects.filter(
+                    id=location_id, organization=request.user.organization
+                ).first()
+            if not location:
+                location, _ = Location.objects.get_or_create(
+                    organization=request.user.organization,
+                    name="Central Warehouse",
+                    defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True},
+                )
+
+            try:
+                qty = int(item.get("quantity", 1))
+            except (ValueError, TypeError):
+                qty = 1
+            if qty <= 0:
+                return Response(
+                    {"success": False, "error": f"Quantity must be positive for {product.name}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            unit_cost_val = item.get("unit_cost")
+            if unit_cost_val is not None:
+                try:
+                    unit_cost = Decimal(str(unit_cost_val))
+                except Exception:
+                    unit_cost = Decimal(product.unit_price or 0)
+            else:
+                unit_cost = Decimal(product.unit_price or 0)
+
+            batch_number = item.get("batch_number") or ""
+            expiry_date = item.get("expiry_date") or None
+            reference = item.get("reference") or default_reference
+            notes = item.get("notes") or default_notes
+
+            txn, _ = StockService.stock_in(
+                product=product,
+                supplier=supplier,
+                location=location,
+                quantity=qty,
+                unit_cost=unit_cost,
+                batch_number=batch_number,
+                expiry_date=expiry_date,
+                reference=reference,
+                notes=notes,
+                user=request.user,
+                request=request,
+            )
+            created_txns.append(StockInSerializer(txn).data)
+            total_quantity += qty
+            total_value += unit_cost * qty
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Successfully received {len(created_txns)} items ({total_quantity} total units).",
+                "total_items": len(created_txns),
+                "total_quantity": total_quantity,
+                "total_value": float(total_value),
+                "transactions": created_txns,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
 
 class StockOutViewSet(viewsets.ModelViewSet):
     serializer_class = StockOutSerializer
@@ -58,6 +173,115 @@ class StockOutViewSet(viewsets.ModelViewSet):
         return StockOutTransaction.objects.filter(
             product__organization=self.request.user.organization
         ).select_related("product", "location", "created_by", "batch")
+
+    @action(detail=False, methods=["post"], url_path="bulk-dispatch")
+    @transaction.atomic
+    def bulk_dispatch(self, request):
+        items = request.data.get("items", [])
+        if not items or not isinstance(items, list):
+            return Response(
+                {"success": False, "error": "No items provided in bulk dispatch payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        default_location_id = request.data.get("location")
+        default_reason = request.data.get("reason", "sale")
+        default_reference = request.data.get("reference", "")
+        default_notes = request.data.get("notes", "")
+
+        created_txns = []
+        total_quantity = 0
+        total_value = Decimal("0")
+
+        for idx, item in enumerate(items):
+            product_id = item.get("product")
+            if not product_id:
+                return Response(
+                    {"success": False, "error": f"Item #{idx + 1} is missing product ID."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                product = Product.objects.get(
+                    id=product_id, organization=request.user.organization
+                )
+            except Product.DoesNotExist:
+                return Response(
+                    {"success": False, "error": f"Product #{product_id} not found in your organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            location_id = item.get("location") or default_location_id
+            location = None
+            if location_id:
+                location = Location.objects.filter(
+                    id=location_id, organization=request.user.organization
+                ).first()
+            if not location:
+                location, _ = Location.objects.get_or_create(
+                    organization=request.user.organization,
+                    name="Central Warehouse",
+                    defaults={"location_type": Location.LocationType.WAREHOUSE, "is_active": True},
+                )
+
+            try:
+                qty = int(item.get("quantity", 1))
+            except (ValueError, TypeError):
+                qty = 1
+            if qty <= 0:
+                return Response(
+                    {"success": False, "error": f"Quantity must be positive for {product.name}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            unit_price_val = item.get("unit_price")
+            if unit_price_val is not None:
+                try:
+                    unit_price = Decimal(str(unit_price_val))
+                except Exception:
+                    unit_price = Decimal(product.unit_price or 0)
+            else:
+                unit_price = Decimal(product.unit_price or 0)
+
+            batch_id = item.get("batch_id")
+            reason = item.get("reason") or default_reason
+            reference = item.get("reference") or default_reference
+            notes = item.get("notes") or default_notes
+
+            try:
+                txn, _ = StockService.stock_out(
+                    product=product,
+                    location=location,
+                    quantity=qty,
+                    reason=reason,
+                    unit_price=unit_price,
+                    batch_id=batch_id,
+                    reference=reference,
+                    notes=notes,
+                    user=request.user,
+                    request=request,
+                )
+            except (ValueError, InsufficientStockError) as exc:
+                return Response(
+                    {"success": False, "error": f"Error dispatching {product.name}: {str(exc)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            created_txns.append(StockOutSerializer(txn).data)
+            total_quantity += qty
+            total_value += unit_price * qty
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Successfully dispatched {len(created_txns)} items ({total_quantity} total units).",
+                "total_items": len(created_txns),
+                "total_quantity": total_quantity,
+                "total_value": float(total_value),
+                "transactions": created_txns,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class StockAdjustmentViewSet(viewsets.ModelViewSet):
