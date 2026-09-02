@@ -39,7 +39,7 @@ export default function ThreeDCanvas() {
 
     
     const radius = 2.0;
-    const segments = 64;
+    const segments = 28;
     const geometry = new THREE.SphereGeometry(radius, segments, segments);
 
     
