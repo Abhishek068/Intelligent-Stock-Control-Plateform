@@ -43,7 +43,6 @@ class AbcXyzClassificationService:
         if not products:
             return {"total": 0, "updated": 0, "matrix": {}}
 
-        # 1. ABC Analysis (Revenue 365 Days)
         revenue_map = {}
         for p in products:
             total_qty = (
@@ -74,7 +73,6 @@ class AbcXyzClassificationService:
                 abc = "C"
             abc_map[p.id] = abc
 
-        # 2. XYZ Analysis (Demand Volatility - 90 Days Daily Bucket)
         xyz_map = {}
         cv_map = {}
         std_map = {}
@@ -83,7 +81,6 @@ class AbcXyzClassificationService:
                 StockOutTransaction.objects.filter(product=p, issued_at__gte=since_90)
                 .values("issued_at", "quantity")
             )
-            # Group into 90 daily buckets
             daily_dict = {}
             for i in range(90):
                 d = (now - timedelta(days=i)).date()
@@ -102,7 +99,6 @@ class AbcXyzClassificationService:
             if mean_d > 0.001:
                 cv = std_d / mean_d
             else:
-                # Synthetic/Baseline CV based on transaction frequency
                 cv = 1.2 if len(txs) == 0 else 0.4
 
             cv_map[p.id] = cv
@@ -114,7 +110,6 @@ class AbcXyzClassificationService:
                 xyz = "Z"
             xyz_map[p.id] = xyz
 
-        # 3. Update Database & Construct Matrix Breakdown
         updated = 0
         matrix_counts = {}
         for p in products:

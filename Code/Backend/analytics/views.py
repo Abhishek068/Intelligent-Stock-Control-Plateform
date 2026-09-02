@@ -318,7 +318,6 @@ class ForecastViewSet(viewsets.ViewSet):
                 "predicted": round(predicted_weekly[w], 2) if w in predicted_weekly else None
             })
 
-        # Bridge weekly trend
         for i in range(len(weekly_trend) - 1, -1, -1):
             if weekly_trend[i]["actual"] is not None:
                 if weekly_trend[i]["predicted"] is None:
@@ -334,7 +333,6 @@ class ForecastViewSet(viewsets.ViewSet):
                 "predicted": round(predicted_monthly[m], 2) if m in predicted_monthly else None
             })
 
-        # Bridge monthly forecast
         for i in range(len(monthly_forecast) - 1, -1, -1):
             if monthly_forecast[i]["actual"] is not None:
                 if monthly_forecast[i]["predicted"] is None:
@@ -516,7 +514,6 @@ class ReportViewSet(viewsets.ViewSet):
             days = min(int(request.query_params.get("days", 30)), 90)
             since = timezone.now() - timedelta(days=days)
 
-            # Stock In Details by Product
             in_qs = (
                 StockInTransaction.objects.filter(product__organization=org)
                 .select_related("product", "product__category", "supplier", "location", "created_by")
@@ -553,7 +550,6 @@ class ReportViewSet(viewsets.ViewSet):
                         "notes": txn.notes or "",
                     })
 
-            # Stock Out Details by Product
             out_qs = (
                 StockOutTransaction.objects.filter(product__organization=org)
                 .select_related("product", "product__category", "location", "created_by")
@@ -589,7 +585,6 @@ class ReportViewSet(viewsets.ViewSet):
                         "notes": txn.notes or "",
                     })
 
-            # Stock Adjustments Details by Product
             adj_qs = (
                 StockAdjustment.objects.filter(product__organization=org)
                 .select_related("product", "product__category", "location", "created_by")
@@ -945,7 +940,6 @@ class AbcXyzAnalyticsViewSet(viewsets.ViewSet):
     def abc_xyz_matrix(self, request):
         from analytics.abc_xyz_service import AbcXyzClassificationService
         org = request.user.organization
-        # Ensure fresh classification
         res = AbcXyzClassificationService.classify_organization_products(org)
         products = Product.objects.filter(organization=org, is_active=True)
 

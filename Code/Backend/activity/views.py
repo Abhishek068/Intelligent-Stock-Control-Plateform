@@ -133,17 +133,12 @@ class AdminDashboardView(APIView):
             day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
             day_end = day_start + timedelta(days=1)
             
-            # Users joined on this day
             users_joined = users_qs.filter(date_joined__gte=day_start, date_joined__lt=day_end).count()
             
-            # Inv value change (very simplified: stock in value - stock out value)
             from stock.models import StockInTransaction, StockOutTransaction
             
-            # We work backward from current totals to ensure the final day matches the exact current DB state
-            # Wait, easier to just build the array backward.
             pass
             
-        # Build array backward to guarantee the last point is exactly the current total
         users_arr = []
         inv_arr = []
         alerts_arr = []
@@ -154,7 +149,6 @@ class AdminDashboardView(APIView):
         a_val = current_alerts
         r_val = current_reports
         
-        # We'll go backwards from today to 6 days ago
         for i in range(7):
             users_arr.insert(0, {"val": u_val})
             inv_arr.insert(0, {"val": round(i_val, 2)})
@@ -164,22 +158,14 @@ class AdminDashboardView(APIView):
             day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
             day_end = day_start + timedelta(days=1)
             
-            # Subtract today's growth to get yesterday's total
             u_val -= users_qs.filter(date_joined__gte=day_start, date_joined__lt=day_end).count()
             
-            # Stock alerts generated this day
             a_val -= notif_qs.filter(created_at__gte=day_start, created_at__lt=day_end).count()
             
-            # Reports created this day
             r_val -= sched_qs.filter(created_at__gte=day_start, created_at__lt=day_end).count()
             
-            # Inventory value changes
-            # Since we don't have unit_cost easily accessible here without a complex query,
-            # we will just adjust by a realistic fraction of transactions, or just use 0 if no trans.
-            # A more robust DB approach:
             in_qty = StockInTransaction.objects.filter(received_at__gte=day_start, received_at__lt=day_end).aggregate(t=Coalesce(Sum('quantity'), 0))['t']
             out_qty = StockOutTransaction.objects.filter(issued_at__gte=day_start, issued_at__lt=day_end).aggregate(t=Coalesce(Sum('quantity'), 0))['t']
-            # Assume average value per unit is $50
             i_val -= (in_qty * 50) - (out_qty * 50)
             
             if u_val < 0: u_val = 0

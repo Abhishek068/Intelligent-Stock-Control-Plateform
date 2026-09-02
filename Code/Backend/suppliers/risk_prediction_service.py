@@ -29,7 +29,6 @@ class SupplierRiskPredictionService:
         reliability = float(supplier.delivery_reliability or 90.0)
         accuracy = float(supplier.order_accuracy or 90.0)
 
-        # Historical delay rate calculation for this supplier
         completed_pos = PurchaseOrder.objects.filter(
             supplier=supplier,
             status=PurchaseOrder.Status.RECEIVED,
@@ -85,7 +84,6 @@ class SupplierRiskPredictionService:
             day_of_week = np.random.randint(0, 7)
             location_code = np.random.choice([1, 2, 3])
 
-            # Domain logic for delay probability
             risk_points = 0.0
             if reliability < 75:
                 risk_points += 0.30
@@ -110,7 +108,6 @@ class SupplierRiskPredictionService:
         if cls._cached_model and cls._last_trained_at and (now - cls._last_trained_at).total_seconds() < 300:
             return cls._cached_model
 
-        # Extract actual POs if available
         completed_pos = PurchaseOrder.objects.filter(
             status=PurchaseOrder.Status.RECEIVED,
             submitted_at__isnull=False,
@@ -158,7 +155,6 @@ class SupplierRiskPredictionService:
         probs = model.predict_proba([features])[0]
         delay_prob = float(probs[1]) * 100.0 if len(probs) > 1 else float(probs[0]) * 100.0
 
-        # Dynamic Risk Score (0-100)
         reliability = float(supplier.delivery_reliability or 90.0)
         unreliability = max(0.0, 100.0 - reliability)
         vol_factor = min(100.0, (float(total_volume or 1) / 500.0) * 100.0)
@@ -166,7 +162,6 @@ class SupplierRiskPredictionService:
         risk_score = round((0.50 * delay_prob) + (0.35 * unreliability) + (0.15 * vol_factor), 2)
         risk_score = min(100.0, max(0.0, risk_score))
 
-        # Risk Level Classification
         if risk_score < 25.0:
             risk_level = "low"
         elif risk_score < 50.0:
@@ -176,7 +171,6 @@ class SupplierRiskPredictionService:
         else:
             risk_level = "critical"
 
-        # Risk Drivers / Contributing Factors
         factors = []
         month = (submitted_at or datetime.now()).month
         if month in [10, 11, 12]:

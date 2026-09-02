@@ -68,7 +68,6 @@ class StockValuationTests(TestCase):
     def test_stock_out_notification(self):
         from notifications.models import Notification
         
-        # Initial stock in to have available stock
         StockService.stock_in(
             product=self.product,
             supplier=self.supplier,
@@ -78,12 +77,10 @@ class StockValuationTests(TestCase):
             user=self.user,
         )
         
-        # Clear existing system notifications if any
         Notification.objects.filter(
             notification_type=Notification.NotificationType.SYSTEM
         ).delete()
         
-        # Perform stock out
         StockService.stock_out(
             product=self.product,
             location=self.location,
@@ -91,7 +88,6 @@ class StockValuationTests(TestCase):
             user=self.user,
         )
         
-        # Assert notification was created
         notif = Notification.objects.filter(
             notification_type=Notification.NotificationType.SYSTEM,
             organization=self.organization
@@ -136,7 +132,6 @@ class BatchExpiryAndFIFOTests(TestCase):
         from stock.models import Batch
         from stock.services import StockService
 
-        # Batch 1 expires in 20 days
         StockService.stock_in(
             product=self.product,
             supplier=self.supplier,
@@ -147,7 +142,6 @@ class BatchExpiryAndFIFOTests(TestCase):
             batch_number="BATCH-LATER",
             expiry_date=self.today + timedelta(days=20),
         )
-        # Batch 2 expires in 3 days (earlier expiry)
         StockService.stock_in(
             product=self.product,
             supplier=self.supplier,
@@ -310,7 +304,6 @@ class DataIntegrityTests(TestCase):
         from inventory.models import InventoryBalance
         from stock.services import InsufficientStockError
 
-        # === T1 stock arithmetic ===
         print("\n=== T1 stock arithmetic ===")
         StockService.stock_in(
             product=self.product,
@@ -334,7 +327,6 @@ class DataIntegrityTests(TestCase):
         print(f"after -30 -> {bal.quantity_on_hand}")
         self.assertEqual(bal.quantity_on_hand, 70)
 
-        # === T2 over-issue guard ===
         print("\n=== T2 over-issue guard ===")
         with self.assertRaises(InsufficientStockError) as ctx:
             StockService.stock_out(
@@ -348,7 +340,6 @@ class DataIntegrityTests(TestCase):
         bal.refresh_from_db()
         self.assertEqual(bal.quantity_on_hand, 70)
 
-        # === T3 audit immutability ===
         print("\n=== T3 audit immutability ===")
         first_log = ActivityLog.objects.first()
         self.assertIsNotNone(first_log)
@@ -374,7 +365,6 @@ class DataIntegrityTests(TestCase):
         from inventory.models import InventoryBalance
         from stock.services import InsufficientStockError
 
-        # Setup source with 50 units
         StockService.stock_in(
             product=self.product,
             supplier=self.supplier,
@@ -383,7 +373,6 @@ class DataIntegrityTests(TestCase):
             unit_cost=Decimal("5.00"),
             user=self.user,
         )
-        # Transfer 20 units from location_a to location_b
         transfer = StockService.create_transfer_draft(
             product=self.product,
             source_location=self.location_a,
@@ -403,7 +392,6 @@ class DataIntegrityTests(TestCase):
         self.assertEqual(bal_b.quantity_on_hand, 20)
         self.assertEqual(total, 50)
 
-        # Attempt oversized transfer of 999 units
         oversized_transfer = StockService.create_transfer_draft(
             product=self.product,
             source_location=self.location_a,

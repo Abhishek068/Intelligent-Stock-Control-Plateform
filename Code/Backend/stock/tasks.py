@@ -60,7 +60,7 @@ def evaluate_batch_expiry():
                 f"Batch '{batch.batch_number}' expires in {days} day(s) on {batch.expiry_date} "
                 f"at {batch.location.name}. Remaining stock: {batch.quantity_on_hand} units."
             )
-        else:  # band == "30"
+        else:
             severity = Notification.Severity.INFO
             title = f"Expiry Attention (≤30 Days): {batch.product.name}"
             message = (

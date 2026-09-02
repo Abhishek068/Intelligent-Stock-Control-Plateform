@@ -71,7 +71,6 @@ class WeatherService:
             except Exception as e:
                 logger.error(f"OpenWeather API error: {e}")
 
-        # Free Open-Meteo Live Weather API - No API Key Needed
         try:
             lat, lon = cls.UK_CITIES_COORDS.get(city, cls.UK_CITIES_COORDS.get(city.title(), (51.5074, -0.1278)))
             open_meteo_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,rain_sum&timezone=Europe%2FLondon"
@@ -85,11 +84,9 @@ class WeatherService:
                 daily_max_list = daily.get("temperature_2m_max", [25.0])
                 daily_min_list = daily.get("temperature_2m_min", [15.0])
                 
-                # Today's high/low
                 max_temp = daily_max_list[0] if len(daily_max_list) > 0 else 25.0
                 min_temp = daily_min_list[0] if len(daily_min_list) > 0 else 15.0
 
-                # Match exact current UK local hour from Open-Meteo hourly forecast
                 from django.utils import timezone
                 now_local = timezone.now()
                 target_time_prefix = now_local.strftime("%Y-%m-%dT%H:00")

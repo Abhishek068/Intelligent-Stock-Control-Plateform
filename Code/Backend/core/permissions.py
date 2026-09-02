@@ -45,7 +45,6 @@ class HasModulePermission(permissions.BasePermission):
         if not module:
             return True
 
-        # Allow safe read-only access (GET/HEAD/OPTIONS) for authenticated organization members
         if request.method in permissions.SAFE_METHODS:
             return True
 

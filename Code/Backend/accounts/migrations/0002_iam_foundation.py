@@ -79,7 +79,6 @@ def migrate_users_forward(apps, schema_editor):
             target = manager if old_role in ("admin", "manager") else staff
             UserRole.objects.get_or_create(user=user, role=target)
             if old_role == "admin" and not user.is_superuser:
-                # Former app-admins become Managers unless already superuser
                 pass
             user.status = "active" if user.is_active else "inactive"
             user.save(update_fields=["status"])

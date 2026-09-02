@@ -181,7 +181,6 @@ class LocationViewSet(OrganizationScopedViewSet):
         if not org:
             return Response({"error": "No organization found"}, status=400)
 
-        # 1. Get or create the single "Main Warehouse"
         main_loc, _ = Location.objects.get_or_create(
             organization=org,
             name="Main Warehouse",
@@ -191,7 +190,6 @@ class LocationViewSet(OrganizationScopedViewSet):
         main_loc.name = "Main Warehouse"
         main_loc.save()
 
-        # 2. Reassign all existing balances, transactions, batches, orders to Main Warehouse
         other_locs = Location.objects.filter(organization=org).exclude(id=main_loc.id)
         other_count = other_locs.count()
 

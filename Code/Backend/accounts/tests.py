@@ -85,7 +85,6 @@ class SecurityTests(TestCase):
         )
 
     def test_brute_force_lockout_after_five_failed_attempts(self):
-        # 4 wrong attempts -> HTTP 401
         for _ in range(4):
             res = self.client.post(
                 "/api/v1/auth/login/",
@@ -94,7 +93,6 @@ class SecurityTests(TestCase):
             )
             self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # 5th wrong attempt -> triggers account lockout
         res5 = self.client.post(
             "/api/v1/auth/login/",
             {"email": "victim@sec-a.test", "password": "WrongPassword!"},
@@ -102,7 +100,6 @@ class SecurityTests(TestCase):
         )
         self.assertEqual(res5.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # Subsequent attempt with correct password is now locked out -> HTTP 423 Locked
         res_locked = self.client.post(
             "/api/v1/auth/login/",
             {"email": "victim@sec-a.test", "password": "CorrectPassword123!"},
@@ -112,7 +109,6 @@ class SecurityTests(TestCase):
         self.assertIn("temporarily locked", res_locked.data["error"])
 
     def test_jwt_token_blacklisting_on_logout(self):
-        # Login to obtain token pair
         login_res = self.client.post(
             "/api/v1/auth/login/",
             {"email": "victim@sec-a.test", "password": "CorrectPassword123!"},
@@ -122,27 +118,22 @@ class SecurityTests(TestCase):
         access_token = login_res.data["data"]["access"]
         refresh_token = login_res.data["data"]["refresh"]
 
-        # Logout with refresh token (adds to token blacklist)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
         logout_res = self.client.post("/api/v1/auth/logout/", {"refresh": refresh_token}, format="json")
         self.assertEqual(logout_res.status_code, status.HTTP_200_OK)
 
-        # Attempt to use blacklisted refresh token -> rejected with HTTP 401
-        self.client.credentials()  # clear auth header
+        self.client.credentials()
         refresh_res = self.client.post("/api/v1/auth/token/refresh/", {"refresh": refresh_token}, format="json")
         self.assertEqual(refresh_res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_multi_tenant_data_isolation(self):
         from suppliers.models import Supplier
-        # Create confidential supplier in Org A
         supplier_a = Supplier.objects.create(organization=self.org_a, name="Secret Org A Supplier")
 
-        # Authenticate as user from Org B
         self.client.force_authenticate(user=self.user_b)
         res = self.client.get("/api/v1/suppliers/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         
-        # Ensure Org B user CANNOT see Org A's confidential supplier
         suppliers_list = res.data.get("data", res.data) if isinstance(res.data, dict) else res.data
         supplier_ids = [s["id"] for s in (suppliers_list if isinstance(suppliers_list, list) else [])]
         self.assertNotIn(supplier_a.id, supplier_ids)

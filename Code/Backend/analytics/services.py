@@ -195,7 +195,6 @@ class ForecastingService:
                         except Exception:
                             pass
 
-                    # Croston-SBA for Intermittent / Lumpy demand
                     pred_croston = DemandPatternClassificationService.croston_sba_forecast(train, horizon_days=len(test)) if len(test) > 0 else pd.Series(dtype=float)
                     mae_croston = float(np.mean(np.abs(test.values - pred_croston.values))) if len(test) > 0 else 999999.0
 
@@ -265,11 +264,9 @@ class ForecastingService:
             model_name = "average_demand"
 
         else:
-            # --- Product Category Classification & Initial Baseline Scale ---
             import datetime
             import hashlib
 
-            # 1. Base scale from Product Reorder Level / Minimum Level
             if hasattr(product, "reorder_level") and product.reorder_level:
                 base_daily = max(1.8, float(product.reorder_level) / 7.0)
             elif hasattr(product, "minimum_level") and product.minimum_level:
@@ -277,12 +274,10 @@ class ForecastingService:
             else:
                 base_daily = 2.0
 
-            # 2. Price Scaling: High price = moderate daily unit velocity
             unit_price = float(product.unit_price) if hasattr(product, "unit_price") and product.unit_price else 20.0
             price_factor = max(0.6, (20.0 / max(unit_price, 2.0)) ** 0.2)
             base_daily = base_daily * price_factor
 
-            # 3. Category Turnover Baseline Scale
             product_name_lower = str(product.name).lower() if hasattr(product, 'name') else ""
             category_name_lower = str(product.category.name).lower() if hasattr(product, 'category') and product.category else ""
             combined_str = f"{product_name_lower} {category_name_lower}"
@@ -306,7 +301,6 @@ class ForecastingService:
             else:
                 category_base_mult = 1.0
 
-            # 4. Unique Product Fingerprint Hash (prevents exact duplicate curves)
             name_hash = int(hashlib.md5(product_name_lower.encode('utf-8')).hexdigest(), 16)
             unique_variation = 0.85 + ((name_hash % 30) / 100.0)
 
@@ -317,7 +311,6 @@ class ForecastingService:
             rmse = 1.6
             mape = 12.5
 
-        # --- Category-Aware External Impact Engine (Weather, Season, Events, Holidays, Trends) ---
         import datetime
         current_month = datetime.datetime.now().month
         product_name_lower = str(product.name).lower() if hasattr(product, 'name') else ""
@@ -336,20 +329,18 @@ class ForecastingService:
         is_apparel = any(k in combined_str for k in apparel_keywords)
         is_furniture = any(k in combined_str for k in furniture_keywords)
 
-        # 1. Seasonality Multiplier (Applies to all products)
         season_multiplier = 1.0
         if is_summer_product:
             if current_month in [5, 6, 7, 8, 9]:
-                season_multiplier = 3.2  # Peak summer demand surge
+                season_multiplier = 3.2
             elif current_month in [11, 12, 1, 2, 3]:
-                season_multiplier = 0.25  # Winter off-season penalty
+                season_multiplier = 0.25
         elif is_winter_product:
             if current_month in [11, 12, 1, 2, 3]:
-                season_multiplier = 3.2  # Peak winter demand surge
+                season_multiplier = 3.2
             elif current_month in [5, 6, 7, 8, 9]:
-                season_multiplier = 0.25  # Summer off-season penalty
+                season_multiplier = 0.25
 
-        # 2. Weather Impact (Category-Tailored)
         from analytics.weather_service import WeatherService
         weather_multiplier, weather_context = WeatherService.get_weather_impact(city="London")
         
@@ -360,41 +351,37 @@ class ForecastingService:
         weather_category_mult = weather_multiplier
         if is_winter_product:
             if max_temp > 22:
-                weather_category_mult *= 0.5  # Warm weather depresses winter items
+                weather_category_mult *= 0.5
             elif avg_temp < 10:
-                weather_category_mult *= 1.4  # Cold weather boosts winter items
+                weather_category_mult *= 1.4
         elif is_summer_product:
             if max_temp > 22:
-                weather_category_mult *= 1.5  # Hot weather boosts summer items
+                weather_category_mult *= 1.5
             elif avg_temp < 10:
-                weather_category_mult *= 0.5  # Cold weather depresses summer items
+                weather_category_mult *= 0.5
         elif is_grocery and has_rain:
-            weather_category_mult *= 1.15  # Rain boosts home cooking / grocery items
+            weather_category_mult *= 1.15
 
-        # 3. Holiday Impact (Category-Tailored)
         from analytics.holiday_service import HolidayService
         holiday_multiplier, holiday_context = HolidayService.get_holiday_impact(horizon_days=horizon_days, country_code="GB")
         holiday_category_mult = holiday_multiplier
         if holiday_multiplier > 1.0:
             if is_grocery or is_apparel:
-                holiday_category_mult *= 1.35  # Grocery/Apparel surge during holidays
+                holiday_category_mult *= 1.35
             elif is_furniture:
-                holiday_category_mult *= 1.15  # Moderate holiday surge for furniture
+                holiday_category_mult *= 1.15
 
-        # 4. Events Impact (Category-Tailored)
         from analytics.events_service import EventsService
         events_multiplier, events_context = EventsService.get_events_impact(city="London", country_code="GB", horizon_days=horizon_days)
         events_category_mult = events_multiplier
         if events_multiplier > 1.0:
             if is_grocery or is_summer_product:
-                events_category_mult *= 1.30  # Events boost drinks/food/snacks
+                events_category_mult *= 1.30
 
-        # 5. Trends Impact (Product-Specific)
         from analytics.trends_service import TrendsService
         product_name = product.name if hasattr(product, 'name') else str(product)
         trends_multiplier, trends_context = TrendsService.get_trends_impact(product_name=product_name)
 
-        # Compound Multiplier Calculation
         compound_multiplier = season_multiplier * weather_category_mult * holiday_category_mult * events_category_mult * trends_multiplier
 
         if compound_multiplier != 1.0:
@@ -547,7 +534,6 @@ class ForecastingService:
         metrics = {}
 
         if product:
-            # Force generate fresh forecast if record is missing or has old tiny decimal values
             forecast_record = DemandForecast.objects.filter(product=product).order_by("-generated_at").first()
             if not forecast_record or float(forecast_record.predicted_demand) < 15.0:
                 forecast_record = cls.forecast_product(product, horizon_days=30)
@@ -578,40 +564,36 @@ class ForecastingService:
 
                 for i in range(1, 31):
                     d = start_forecast_date + timedelta(days=i)
-                    day_of_week = d.weekday()  # 0=Mon, 5=Sat, 6=Sun
+                    day_of_week = d.weekday()
                     day_of_month = d.day
 
-                    # 1. Day-of-week demand cycle (Weekend retail surge vs B2B)
                     dow_mult = 1.0
-                    if day_of_week in [5, 6]:  # Saturday & Sunday
+                    if day_of_week in [5, 6]:
                         dow_mult = 1.35 if (is_furniture or is_summer or is_grocery) else 0.85
-                    elif day_of_week in [0, 4]:  # Monday / Friday restocking
+                    elif day_of_week in [0, 4]:
                         dow_mult = 1.15
 
-                    # 2. Upcoming UK Bank Holiday & Payday surge (Late August Bank Holiday / Payday 28th-31st)
                     holiday_mult = 1.0
                     if (d.month == 8 and 27 <= day_of_month <= 31) or (d.month == 9 and day_of_month <= 2):
-                        holiday_mult = 1.45  # Bank Holiday weekend surge
+                        holiday_mult = 1.45
                     elif 25 <= day_of_month <= 30 or day_of_month <= 2:
-                        holiday_mult = 1.20  # Monthly payday purchasing surge
+                        holiday_mult = 1.20
 
-                    # 3. Weather & Rain / Monsoon fluctuation pattern
                     weather_mult = 1.0
                     weather_cycle = math.sin((i + prod_hash_offset) * 0.45)
-                    if weather_cycle > 0.3:  # Hot / Heatwave days
+                    if weather_cycle > 0.3:
                         if is_summer:
                             weather_mult = 1.40
                         elif is_winter:
                             weather_mult = 0.60
                         elif is_furniture:
-                            weather_mult = 0.80  # Hot heatwaves shift buyers outdoors
-                    elif weather_cycle < -0.3:  # Rainy / Monsoon days
+                            weather_mult = 0.80
+                    elif weather_cycle < -0.3:
                         if is_furniture or is_summer:
-                            weather_mult = 0.65  # Rain/Monsoon depresses furniture & beach items!
+                            weather_mult = 0.65
                         elif is_grocery or is_winter:
-                            weather_mult = 1.35  # Rain boosts indoor groceries & heating
+                            weather_mult = 1.35
 
-                    # Organic daily micro-fluctuation wave
                     organic_wave = 1.0 + (math.sin(i * 0.85 + prod_hash_offset) * 0.14)
 
                     daily_factor = dow_mult * holiday_mult * weather_mult * organic_wave
@@ -657,16 +639,13 @@ class ForecastingService:
 
             for i in range(1, 31):
                 d = start_forecast_date + timedelta(days=i)
-                day_of_week = d.weekday()  # 0=Mon, 5=Sat, 6=Sun
+                day_of_week = d.weekday()
                 day_of_month = d.day
 
-                # 1. Weekend surge across organizational retail catalog
                 dow_mult = 1.25 if day_of_week in [5, 6] else (1.10 if day_of_week in [0, 4] else 0.95)
 
-                # 2. Upcoming UK Bank Holiday & Payday surge
                 holiday_mult = 1.35 if ((d.month == 8 and 27 <= day_of_month <= 31) or (d.month == 9 and day_of_month <= 2)) else (1.15 if (25 <= day_of_month <= 30 or day_of_month <= 2) else 1.0)
 
-                # 3. Aggregate organic fluctuation wave
                 organic_wave = 1.0 + (math.sin(i * 0.75) * 0.10)
 
                 point_pred = int(round(max(1.0, total_daily_pred * dow_mult * holiday_mult * organic_wave)))

@@ -22,12 +22,10 @@ def _debug_perms(request):
     from emails.services import process_pending_emails, process_queue_item
     from accounts.models import User
     
-    # Check pending/failed emails
     queue_items = list(EmailQueue.objects.order_by("-created_at")[:10].values("id", "recipient", "subject", "status", "attempts", "error_message", "created_at"))
     logs = list(EmailLog.objects.order_by("-created_at")[:10].values("id", "recipient", "subject", "status", "provider_response", "created_at"))
     configs = list(EmailProviderConfig.objects.all().values("id", "provider", "sender_email", "sender_name", "is_active", "environment"))
     
-    # Try processing pending items
     res = process_pending_emails(10)
     
     return JsonResponse({

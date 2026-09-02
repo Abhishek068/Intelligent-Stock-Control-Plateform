@@ -66,7 +66,6 @@ class AnomalyDetectionTests(TestCase):
         from stock.models import StockOutTransaction
         from analytics.services import AnomalyDetectionService
 
-        # Only 1 transaction (less than MINIMUM_HISTORY=10)
         txn = StockOutTransaction.objects.create(
             product=self.product,
             location=self.location,
@@ -83,7 +82,6 @@ class AnomalyDetectionTests(TestCase):
         from analytics.services import AnomalyDetectionService
         from notifications.models import Notification
 
-        # Create baseline history of 15 typical transactions (quantities 2 to 10)
         for i in range(15):
             StockOutTransaction.objects.create(
                 product=self.product,
@@ -93,7 +91,6 @@ class AnomalyDetectionTests(TestCase):
                 created_by=self.user,
             )
 
-        # Create an extreme outlier transaction (quantity 50,000)
         outlier_txn = StockOutTransaction.objects.create(
             product=self.product,
             location=self.location,
@@ -109,7 +106,6 @@ class AnomalyDetectionTests(TestCase):
         self.assertTrue(is_anomaly)
         self.assertTrue(outlier_txn.is_anomaly)
 
-        # Verify automated security/anomaly notification was sent
         anomaly_notif = Notification.objects.filter(
             organization=self.organization,
             notification_type=Notification.NotificationType.ANOMALY,

@@ -1,4 +1,3 @@
-# Generated manually for Phase 7 stock-take
 
 import django.db.models.deletion
 from django.conf import settings

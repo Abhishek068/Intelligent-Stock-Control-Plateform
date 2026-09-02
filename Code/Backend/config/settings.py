@@ -160,11 +160,9 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 BREVO_API_KEY = env("BREVO_API_KEY", default="")
 
-# Groq chatbot (primary)
 GROQ_API_KEY = env("GROQ_API_KEY", default="")
 GROQ_MODEL = env("GROQ_MODEL", default="openai/gpt-oss-120b")
 
-# OpenAI chatbot (fallback)
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 FIREBASE_CREDENTIALS_PATH = env("FIREBASE_CREDENTIALS_PATH", default="")

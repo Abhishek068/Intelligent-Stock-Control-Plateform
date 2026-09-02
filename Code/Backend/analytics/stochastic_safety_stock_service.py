@@ -35,7 +35,6 @@ class StochasticSafetyStockService:
         sl = float(service_level)
         if sl in cls.Z_SCORE_MAP:
             return cls.Z_SCORE_MAP[sl]
-        # Closest match fallback
         closest = min(cls.Z_SCORE_MAP.keys(), key=lambda k: abs(k - sl))
         return cls.Z_SCORE_MAP[closest]
 
@@ -47,7 +46,6 @@ class StochasticSafetyStockService:
         now = timezone.now()
         since_90 = now - timedelta(days=90)
 
-        # 1. Calculate Daily Demand Mean (D_bar) & StdDev (Sigma_D)
         txs = list(
             StockOutTransaction.objects.filter(product=product, issued_at__gte=since_90)
             .values("issued_at", "quantity")
@@ -66,7 +64,6 @@ class StochasticSafetyStockService:
             mean_d = float(product.reorder_level or 10) / 14.0
             sigma_d = mean_d * 0.4
 
-        # 2. Calculate Supplier Lead Time Mean (L_bar) & StdDev (Sigma_L)
         lead_times = []
         if product.supplier:
             l_bar = float(product.supplier.lead_time_days or 7)
@@ -86,17 +83,13 @@ class StochasticSafetyStockService:
         if sigma_l <= 0.1:
             sigma_l = 1.0
 
-        # 3. Apply Stochastic Safety Stock Formula
-        # SS = Z * sqrt( L_bar * (sigma_d^2) + (mean_d^2) * (sigma_l^2) )
         variance_term = (l_bar * (sigma_d ** 2)) + ((mean_d ** 2) * (sigma_l ** 2))
         safety_stock = int(round(z * math.sqrt(max(0.001, variance_term))))
         safety_stock = max(1, safety_stock)
 
-        # 4. Stochastic Reorder Point (ROP = D_bar * L_bar + SS)
         rop = int(round((mean_d * l_bar) + safety_stock))
         rop = max(product.reorder_level or 1, rop)
 
-        # Update product record
         product.target_service_level = Decimal(str(round(sl, 2)))
         product.stochastic_safety_stock = safety_stock
         product.dynamic_reorder_point = rop
