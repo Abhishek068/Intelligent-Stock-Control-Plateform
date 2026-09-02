@@ -279,6 +279,153 @@ class StockAdjustmentAPITests(TestCase):
         self.assertIsNotNone(adj.adjusted_at)
 
 
+class DataIntegrityTests(TestCase):
+    def setUp(self):
+        from audit.models import ActivityLog
+        from inventory.models import InventoryBalance
+        self.organization = Organization.objects.create(name="Integrity Org", slug="integrity-org")
+        self.settings = OrganizationSettings.objects.create(organization=self.organization)
+        self.user = User.objects.create_user(
+            email="integrity@example.test",
+            username="integrity-user",
+            password="password",
+            organization=self.organization,
+            status=User.Status.ACTIVE,
+        )
+        self.supplier = Supplier.objects.create(organization=self.organization, name="Test Supplier")
+        self.category = Category.objects.create(organization=self.organization, name="General")
+        self.product = Product.objects.create(
+            organization=self.organization,
+            category=self.category,
+            supplier=self.supplier,
+            sku="INTEG-001",
+            name="Integrity Product",
+            unit_price=Decimal("10.00"),
+        )
+        self.location_a = Location.objects.create(organization=self.organization, name="Warehouse A")
+        self.location_b = Location.objects.create(organization=self.organization, name="Warehouse B")
+
+    def test_t1_t2_t3_stock_arithmetic_overissue_and_audit(self):
+        from audit.models import ActivityLog
+        from inventory.models import InventoryBalance
+        from stock.services import InsufficientStockError
+
+        # === T1 stock arithmetic ===
+        print("\n=== T1 stock arithmetic ===")
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location_a,
+            quantity=100,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+        )
+        bal = InventoryBalance.objects.get(product=self.product, location=self.location_a)
+        print(f"after +100 -> {bal.quantity_on_hand}")
+        self.assertEqual(bal.quantity_on_hand, 100)
+
+        StockService.stock_out(
+            product=self.product,
+            location=self.location_a,
+            quantity=30,
+            user=self.user,
+        )
+        bal.refresh_from_db()
+        print(f"after -30 -> {bal.quantity_on_hand}")
+        self.assertEqual(bal.quantity_on_hand, 70)
+
+        # === T2 over-issue guard ===
+        print("\n=== T2 over-issue guard ===")
+        with self.assertRaises(InsufficientStockError) as ctx:
+            StockService.stock_out(
+                product=self.product,
+                location=self.location_a,
+                quantity=10000,
+                user=self.user,
+            )
+        print(f"blocked OK: {ctx.exception}")
+        self.assertEqual(str(ctx.exception), "Insufficient stock. Available: 70, requested: 10000")
+        bal.refresh_from_db()
+        self.assertEqual(bal.quantity_on_hand, 70)
+
+        # === T3 audit immutability ===
+        print("\n=== T3 audit immutability ===")
+        first_log = ActivityLog.objects.first()
+        self.assertIsNotNone(first_log)
+
+        try:
+            first_log.action = "Tampered Action"
+            first_log.save()
+        except ValueError as exc:
+            print(f"update blocked: {exc}")
+            self.assertEqual(str(exc), "ActivityLog records are immutable and cannot be updated.")
+
+        try:
+            first_log.delete()
+        except ValueError as exc:
+            print(f"delete blocked: {exc}")
+            self.assertEqual(str(exc), "ActivityLog records are immutable and cannot be deleted.")
+
+        audit_count = ActivityLog.objects.count()
+        print(f"audit rows written so far: {audit_count}")
+        self.assertEqual(audit_count, 2)
+
+    def test_t7_transfer_atomicity(self):
+        from inventory.models import InventoryBalance
+        from stock.services import InsufficientStockError
+
+        # Setup source with 50 units
+        StockService.stock_in(
+            product=self.product,
+            supplier=self.supplier,
+            location=self.location_a,
+            quantity=50,
+            unit_cost=Decimal("5.00"),
+            user=self.user,
+        )
+        # Transfer 20 units from location_a to location_b
+        transfer = StockService.create_transfer_draft(
+            product=self.product,
+            source_location=self.location_a,
+            destination_location=self.location_b,
+            quantity=20,
+            user=self.user,
+        )
+        StockService.complete_transfer(transfer=transfer, user=self.user)
+
+        bal_a = InventoryBalance.objects.get(product=self.product, location=self.location_a)
+        bal_b = InventoryBalance.objects.get(product=self.product, location=self.location_b)
+        total = bal_a.quantity_on_hand + bal_b.quantity_on_hand
+
+        print("\n=== T7 transfer atomicity ===")
+        print(f"source={bal_a.quantity_on_hand} dest={bal_b.quantity_on_hand} total={total} (expected 50)")
+        self.assertEqual(bal_a.quantity_on_hand, 30)
+        self.assertEqual(bal_b.quantity_on_hand, 20)
+        self.assertEqual(total, 50)
+
+        # Attempt oversized transfer of 999 units
+        oversized_transfer = StockService.create_transfer_draft(
+            product=self.product,
+            source_location=self.location_a,
+            destination_location=self.location_b,
+            quantity=999,
+            user=self.user,
+        )
+        try:
+            StockService.complete_transfer(transfer=oversized_transfer, user=self.user)
+        except InsufficientStockError as exc:
+            print(f"oversized transfer blocked: {exc}")
+            self.assertIn("Insufficient stock at source. Available: 30", str(exc))
+
+        bal_a.refresh_from_db()
+        bal_b.refresh_from_db()
+        after_total = bal_a.quantity_on_hand + bal_b.quantity_on_hand
+        unchanged = (bal_a.quantity_on_hand == 30 and bal_b.quantity_on_hand == 20)
+        print(f"after rollback source={bal_a.quantity_on_hand} dest={bal_b.quantity_on_hand} total={after_total} (unchanged? {unchanged})")
+        self.assertTrue(unchanged)
+
+
+
 
                          
 
