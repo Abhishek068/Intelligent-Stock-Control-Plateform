@@ -1,10 +1,12 @@
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL &&
+  process.env.NEXT_PUBLIC_API_URL.startsWith("http") &&
+  !process.env.NEXT_PUBLIC_API_URL.includes("localhost")
+    ? process.env.NEXT_PUBLIC_API_URL
+    : "https://intelligent-stock-control-plateform.onrender.com/api/v1";
 
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables.");
-}
 
 
 
