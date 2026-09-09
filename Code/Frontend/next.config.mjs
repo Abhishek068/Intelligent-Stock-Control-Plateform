@@ -5,6 +5,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/",
+        destination: "/login",
+        permanent: false,
+      },
+      {
         source: "/notification",
         destination: "/notifications",
         permanent: true,
@@ -14,4 +19,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
